@@ -91,6 +91,10 @@ export function HostClient() {
     if (res?.ok) toast(`${cat.emoji} ${cat.title} — liste prete`, 'ok');
   }
 
+  // Un seul chrono pour toute la page : le panneau de jeu et la barre de
+  // commande partagent la meme boucle d'animation.
+  const roundClock = useRoundClock(state);
+
   useKeyboardShortcuts(state, send);
 
   if (!state) {
@@ -169,7 +173,7 @@ export function HostClient() {
           <div className="col" style={{ gap: 18 }}>
             {inGame && state.round && (
               <LivePanel
-                state={state} blurred={blurred}
+                state={state} blurred={blurred} ratio={roundClock.ratio} answerLeft={roundClock.answerLeft}
                 onBlur={(v) => { setBlurred(v); store.set('refrain.host.blur', v); }}
               >
                 {playersCard}
@@ -215,7 +219,7 @@ export function HostClient() {
         </div>
       </div>
 
-      <Controls state={state} send={send} unlockAudio={player.unlock} />
+      <Controls state={state} send={send} unlockAudio={player.unlock} answerLeft={roundClock.answerLeft} />
     </>
   );
 }
@@ -278,10 +282,10 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
 /* Panneau de jeu                                                     */
 /* ------------------------------------------------------------------ */
 
-function LivePanel({ state, blurred, onBlur, children }: {
-  state: GameState; blurred: boolean; onBlur: (v: boolean) => void; children: React.ReactNode;
+function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
+  state: GameState; blurred: boolean; ratio: number; answerLeft: number;
+  onBlur: (v: boolean) => void; children: React.ReactNode;
 }) {
-  const { ratio } = useRoundClock(state);
   const round = state.round!;
   const track = round.track;
   const buzz = state.phase === 'buzzed' ? round.buzz : null;
@@ -306,6 +310,9 @@ function LivePanel({ state, blurred, onBlur, children }: {
             <div className={styles.nm}>{buzz.name}</div>
             <div className="muted" style={{ fontSize: 13 }}>a buzze — ecoute sa reponse puis tranche.</div>
           </div>
+          {round.answerDeadline && (
+            <span className={`${styles.clock} ${answerLeft <= 3 ? styles.urgent : ''}`}>{answerLeft}</span>
+          )}
         </div>
       )}
 
@@ -458,13 +465,21 @@ function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
   const sliders: { key: keyof Settings; label: string; min: number; max: number; format: (v: number) => string }[] = [
     { key: 'rounds', label: 'Nombre de manches', min: 3, max: 30, format: (v) => String(v) },
     { key: 'clip', label: "Duree d'ecoute", min: 5, max: 30, format: (v) => `${v} s` },
-    { key: 'speedBonus', label: 'Bonus de rapidite', min: 0, max: 6, format: (v) => String(v) },
+    // Le bonus de rapidite ne sert qu'en reponse libre, le delai de buzz qu'au buzzer.
+    ...(settings.mode === 'buzzer'
+      ? [
+          { key: 'buzzDelay' as const, label: 'Delai avant buzz', min: 0, max: 15, format: (v: number) => `${v} s` },
+          { key: 'buzzAnswerTime' as const, label: 'Temps pour repondre', min: 3, max: 30, format: (v: number) => `${v} s` },
+        ]
+      : [{ key: 'speedBonus' as const, label: 'Bonus de rapidite', min: 0, max: 6, format: (v: number) => String(v) }]),
     { key: 'revealDelay', label: "Temps d'affichage de la reponse", min: 4, max: 20, format: (v) => `${v} s` },
   ];
 
   const notes: Partial<Record<keyof Settings, string>> = {
     clip: 'Les extraits Deezer durent 30 s maximum.',
     speedBonus: 'Points supplementaires max, degressifs pendant l\'extrait.',
+    buzzDelay: 'Secondes d\'ecoute imposees avant d\'ouvrir le buzzer : evite le buzz reflexe des la premiere note.',
+    buzzAnswerTime: 'Passe ce delai sans arbitrage, la reponse est comptee ratee et la musique repart.',
   };
 
   return (
@@ -514,7 +529,9 @@ function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
 /* Barre de commande                                                  */
 /* ------------------------------------------------------------------ */
 
-function Controls({ state, send, unlockAudio }: { state: GameState; send: Send; unlockAudio: () => void }) {
+function Controls({ state, send, unlockAudio, answerLeft }: {
+  state: GameState; send: Send; unlockAudio: () => void; answerLeft: number;
+}) {
   let content: React.ReactNode;
 
   if (state.phase === 'lobby') {
@@ -540,6 +557,11 @@ function Controls({ state, send, unlockAudio }: { state: GameState; send: Send; 
         <div className="grow muted" style={{ fontSize: 13.5 }}>
           Reponse attendue : {state.round?.track?.title} — {state.round?.track?.artist}
         </div>
+        {state.round?.answerDeadline && (
+          <span className="pill" style={answerLeft <= 3 ? { color: '#ffc0c0', borderColor: 'rgba(251,93,93,.5)' } : undefined}>
+            ⏳ {answerLeft} s — sans arbitrage, la manche repart
+          </span>
+        )}
         <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>❌ Mauvaise reponse</button>
         <button className="btn good lg" data-testid="judge-good" onClick={() => send('host:judge', { ok: true })}>
           ✅ Bonne reponse (+{state.settings.buzzerPoints})

@@ -91,6 +91,14 @@
   transition: transform .1s var(--ease), filter .2s; animation: buzzIdle 2.4s ease-in-out infinite;
 }
 .buzzer:active { transform: scale(.93); }
+/* Buzzer encore ferme : visible mais inerte, avec le decompte au centre. */
+.buzzer.arming {
+  background: radial-gradient(circle at 35% 30%, #5a3550, #2a1830 65%);
+  box-shadow: inset 0 0 0 2px rgba(255,61,139,.25), inset 0 -8px 22px rgba(0,0,0,.5);
+  color: rgba(255,255,255,.55); animation: none; cursor: not-allowed;
+  font-variant-numeric: tabular-nums;
+}
+
 .buzzer:disabled {
   background: radial-gradient(circle at 35% 30%, #2a2740, #16142a 60%);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.07), inset 0 -8px 22px rgba(0,0,0,.5);
@@ -100,6 +108,11 @@
 @keyframes buzzIdle { 0%,100% { transform: scale(1) } 50% { transform: scale(1.035) } }
 .buzzState { text-align: center; }
 .buzzState .who { font-family: var(--display); font-size: 26px; display: block; border: 0; background: none; padding: 0; }
+.answerClock { display: inline-flex; align-items: baseline; gap: 7px; margin-top: 10px;
+  padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--stroke); }
+.answerClock b { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.answerClock.urgent { background: rgba(251,93,93,.14); border-color: rgba(251,93,93,.45); color: #ffc0c0; }
 
 .trackCard { display: flex; gap: 15px; align-items: center; padding: 15px; }
 .trackCard img { width: 82px; height: 82px; border-radius: 14px; flex: none; box-shadow: var(--shadow-2); }

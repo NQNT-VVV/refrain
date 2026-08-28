@@ -287,8 +287,8 @@ io.on('connection', (socket) => {
   socket.on('player:buzz', (payload, cb) => {
     const ref = asPlayer(socket);
     if (!ref) return fail(cb, 'Session joueur expiree.');
-    const accepted = game.buzz(ref.room, ref.player);
-    ok(cb, { accepted });
+    const result = game.buzz(ref.room, ref.player);
+    ok(cb, result);
   });
 
   socket.on('player:rename', ({ name } = {}, cb) => {

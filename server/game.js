@@ -21,6 +21,8 @@ const DEFAULT_SETTINGS = {
   pointsArtist: 3,
   speedBonus: 2,        // bonus max par champ, degressif dans le temps
   buzzerPoints: 5,
+  buzzDelay: 3,         // secondes d'ecoute imposees avant d'ouvrir le buzzer
+  buzzAnswerTime: 5,    // secondes laissees au buzzeur pour donner sa reponse
   revealDelay: 9,       // duree de l'ecran de reponse
   autoNext: true,
 };
@@ -205,6 +207,8 @@ class GameServer {
     if (patch.revealDelay !== undefined) s.revealDelay = clamp(Math.round(+patch.revealDelay || 0), 4, 30);
     if (patch.autoNext !== undefined) s.autoNext = !!patch.autoNext;
     if (patch.buzzerPoints !== undefined) s.buzzerPoints = clamp(Math.round(+patch.buzzerPoints || 0), 1, 20);
+  if (patch.buzzDelay !== undefined) s.buzzDelay = clamp(Math.round(+patch.buzzDelay || 0), 0, 15);
+  if (patch.buzzAnswerTime !== undefined) s.buzzAnswerTime = clamp(Math.round(+patch.buzzAnswerTime || 0), 3, 30);
     if (room.playlist) s.rounds = clamp(s.rounds, 3, room.playlist.tracks.length);
     return s;
   }
@@ -241,6 +245,7 @@ class GameServer {
       remainingMs: room.settings.clip * 1000,
       answers: new Map(),
       buzz: null,
+      answerDeadline: null,
       lockedOut: new Set(),
       results: null,
     };
@@ -339,24 +344,59 @@ class GameServer {
     });
   }
 
+  /** Instant a partir duquel le buzzer s'ouvre sur la manche en cours. */
+  buzzOpensAt(room) {
+    if (!room.round) return Infinity;
+    return room.round.startAt + room.settings.buzzDelay * 1000;
+  }
+
+  /**
+   * Prise du buzzer. Renvoie la raison d'un refus pour que le joueur sache
+   * pourquoi son appui n'a rien donne.
+   */
   buzz(room, player) {
-    if (room.phase !== 'playing' || room.settings.mode !== 'buzzer') return false;
-    if (room.round.buzz || room.round.lockedOut.has(player.id)) return false;
+    if (room.settings.mode !== 'buzzer' || !room.round) return { accepted: false, reason: 'closed' };
+    // « Deja pris » d'abord : c'est le refus le plus parlant, et la phase est
+    // deja passee a `buzzed` quand un second joueur appuie dans la foulee.
+    if (room.round.buzz) {
+      metrics.buzzRejected.inc({ reason: 'taken' });
+      return { accepted: false, reason: 'taken' };
+    }
+    if (room.phase !== 'playing') return { accepted: false, reason: 'closed' };
+    if (room.round.lockedOut.has(player.id)) {
+      metrics.buzzRejected.inc({ reason: 'locked_out' });
+      return { accepted: false, reason: 'locked_out' };
+    }
+
     const now = Date.now();
+    // Anti-reflexe : quelques secondes d'ecoute imposees avant d'autoriser le buzz.
+    if (now < this.buzzOpensAt(room)) {
+      metrics.buzzRejected.inc({ reason: 'too_early' });
+      return { accepted: false, reason: 'too_early' };
+    }
+
     room.round.buzz = { playerId: player.id, name: player.name, avatar: player.avatar, at: now };
     metrics.buzzesTotal.inc();
     room.round.remainingMs = Math.max(0, room.round.endAt - now);
     room.clearTimers();
     room.phase = 'buzzed';
     this.sendAudio(room, { action: 'pause' });
+
+    // Le buzzeur a un temps limite pour repondre : sans arbitrage de
+    // l'animateur, la manche repart plutot que de rester suspendue.
+    room.round.answerDeadline = now + room.settings.buzzAnswerTime * 1000;
+    room.after(room.settings.buzzAnswerTime * 1000, () => this.judge(room, { ok: false, timedOut: true }));
+
     this.broadcast(room);
-    return true;
+    return { accepted: true, reason: null };
   }
 
-  judge(room, { ok, points }) {
+  judge(room, { ok, points, timedOut = false }) {
     if (room.phase !== 'buzzed' || !room.round.buzz) return;
+    room.clearTimers();                       // annule le compte a rebours de reponse
+    room.round.answerDeadline = null;
     const player = room.players.get(room.round.buzz.playerId);
-    metrics.buzzVerdicts.inc({ verdict: ok ? 'good' : 'bad' });
+    metrics.buzzVerdicts.inc({ verdict: ok ? 'good' : timedOut ? 'timeout' : 'bad' });
     if (ok) {
       const gain = clamp(Math.round(+points || room.settings.buzzerPoints), 0, 50);
       if (player) { player.score += gain; player.lastGain = gain; }
@@ -491,8 +531,10 @@ class GameServer {
         startAt: room.round.startAt, endAt: room.round.endAt,
         durationMs: room.round.durationMs,
         buzz: room.round.buzz,
+        answerDeadline: room.round.answerDeadline,
         lockedOut: [...room.round.lockedOut],
         answeredCount: room.round.answers.size,
+        buzzOpensAt: this.buzzOpensAt(room),
         reason: room.round.reason || null,
       },
       serverNow: Date.now(),

@@ -16,6 +16,10 @@ export interface Settings {
   pointsArtist: number;
   speedBonus: number;
   buzzerPoints: number;
+  /** Secondes d'ecoute imposees avant que le buzzer s'ouvre. */
+  buzzDelay: number;
+  /** Secondes laissees au buzzeur pour donner sa reponse. */
+  buzzAnswerTime: number;
   revealDelay: number;
   autoNext: boolean;
 }
@@ -79,8 +83,12 @@ export interface RoundState {
   endAt: number;
   durationMs: number;
   buzz: Buzz | null;
+  /** Instant absolu ou le temps de reponse expire, ou null hors arbitrage. */
+  answerDeadline: number | null;
   lockedOut: string[];
   answeredCount: number;
+  /** Instant absolu ou le buzzer s'ouvre, en millisecondes. */
+  buzzOpensAt: number;
   reason: string | null;
   /** Present uniquement pour la regie, ou pour tous a la revelation. */
   track?: TrackCard;

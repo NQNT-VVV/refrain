@@ -33,6 +33,7 @@ const roundsFinished = counter('refrain_rounds_finished_total', 'Manches termine
 const answersTotal = counter('refrain_answers_total', 'Champs de reponse soumis en mode reponse libre.', ['field', 'result']);
 const buzzesTotal = counter('refrain_buzzes_total', 'Buzz enregistres.');
 const buzzVerdicts = counter('refrain_buzz_verdicts_total', 'Arbitrages de l\'animateur sur un buzz.', ['verdict']);
+const buzzRejected = counter('refrain_buzz_rejected_total', 'Appuis sur le buzzer refuses.', ['reason']);
 const pointsAwarded = counter('refrain_points_awarded_total', 'Points distribues aux joueurs.');
 const playlistSelections = counter('refrain_playlist_selections_total', 'Listes de morceaux selectionnees.', ['source', 'id']);
 const deezerRequests = counter('refrain_deezer_requests_total', 'Appels a l\'API Deezer.', ['outcome']);
@@ -141,7 +142,7 @@ function bind(gameServer, io) {
 module.exports = {
   registry, bind,
   roomsCreated, playersJoined, playersResumed, gamesStarted, gamesFinished,
-  roundsFinished, answersTotal, buzzesTotal, buzzVerdicts, pointsAwarded,
+  roundsFinished, answersTotal, buzzesTotal, buzzVerdicts, buzzRejected, pointsAwarded,
   playlistSelections, deezerRequests, deezerCache, previewRefresh,
   deezerDuration, catalogBuildDuration, answerLatency,
 };

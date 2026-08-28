@@ -42,7 +42,7 @@ data:
       ],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 1,
+      "version": 2,
       "refresh": "30s",
       "time": {
         "from": "now-6h",
@@ -648,7 +648,7 @@ data:
         {
           "type": "timeseries",
           "title": "Buzz et arbitrages",
-          "description": "Mode buzzer : appuis, puis verdicts de l'animateur.",
+          "description": "Mode buzzer : appuis pris, appuis refuses (trop tot, deja pris, joueur exclu) et verdicts de l'animateur — dont ceux tombes par expiration du temps de reponse.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -667,7 +667,7 @@ data:
                 "uid": "prometheus"
               },
               "expr": "sum(increase(refrain_buzzes_total{app=\"refrain\"}[$__rate_interval]))",
-              "legendFormat": "Buzz"
+              "legendFormat": "Buzz pris"
             },
             {
               "refId": "B",
@@ -675,8 +675,8 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum by (verdict) (increase(refrain_buzz_verdicts_total{app=\"refrain\"}[$__rate_interval]))",
-              "legendFormat": "Verdict {{verdict}}"
+              "expr": "sum by (reason) (increase(refrain_buzz_rejected_total{app=\"refrain\"}[$__rate_interval]))",
+              "legendFormat": "Refuse : {{reason}}"
             },
             {
               "refId": "C",
@@ -684,8 +684,8 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "sum(increase(refrain_points_awarded_total{app=\"refrain\"}[$__rate_interval]))",
-              "legendFormat": "Points distribues"
+              "expr": "sum by (verdict) (increase(refrain_buzz_verdicts_total{app=\"refrain\"}[$__rate_interval]))",
+              "legendFormat": "Verdict : {{verdict}}"
             }
           ],
           "fieldConfig": {
@@ -712,6 +712,55 @@ data:
               "mode": "multi",
               "sort": "desc"
             }
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Points distribues",
+          "description": "Sur la periode affichee.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 6,
+            "x": 12,
+            "y": 30
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "instant": true,
+              "expr": "sum(increase(refrain_points_awarded_total{app=\"refrain\"}[$__range]))"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "area",
+            "textMode": "auto"
           }
         },
         {

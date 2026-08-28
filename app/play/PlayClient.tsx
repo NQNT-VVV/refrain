@@ -139,7 +139,7 @@ function PlayScreen({ code, me, mine, rank, state, socket, connected }: {
   code: string; me: Me; mine: PlayerRow | null; rank: number;
   state: GameState; socket: Socket | null; connected: boolean;
 }) {
-  const { ratio, countdown } = useRoundClock(state);
+  const { ratio, countdown, buzzLock, answerLeft } = useRoundClock(state);
   const showTimer = state.phase === 'playing';
 
   return (
@@ -174,7 +174,7 @@ function PlayScreen({ code, me, mine, rank, state, socket, connected }: {
           <AnswerForm key={state.round!.index} state={state} me={me} mine={mine} socket={socket} />
         )}
         {(state.phase === 'playing' || state.phase === 'buzzed') && state.settings.mode === 'buzzer' && (
-          <Buzzer state={state} me={me} socket={socket} />
+          <Buzzer state={state} me={me} socket={socket} buzzLock={buzzLock} answerLeft={answerLeft} />
         )}
         {state.phase === 'reveal' && <Reveal state={state} me={me} />}
         {state.phase === 'scores' && <Scores state={state} me={me} />}
@@ -346,12 +346,18 @@ function LiveMini({ state, me }: { state: GameState; me: Me }) {
 
 /* ---------------- Buzzer ---------------- */
 
-function Buzzer({ state, me, socket }: { state: GameState; me: Me; socket: Socket | null }) {
+function Buzzer({ state, me, socket, buzzLock, answerLeft }: {
+  state: GameState; me: Me; socket: Socket | null; buzzLock: number; answerLeft: number;
+}) {
   const [pressed, setPressed] = useState(false);
   const buzz = state.round?.buzz ?? null;
   const lockedOut = state.round?.lockedOut.includes(me.playerId) ?? false;
   const isMine = buzz?.playerId === me.playerId;
   const buzzed = state.phase === 'buzzed';
+
+  // Le buzzer ne s'ouvre qu'apres quelques secondes d'ecoute : personne ne
+  // gagne une manche au reflexe sur le premier accord.
+  const arming = !buzzed && !lockedOut && buzzLock > 0;
 
   useEffect(() => { setPressed(false); }, [state.round?.index, buzzed]);
 
@@ -359,18 +365,37 @@ function Buzzer({ state, me, socket }: { state: GameState; me: Me; socket: Socke
     if (!socket) return;
     sfx.unlock();
     setPressed(true);
-    const res = await call<{ accepted: boolean }>(socket, 'player:buzz');
-    if (res.ok && res.accepted) { sfx.buzz(); navigator.vibrate?.([30, 40, 60]); }
-    else setPressed(false);
+    const res = await call<{ accepted: boolean; reason: string | null }>(socket, 'player:buzz');
+    if (res.ok && res.accepted) {
+      sfx.buzz();
+      navigator.vibrate?.([30, 40, 60]);
+      return;
+    }
+    setPressed(false);
+    if (!res.ok) return;
+    if (res.reason === 'too_early') {
+      sfx.bad();
+      navigator.vibrate?.(120);
+      toast('Trop tot ! Ecoute encore un peu.', 'err');
+    } else if (res.reason === 'taken') {
+      toast('Trop tard, quelqu\'un a ete plus rapide.', 'err');
+    }
   }
 
-  const label = buzzed ? (isMine ? 'A TOI !' : '…') : lockedOut ? 'BLOQUE' : 'BUZZ';
+  const label = buzzed
+    ? (isMine ? 'A TOI !' : '…')
+    : lockedOut ? 'BLOQUE'
+    : arming ? String(buzzLock)
+    : 'BUZZ';
 
   return (
     <section className={styles.panel}>
       <div className={styles.stageTitle} style={{ textAlign: 'center' }}>Manche {state.round!.index + 1}</div>
       <div className={styles.buzzZone}>
-        <button className={styles.buzzer} type="button" data-testid="buzz" onClick={press} disabled={buzzed || lockedOut || pressed}>
+        <button
+          className={`${styles.buzzer} ${arming ? styles.arming : ''}`} type="button" data-testid="buzz"
+          onClick={press} disabled={buzzed || lockedOut || pressed || arming}
+        >
           {label}
         </button>
       </div>
@@ -381,10 +406,19 @@ function Buzzer({ state, me, socket }: { state: GameState; me: Me; socket: Socke
             <p className="muted" style={{ marginTop: 6 }}>
               {isMine ? 'Annonce le titre et l\'artiste a voix haute.' : 'L\'animateur valide ou non sa reponse.'}
             </p>
+            {state.round?.answerDeadline && (
+              <div className={`${styles.answerClock} ${answerLeft <= 3 ? styles.urgent : ''}`}>
+                <b>{answerLeft}</b> <span>{isMine ? 'pour repondre' : 'restantes'}</span>
+              </div>
+            )}
           </>
         ) : (
           <p className="muted">
-            {lockedOut ? 'Tu as deja tente ta chance sur cette manche.' : 'Sois le premier a appuyer, puis annonce ta reponse a voix haute.'}
+            {lockedOut
+              ? 'Tu as deja tente ta chance sur cette manche.'
+              : arming
+                ? `Le buzzer s'ouvre dans ${buzzLock} s — ecoute d'abord.`
+                : 'Sois le premier a appuyer, puis annonce ta reponse a voix haute.'}
           </p>
         )}
       </div>

@@ -12,6 +12,10 @@ export interface RoundClock {
   seconds: number;
   /** Pendant le compte a rebours : 3, 2, 1 puis 0 pour « GO ». */
   countdown: number | null;
+  /** Secondes restantes avant l'ouverture du buzzer ; 0 des qu'il est ouvert. */
+  buzzLock: number;
+  /** Secondes restantes au buzzeur pour repondre ; 0 hors arbitrage. */
+  answerLeft: number;
 }
 
 /**
@@ -22,34 +26,39 @@ export interface RoundClock {
  * seconde, quelle que soit la derive de leur horloge locale.
  */
 export function useRoundClock(state: GameState | null): RoundClock {
-  const [tick, setTick] = useState<RoundClock>({ ratio: 1, seconds: 0, countdown: null });
+  const [tick, setTick] = useState<RoundClock>({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });
   const raf = useRef(0);
 
   const phase = state?.phase;
   const startAt = state?.round?.startAt;
   const endAt = state?.round?.endAt;
+  const buzzOpensAt = state?.round?.buzzOpensAt;
+  const answerDeadline = state?.round?.answerDeadline ?? null;
 
   useEffect(() => {
-    if (!startAt || !endAt || (phase !== 'playing' && phase !== 'countdown')) {
-      setTick({ ratio: 1, seconds: 0, countdown: null });
+    const live = phase === 'playing' || phase === 'countdown' || phase === 'buzzed';
+    if (!startAt || !endAt || !live) {
+      setTick({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });
       return;
     }
 
     const step = () => {
       const now = clock.now();
+      const buzzLock = buzzOpensAt ? Math.max(0, Math.ceil((buzzOpensAt - now) / 1000)) : 0;
+      const answerLeft = answerDeadline ? Math.max(0, Math.ceil((answerDeadline - now) / 1000)) : 0;
       if (phase === 'countdown') {
-        setTick({ ratio: 1, seconds: 0, countdown: Math.max(0, Math.ceil((startAt - now) / 1000)) });
+        setTick({ ratio: 1, seconds: 0, countdown: Math.max(0, Math.ceil((startAt - now) / 1000)), buzzLock, answerLeft });
       } else {
         const total = endAt - startAt;
         const ratio = Math.max(0, Math.min(1, (endAt - now) / total));
-        setTick({ ratio, seconds: Math.max(0, Math.ceil((endAt - now) / 1000)), countdown: null });
+        setTick({ ratio, seconds: Math.max(0, Math.ceil((endAt - now) / 1000)), countdown: null, buzzLock, answerLeft });
       }
       raf.current = requestAnimationFrame(step);
     };
 
     raf.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf.current);
-  }, [phase, startAt, endAt]);
+  }, [phase, startAt, endAt, buzzOpensAt, answerDeadline]);
 
   return tick;
 }

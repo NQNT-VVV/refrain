@@ -94,6 +94,13 @@ il repond a voix haute, et l'animateur tranche :
 - **❌ Mauvaise reponse** → la musique reprend exactement ou elle s'etait arretee,
   et ce joueur est bloque pour le reste de la manche.
 
+Deux garde-fous, tous deux reglables depuis la regie :
+
+| Reglage | Par defaut | A quoi ca sert |
+|---|---|---|
+| **Delai avant buzz** | 3 s | Le buzzer reste ferme au debut de l'extrait, avec un decompte visible sur le telephone et sur l'ecran. Sans ca, la manche se gagne au reflexe des la premiere note plutot qu'a la reconnaissance du morceau. |
+| **Temps pour repondre** | 5 s | Une fois le buzz pris, l'animateur a ce delai pour trancher. Passe ce temps **sans arbitrage, la reponse est comptee ratee** : la musique repart ou elle s'etait arretee, le buzzeur est bloque pour la manche, et les autres peuvent tenter leur chance. La partie ne reste jamais suspendue parce que quelqu'un a quitte la regie. |
+
 ---
 
 ## Listes de morceaux
@@ -285,7 +292,9 @@ Au-dela des metriques Node standard (`process_*`, `nodejs_*`), Refrain expose :
 | `refrain_rounds_finished_total{reason}` | Manches terminees : `timeout`, `complete`, `buzzer`, `host` |
 | `refrain_answers_total{field,result}` | Titres et artistes soumis, trouves ou rates |
 | `refrain_answer_latency_seconds{field}` | Rapidite des bonnes reponses dans l'extrait |
-| `refrain_buzzes_total`, `refrain_buzz_verdicts_total{verdict}` | Activite au buzzer et arbitrages |
+| `refrain_buzzes_total` | Buzz effectivement pris |
+| `refrain_buzz_rejected_total{reason}` | Appuis refuses : `too_early`, `taken`, `locked_out` |
+| `refrain_buzz_verdicts_total{verdict}` | Arbitrages : `good`, `bad`, `timeout` (expiration) |
 | `refrain_points_awarded_total` | Points distribues |
 | `refrain_playlist_selections_total{source,id}` | Listes reellement jouees |
 | `refrain_deezer_requests_total{outcome}` | Appels Deezer : `ok`, `quota`, `timeout`, `error` |

@@ -139,7 +139,7 @@ export function ScreenClient() {
 /* ------------------------------------------------------------------ */
 
 function Stage({ state, code }: { state: GameState; code: string }) {
-  const { ratio, seconds, countdown } = useRoundClock(state);
+  const { ratio, seconds, countdown, buzzLock, answerLeft } = useRoundClock(state);
   const inGame = ['countdown', 'playing', 'buzzed', 'reveal', 'scores'].includes(state.phase);
 
   return (
@@ -163,8 +163,8 @@ function Stage({ state, code }: { state: GameState; code: string }) {
       <div className={styles.stage}>
         {state.phase === 'lobby' && <Lobby state={state} code={code} />}
         {state.phase === 'countdown' && <Countdown value={countdown} round={state.round!.index + 1} />}
-        {state.phase === 'playing' && <Playing state={state} ratio={ratio} seconds={seconds} />}
-        {state.phase === 'buzzed' && <Buzzed state={state} />}
+        {state.phase === 'playing' && <Playing state={state} ratio={ratio} seconds={seconds} buzzLock={buzzLock} />}
+        {state.phase === 'buzzed' && <Buzzed state={state} answerLeft={answerLeft} />}
         {state.phase === 'reveal' && <Reveal state={state} />}
         {state.phase === 'scores' && <Scores state={state} />}
         {state.phase === 'ended' && <Ended state={state} />}
@@ -239,7 +239,9 @@ function Countdown({ value, round }: { value: number | null; round: number }) {
 
 /* ---------------- Ecoute ---------------- */
 
-function Playing({ state, ratio, seconds }: { state: GameState; ratio: number; seconds: number }) {
+function Playing({ state, ratio, seconds, buzzLock }: {
+  state: GameState; ratio: number; seconds: number; buzzLock: number;
+}) {
   const bars = useMemo(
     () => Array.from({ length: EQ_BARS }, (_, i) => ({
       delay: `${-((i * 0.13) % 1)}s`,
@@ -277,6 +279,10 @@ function Playing({ state, ratio, seconds }: { state: GameState; ratio: number; s
             <i key={i} style={{ animationDelay: b.delay, animationDuration: b.duration }} />
           ))}
         </div>
+
+        {state.settings.mode === 'buzzer' && buzzLock > 0 && (
+          <div className={styles.buzzGate}>🔒 Buzzer dans <b>{buzzLock}</b></div>
+        )}
       </div>
 
       <aside className={styles.side}>
@@ -305,14 +311,23 @@ function Playing({ state, ratio, seconds }: { state: GameState; ratio: number; s
 
 /* ---------------- Buzz ---------------- */
 
-function Buzzed({ state }: { state: GameState }) {
+function Buzzed({ state, answerLeft }: { state: GameState; answerLeft: number }) {
   const buzz = state.round?.buzz ?? null;
   useEffect(() => { sfx.unlock(); sfx.buzz(); }, []);
+  useEffect(() => {
+    if (answerLeft > 0 && answerLeft <= 3) { sfx.unlock(); sfx.tick(); }
+  }, [answerLeft]);
+
   return (
     <section className={`${styles.scene} ${styles.buzzed}`}>
       <div className={styles.buzzAv}>{buzz?.avatar ?? '🔔'}</div>
       <div className={styles.buzzName}>{buzz?.name ?? '—'}</div>
       <div className={styles.buzzSub}>a buzze — la reponse, vite !</div>
+      {state.round?.answerDeadline && (
+        <div className={`${styles.answerClock} ${answerLeft <= 3 ? styles.urgent : ''}`}>
+          <b>{answerLeft}</b> <span>seconde{answerLeft > 1 ? 's' : ''} pour repondre</span>
+        </div>
+      )}
     </section>
   );
 }

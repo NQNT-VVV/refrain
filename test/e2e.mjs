@@ -30,8 +30,15 @@ async function run(mode) {
   const pl = await call(host, 'host:playlist', { type: 'catalog', id: 'rock' });
   check('playlist chargee', pl.ok && pl.playlist.total > 10, pl.ok ? `${pl.playlist.total} titres` : pl.error);
 
-  const st = await call(host, 'host:settings', { mode, rounds: 3, clip: 5, revealDelay: 2, speedBonus: 2 });
-  check('reglages appliques', st.ok && st.settings.rounds === 3 && st.settings.clip === 5);
+  // Le mode buzzer a besoin d'un extrait plus long : le buzzer reste ferme
+  // les premieres secondes, il faut de la marge pour jouer la manche apres.
+  const clip = mode === 'buzzer' ? 12 : 5;
+  const st = await call(host, 'host:settings', {
+    mode, rounds: 3, clip, revealDelay: 2, speedBonus: 2, buzzDelay: 2, buzzAnswerTime: 3,
+  });
+  check('reglages appliques',
+    st.ok && st.settings.rounds === 3 && st.settings.clip === clip
+    && st.settings.buzzDelay === 2 && st.settings.buzzAnswerTime === 3);
 
   const players = [];
   for (const name of ['Alice', 'Bob', 'Alice']) {
@@ -76,20 +83,38 @@ async function run(mode) {
     check('Alice 2 (muette) a 0', alice2.gained === 0);
     check('le titre est revele a l\'ecran', screenState?.round?.track?.title === track.title);
   } else {
+    check('l\'ouverture du buzzer est annoncee dans l\'etat',
+      typeof hostState.round.buzzOpensAt === 'number' && hostState.round.buzzOpensAt > hostState.round.startAt);
+
+    const tooEarly = await call(players[1].s, 'player:buzz');
+    check('buzz refuse avant l\'ouverture', tooEarly.ok && !tooEarly.accepted && tooEarly.reason === 'too_early', tooEarly.reason);
+
+    await sleep(2300);
     const buzz = await call(players[1].s, 'player:buzz');
-    check('buzz accepte', buzz.ok && buzz.accepted);
+    check('buzz accepte apres le delai', buzz.ok && buzz.accepted, buzz.reason || '');
     await sleep(200);
     check('etat = buzzed', hostState?.phase === 'buzzed', hostState?.phase);
     check('musique mise en pause', audioCues.at(-1)?.action === 'pause');
+    check('echeance de reponse annoncee', typeof hostState.round.answerDeadline === 'number');
     const late = await call(players[0].s, 'player:buzz');
-    check('second buzz refuse', late.ok && !late.accepted);
+    check('second buzz refuse', late.ok && !late.accepted && late.reason === 'taken', late.reason);
 
+    // Sans arbitrage de l'animateur, la manche doit repartir d'elle-meme
+    await sleep(3400);
+    check('reprise automatique apres expiration', hostState?.phase === 'playing', hostState?.phase);
+    check('musique relancee apres expiration', audioCues.at(-1)?.action === 'resume');
+    check('echeance effacee', hostState.round.answerDeadline === null);
+    const timedOut = await call(players[1].s, 'player:buzz');
+    check('buzzeur expire exclu de la manche', timedOut.ok && !timedOut.accepted && timedOut.reason === 'locked_out', timedOut.reason);
+
+    // Refus explicite de l'animateur
+    const second = await call(players[2].s, 'player:buzz');
+    check('un autre joueur peut buzzer', second.ok && second.accepted, second.reason || '');
+    await sleep(150);
     await call(host, 'host:judge', { ok: false });
     await sleep(200);
     check('reprise apres mauvaise reponse', hostState?.phase === 'playing', hostState?.phase);
     check('musique relancee', audioCues.at(-1)?.action === 'resume');
-    const relock = await call(players[1].s, 'player:buzz');
-    check('joueur elimine ne peut plus buzzer', relock.ok && !relock.accepted);
 
     await call(players[0].s, 'player:buzz');
     await sleep(150);
@@ -108,7 +133,9 @@ async function run(mode) {
       await call(players[0].s, 'player:answer', { title: t.title, artist: t.artist });
     }
     if (hostState?.phase === 'buzzed') await call(host, 'host:judge', { ok: true });
-    if (hostState?.phase === 'playing' && mode === 'buzzer') { await call(players[0].s, 'player:buzz'); }
+    if (hostState?.phase === 'playing' && mode === 'buzzer' && Date.now() >= hostState.round.buzzOpensAt) {
+      await call(players[0].s, 'player:buzz');
+    }
     await sleep(400);
   }
   check('partie terminee', hostState?.phase === 'ended', hostState?.phase);
