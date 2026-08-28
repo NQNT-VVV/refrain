@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Refrain — Regie</title>
+<meta name="theme-color" content="#07060e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎛️%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  .shell { max-width: 1320px; margin: 0 auto; padding: 20px 20px 90px; }
+
+  .bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .bar .brand { font-family: var(--display); font-size: 20px; display: flex; align-items: center; gap: 9px; }
+  .bar .spacer { flex: 1; }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 940px) { .grid { grid-template-columns: 1fr; } .sticky { position: static !important; } }
+  .sticky { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* --- Salon ---------------------------------------------------- */
+  .room-code { display: flex; align-items: center; gap: 14px; }
+  .room-code .big { font-family: var(--display); font-size: 46px; letter-spacing: .16em; line-height: 1;
+    background: linear-gradient(135deg, #fff, #c4b5fd 45%, #67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .qr-mini { background: #fff; border-radius: 12px; padding: 7px; width: 92px; height: 92px; flex: none; }
+  .qr-mini svg { width: 100%; height: 100%; display: block; }
+  .link-row { display: flex; gap: 7px; align-items: center; }
+  .link-row code { flex: 1; min-width: 0; font-size: 12px; padding: 8px 11px; border-radius: 10px; background: rgba(0,0,0,.32); border: 1px solid var(--stroke); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* --- Joueurs -------------------------------------------------- */
+  .plist { display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow: auto; padding-right: 3px; }
+  .plist.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); max-height: none; }
+  #slotLive { margin-top: 4px; }
+  #playersCard.bare { background: transparent; border: 0; box-shadow: none; padding: 0; backdrop-filter: none; }
+  #toasts { bottom: 88px; }
+  .pcard { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 13px; background: var(--surface); border: 1px solid var(--stroke); }
+  .pcard.off { opacity: .42; }
+  .pcard.done { border-color: rgba(52,211,153,.42); background: rgba(52,211,153,.11); }
+  .pcard.part { border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.09); }
+  .pcard .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; }
+  .pcard .guess { font-size: 11.5px; color: var(--muted); }
+  .pcard .sc { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pcard .tools { display: flex; gap: 3px; opacity: 0; transition: opacity .2s; }
+  .pcard:hover .tools, .pcard:focus-within .tools { opacity: 1; }
+  @media (hover: none) { .pcard .tools { opacity: 1; } }
+
+  /* --- Onglets -------------------------------------------------- */
+  .tabs { display: flex; gap: 5px; padding: 4px; background: rgba(0,0,0,.3); border: 1px solid var(--stroke); border-radius: 999px; width: fit-content; max-width: 100%; overflow: auto; }
+  .tabs button { border: 0; background: transparent; color: var(--muted); padding: 9px 17px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap; transition: background .18s, color .18s; }
+  .tabs button[aria-selected="true"] { background: var(--surface-3); color: var(--text); }
+  .tabpanel { display: none; }
+  .tabpanel.on { display: block; animation: fadeIn .3s var(--ease); }
+
+  /* --- Catalogue ------------------------------------------------ */
+  .cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(198px, 1fr)); gap: 11px; }
+  .cat {
+    position: relative; text-align: left; cursor: pointer; padding: 15px; border-radius: var(--r-md);
+    background: var(--surface); border: 1px solid var(--stroke); color: inherit;
+    transition: transform .2s var(--ease), border-color .2s, background .2s;
+    display: flex; flex-direction: column; gap: 5px; overflow: hidden;
+  }
+  .cat::before { content: ''; position: absolute; inset: -40% -40% auto auto; width: 110px; height: 110px; border-radius: 50%; background: var(--c, var(--violet)); filter: blur(38px); opacity: .32; transition: opacity .25s; }
+  .cat:hover { transform: translateY(-2px); border-color: var(--stroke-strong); }
+  .cat:hover::before { opacity: .5; }
+  .cat[aria-pressed="true"] { border-color: var(--c, var(--violet)); background: var(--surface-2); box-shadow: 0 0 0 1px var(--c, var(--violet)); }
+  .cat .em { font-size: 26px; }
+  .cat .t { font-family: var(--display); font-size: 15.5px; position: relative; }
+  .cat .s { font-size: 12px; color: var(--muted); line-height: 1.45; position: relative; }
+  .cat .check { position: absolute; top: 12px; right: 12px; opacity: 0; transition: opacity .2s; }
+  .cat[aria-pressed="true"] .check { opacity: 1; }
+
+  /* --- Recherche ------------------------------------------------ */
+  .results { display: flex; flex-direction: column; gap: 6px; max-height: 44vh; overflow: auto; margin-top: 12px; }
+  .tres { display: flex; align-items: center; gap: 11px; padding: 7px 9px; border-radius: 12px; background: var(--surface); border: 1px solid var(--stroke); }
+  .tres img { width: 42px; height: 42px; border-radius: 9px; flex: none; }
+  .tres .t { font-size: 13.5px; font-weight: 600; }
+  .tres .a { font-size: 12px; color: var(--muted); }
+  .picked { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .picked .p { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: rgba(251,191,36,.13); border: 1px solid rgba(251,191,36,.35); font-size: 12.5px; }
+  .picked .p button { border: 0; background: transparent; color: inherit; cursor: pointer; opacity: .6; padding: 0 2px; }
+  .picked .p button:hover { opacity: 1; }
+
+  /* --- Reglages ------------------------------------------------- */
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .setting { display: flex; flex-direction: column; gap: 7px; }
+  .setting .lab { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .setting .lab b { font-family: var(--display); color: var(--text); font-size: 14px; }
+  .setting .note { font-size: 11.5px; color: var(--faint); line-height: 1.45; }
+
+  /* --- Live ----------------------------------------------------- */
+  .now-playing { display: flex; gap: 16px; align-items: center; }
+  .now-playing img { width: 92px; height: 92px; border-radius: 15px; flex: none; box-shadow: var(--shadow-2); }
+  .now-playing .t { font-family: var(--display); font-size: 21px; line-height: 1.2; }
+  .now-playing .a { color: #c4b5fd; font-weight: 600; font-size: 15px; }
+  .secret { position: relative; }
+  .secret.blur .hideable { filter: blur(9px); user-select: none; }
+  .live-timer { height: 6px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 12px; }
+  .live-timer i { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); transform-origin: left; }
+
+  .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(7,6,14,.97) 60%, transparent); }
+  .controls .inner { max-width: 1320px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .buzz-alert { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: var(--r-md);
+    background: linear-gradient(120deg, rgba(255,61,139,.22), rgba(139,92,246,.14)); border: 1px solid rgba(255,61,139,.45); animation: popIn .35s var(--ease); }
+  .buzz-alert .av { font-size: 38px; }
+  .buzz-alert .nm { font-family: var(--display); font-size: 24px; }
+
+  .upnext { display: flex; flex-direction: column; gap: 5px; }
+  .upnext .u { font-size: 12.5px; color: var(--faint); display: flex; gap: 7px; }
+  .upnext .u b { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="bar">
+    <div class="brand">🎛️ <span>Regie</span></div>
+    <span class="pill" id="phasePill">Salon</span>
+    <div class="spacer"></div>
+    <span class="pill" id="screenPill">📺 aucun ecran</span>
+    <a class="btn sm" id="openScreen" target="_blank" rel="noopener">Ouvrir l'ecran ↗</a>
+  </div>
+
+  <div class="grid">
+    <!-- Colonne gauche -->
+    <div class="sticky">
+      <section class="card pad col" style="gap:14px">
+        <div class="section-title">Salon</div>
+        <div class="room-code">
+          <div class="grow">
+            <div class="big" id="code">····</div>
+            <div class="muted" style="font-size:12.5px;margin-top:4px" id="joinHint">—</div>
+          </div>
+          <div class="qr-mini" id="qrMini"></div>
+        </div>
+        <div class="link-row">
+          <code id="joinLink">—</code>
+          <button class="btn icon" id="copyJoin" title="Copier le lien joueur">🔗</button>
+        </div>
+        <div class="col" style="gap:7px">
+          <div class="lab section-title" style="font-size:11px">Sortie du son</div>
+          <div class="seg" role="group" aria-label="Sortie du son">
+            <button type="button" data-target="screen" aria-pressed="true">📺 Ecran</button>
+            <button type="button" data-target="host" aria-pressed="false">💻 Ici</button>
+          </div>
+          <p class="faint" style="font-size:11.5px">« Ici » joue la musique depuis cette page — pratique si tu n'as pas d'ecran separe.</p>
+        </div>
+      </section>
+
+      <div id="slotLobby"></div>
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="col" style="gap:18px">
+
+      <!-- En jeu -->
+      <section class="card pad col hidden" id="livePanel" style="gap:14px">
+        <div class="row">
+          <div class="section-title grow">Manche <span id="liveRound">1</span> / <span id="liveTotal">10</span></div>
+          <label class="switch" title="Masquer la reponse pour ne pas spoiler ton entourage">
+            <input type="checkbox" id="blurToggle"><span class="track"></span>
+            <span style="font-size:12.5px;color:var(--muted)">Masquer</span>
+          </label>
+        </div>
+
+        <div id="buzzAlert"></div>
+
+        <div class="secret" id="secret">
+          <div class="now-playing">
+            <img id="npCover" class="hideable" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+            <div class="grow">
+              <div class="t hideable" id="npTitle">—</div>
+              <div class="a hideable" id="npArtist">—</div>
+              <div class="faint hideable" id="npAlbum" style="font-size:12.5px;margin-top:3px"></div>
+            </div>
+          </div>
+          <div class="live-timer"><i id="liveFill"></i></div>
+          <div class="upnext hideable" id="upnext"></div>
+        </div>
+
+        <div id="slotLive"></div>
+      </section>
+
+      <!-- Preparation -->
+      <section class="card pad col" id="setupPanel" style="gap:16px">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" data-tab="tCat">🎧 Listes pretes</button>
+          <button role="tab" aria-selected="false" data-tab="tSearch">🔎 Ma selection</button>
+          <button role="tab" aria-selected="false" data-tab="tDz">📥 Playlist Deezer</button>
+        </div>
+
+        <div class="tabpanel on" id="tCat">
+          <div class="cats" id="cats"></div>
+        </div>
+
+        <div class="tabpanel" id="tSearch">
+          <div class="row">
+            <input class="input grow" id="q" placeholder="Chercher un titre ou un artiste…" autocomplete="off">
+            <button class="btn" id="qBtn">Chercher</button>
+          </div>
+          <div class="results" id="results"></div>
+          <div class="row" style="margin-top:14px">
+            <div class="section-title grow">Ma selection <span class="pill" id="pickCount">0</span></div>
+            <button class="btn xs danger" id="clearPick">Vider</button>
+            <button class="btn xs primary" id="usePick">Utiliser cette liste</button>
+          </div>
+          <div class="picked" id="picked"></div>
+        </div>
+
+        <div class="tabpanel" id="tDz">
+          <p class="muted" style="font-size:13.5px;margin-bottom:12px">Colle l'adresse d'une playlist Deezer publique (ou juste son numero).</p>
+          <div class="row">
+            <input class="input grow" id="dzUrl" placeholder="https://www.deezer.com/fr/playlist/1234567890" autocomplete="off">
+            <button class="btn" id="dzBtn">Importer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reglages -->
+      <section class="card pad col" id="settingsPanel" style="gap:16px">
+        <div class="section-title">Reglages</div>
+        <div class="settings">
+          <div class="setting">
+            <div class="lab"><b>Mode de jeu</b></div>
+            <div class="seg" id="modeSeg" role="group">
+              <button type="button" data-mode="input" aria-pressed="true">⌨️ Reponse libre</button>
+              <button type="button" data-mode="buzzer" aria-pressed="false">🔔 Buzzer</button>
+            </div>
+            <p class="note" id="modeNote">Tout le monde tape titre + artiste. Correction automatique, bonus de rapidite.</p>
+          </div>
+
+          <div class="setting">
+            <div class="lab"><span>Nombre de manches</span><b id="roundsVal">12</b></div>
+            <input type="range" id="rounds" min="3" max="30" value="12">
+          </div>
+
+          <div class="setting">
+            <div class="lab"><span>Duree d'ecoute</span><b id="clipVal">25 s</b></div>
+            <input type="range" id="clip" min="5" max="30" value="25">
+            <p class="note">Les extraits Deezer durent 30 s maximum.</p>
+          </div>
+
+          <div class="setting">
+            <div class="lab"><span>Bonus de rapidite</span><b id="bonusVal">2</b></div>
+            <input type="range" id="bonus" min="0" max="6" value="2">
+            <p class="note">Points supplementaires max, degressifs pendant l'extrait.</p>
+          </div>
+
+          <div class="setting">
+            <div class="lab"><span>Temps d'affichage de la reponse</span><b id="revealVal">9 s</b></div>
+            <input type="range" id="reveal" min="4" max="20" value="9">
+          </div>
+
+          <div class="setting">
+            <div class="lab"><b>Options</b></div>
+            <label class="switch"><input type="checkbox" id="guessArtist" checked><span class="track"></span><span style="font-size:13.5px">Demander aussi l'artiste</span></label>
+            <label class="switch"><input type="checkbox" id="autoNext" checked><span class="track"></span><span style="font-size:13.5px">Enchainer les manches tout seul</span></label>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<section class="card pad col" id="playersCard" style="gap:12px">
+  <div class="section-title">Joueurs <span class="pill" id="pCount">0</span></div>
+  <div class="plist" id="players"></div>
+  <p class="faint" id="noPlayers" style="font-size:12.5px">Personne pour l'instant. Fais scanner le QR code.</p>
+</section>
+
+<div class="controls">
+  <div class="inner" id="controls"></div>
+</div>
+
+<audio id="hostAudio" preload="auto"></audio>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="/js/host.js"></script>
+</body>
+</html>

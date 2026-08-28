@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Refrain — Joueur</title>
+<meta name="theme-color" content="#07060e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎧%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  body { overscroll-behavior-y: contain; }
+  /* En bas de l'ecran il y a le clavier et le tableau de bord : on remonte les notifications. */
+  #toasts { top: calc(env(safe-area-inset-top) + 84px); bottom: auto; }
+  .app {
+    min-height: 100dvh; display: flex; flex-direction: column;
+    max-width: 520px; margin: 0 auto; width: 100%;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+
+  /* --- Barre du haut ------------------------------------------------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    padding: 12px 16px 0;
+    background: linear-gradient(to bottom, rgba(7,6,14,.94) 65%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .topbar .line { display: flex; align-items: center; gap: 10px; }
+  .me { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .me .name { font-weight: 600; font-size: 14.5px; }
+  .score-chip {
+    margin-left: auto; display: flex; align-items: baseline; gap: 5px;
+    font-family: var(--display); font-weight: 700;
+    padding: 6px 13px; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(139,92,246,.28), rgba(34,211,238,.2));
+    border: 1px solid var(--stroke-strong);
+  }
+  .score-chip .val { font-size: 18px; }
+  .score-chip .unit { font-size: 11px; color: var(--muted); }
+  .rank-chip { font-size: 12px; }
+
+  .timer { height: 4px; border-radius: 99px; background: rgba(255,255,255,.09); overflow: hidden; margin-top: 11px; }
+  .timer i { display: block; height: 100%; width: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--cyan), var(--violet)); transform-origin: left; }
+  .timer.warn i { background: linear-gradient(90deg, var(--amber), var(--pink)); }
+
+  /* --- Corps --------------------------------------------------------- */
+  main { flex: 1; display: flex; flex-direction: column; padding: 16px; gap: 16px; }
+  .panel { display: none; flex-direction: column; gap: 16px; flex: 1; animation: fadeIn .35s var(--ease); }
+  .panel.on { display: flex; }
+
+  .stage-title { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  .big { font-family: var(--display); font-size: clamp(26px, 8vw, 36px); line-height: 1.1; }
+
+  /* Connexion */
+  .hello { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+  .hello .logo { font-size: 46px; text-align: center; }
+  .avatar-pick { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .avatar-pick button { width: 46px; height: 46px; border-radius: 14px; font-size: 23px; background: var(--surface); border: 1px solid var(--stroke); cursor: pointer; transition: transform .16s var(--ease), border-color .16s; }
+  .avatar-pick button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-3); transform: scale(1.08); }
+
+  /* Salon d'attente */
+  .waiting { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; }
+  .pulse-ring { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-size: 40px;
+    background: radial-gradient(circle, rgba(139,92,246,.3), transparent 70%);
+    animation: breathe 2.6s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity: .85 } 50% { transform: scale(1.09); opacity: 1 } }
+  .roster { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+  .roster .who { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: var(--surface); border: 1px solid var(--stroke); font-size: 13px; }
+  .roster .who.off { opacity: .4; }
+  .roster .who.self { border-color: var(--accent); background: rgba(139,92,246,.16); }
+
+  /* Compte a rebours */
+  .countdown { flex: 1; display: grid; place-items: center; }
+  .countdown .n { font-family: var(--display); font-size: 30vw; line-height: 1; background: linear-gradient(160deg,#fff,#a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; animation: cdPop .9s var(--ease); }
+  @keyframes cdPop { from { transform: scale(1.5); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
+  /* Reponse libre */
+  .answer-head { display: flex; align-items: center; gap: 12px; }
+  .wave { display: flex; align-items: flex-end; gap: 3px; height: 28px; }
+  .wave i { width: 4px; border-radius: 2px; background: linear-gradient(180deg, var(--cyan), var(--violet)); animation: eq .9s ease-in-out infinite; }
+  .wave i:nth-child(1){ animation-delay:-.6s } .wave i:nth-child(2){ animation-delay:-.35s }
+  .wave i:nth-child(3){ animation-delay:-.15s } .wave i:nth-child(4){ animation-delay:-.5s } .wave i:nth-child(5){ animation-delay:-.25s }
+  @keyframes eq { 0%,100% { height: 20% } 50% { height: 100% } }
+
+  .guess { position: relative; }
+  .guess .flag { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); font-size: 17px; opacity: 0; transition: opacity .25s; }
+  .guess.found .flag { opacity: 1; }
+  .guess.found .input { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.55); color: #b6f7de; font-weight: 600; }
+  .hint { font-size: 12.5px; color: var(--faint); }
+
+  /* Qui a deja trouve : remplit le bas de l'ecran et met la pression */
+  .live-mini { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .live-mini .head { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); font-weight: 700; margin-bottom: 2px; }
+  .live-mini .lm { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--stroke); font-size: 13.5px; transition: background .3s, border-color .3s; }
+  .live-mini .lm .nm { flex: 1; min-width: 0; font-weight: 600; }
+  .live-mini .lm .mk { font-size: 13px; letter-spacing: 1px; }
+  .live-mini .lm .sc { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .live-mini .lm.done { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.38); }
+  .live-mini .lm.part { background: rgba(251,191,36,.10); border-color: rgba(251,191,36,.3); }
+  .live-mini .lm.self { box-shadow: inset 0 0 0 1px var(--accent); }
+
+  /* Buzzer */
+  .buzz-zone { flex: 1; display: grid; place-items: center; padding: 10px 0; }
+  .buzzer {
+    width: min(74vw, 280px); aspect-ratio: 1; border-radius: 50%; border: 0; cursor: pointer;
+    font-family: var(--display); font-size: clamp(28px, 8vw, 40px); font-weight: 700; color: #fff;
+    background: radial-gradient(circle at 35% 30%, #ff7aa8, var(--pink) 45%, #b3125a);
+    box-shadow: 0 22px 60px -14px rgba(255,61,139,.85), inset 0 -10px 26px rgba(0,0,0,.35), inset 0 8px 20px rgba(255,255,255,.28);
+    transition: transform .1s var(--ease), filter .2s;
+    animation: buzzIdle 2.4s ease-in-out infinite;
+  }
+  .buzzer:active { transform: scale(.93); }
+  .buzzer:disabled {
+    background: radial-gradient(circle at 35% 30%, #2a2740, #16142a 60%);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.07), inset 0 -8px 22px rgba(0,0,0,.5);
+    color: var(--faint); font-size: clamp(18px, 5vw, 24px); letter-spacing: .1em;
+    animation: none; cursor: not-allowed;
+  }
+  @keyframes buzzIdle { 0%,100% { transform: scale(1) } 50% { transform: scale(1.035) } }
+
+  .buzz-state { text-align: center; }
+  .buzz-state .who { font-family: var(--display); font-size: 26px; }
+
+  /* Reveal */
+  .track-card { display: flex; gap: 15px; align-items: center; padding: 15px; }
+  .track-card img { width: 82px; height: 82px; border-radius: 14px; flex: none; box-shadow: var(--shadow-2); }
+  .track-card .t { font-family: var(--display); font-size: 18px; line-height: 1.25; }
+  .track-card .a { color: var(--muted); font-size: 14px; }
+
+  .verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .verdict .v { padding: 13px; border-radius: var(--r-md); border: 1px solid var(--stroke); background: var(--surface); text-align: center; }
+  .verdict .v b { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin-bottom: 5px; }
+  .verdict .v span { font-size: 22px; }
+  .verdict .v.yes { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.4); }
+  .verdict .v.no { background: rgba(251,93,93,.10); border-color: rgba(251,93,93,.3); }
+
+  .gain { text-align: center; font-family: var(--display); font-size: 42px; }
+  .gain.plus { color: var(--green); }
+  .gain.zero { color: var(--faint); }
+
+  /* Classement */
+  .board { display: flex; flex-direction: column; gap: 7px; }
+  .board .r { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: 14px; background: var(--surface); border: 1px solid var(--stroke); transition: transform .3s var(--ease); }
+  .board .r.self { border-color: var(--accent); background: rgba(139,92,246,.15); }
+  .board .r .pos { font-family: var(--display); font-weight: 700; width: 24px; color: var(--faint); text-align: center; }
+  .board .r.top1 .pos { color: var(--amber); } .board .r.top2 .pos { color: #cbd5e1; } .board .r.top3 .pos { color: #d69f6a; }
+  .board .r .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 14.5px; }
+  .board .r .sc { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .board .r .delta { font-size: 12px; color: var(--green); font-weight: 700; }
+
+  /* Fin */
+  .final { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; text-align: center; }
+  .final .medal { font-size: 66px; }
+  .final .pos { font-family: var(--display); font-size: 40px; }
+
+  footer.actions { padding: 0 16px 18px; display: flex; flex-direction: column; gap: 9px; }
+  .conn-lost { position: fixed; inset: 0; z-index: 99; background: rgba(7,6,14,.88); backdrop-filter: blur(6px); display: none; place-items: center; text-align: center; padding: 24px; }
+  .conn-lost.on { display: grid; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar" id="topbar" hidden>
+    <div class="line">
+      <div class="me">
+        <span class="avatar" id="myAvatar">🎧</span>
+        <div>
+          <div class="name" id="myName">—</div>
+          <div class="rank-chip faint" id="myRank">En attente</div>
+        </div>
+      </div>
+      <div class="score-chip"><span class="val tnum" id="myScore">0</span><span class="unit">pts</span></div>
+    </div>
+    <div class="timer" id="timer" hidden><i id="timerFill"></i></div>
+  </div>
+
+  <main>
+    <!-- 1. Connexion -->
+    <section class="panel on" id="pJoin">
+      <form class="hello" id="joinForm">
+        <div class="logo">🎧</div>
+        <div style="text-align:center">
+          <h1 class="big">Rejoindre la partie</h1>
+          <p class="muted" style="font-size:14px;margin-top:6px">Partie <b class="code-chip" id="codeLabel">····</b></p>
+        </div>
+        <div class="field">
+          <label for="pseudo">Ton pseudo</label>
+          <input class="input" id="pseudo" maxlength="18" placeholder="Ex. Camille" autocomplete="nickname" enterkeyhint="go">
+        </div>
+        <button class="btn primary lg block" type="submit" id="joinBtn">Entrer dans la partie</button>
+        <p class="hint" style="text-align:center">Le son sort sur l'ecran de l'animateur — garde ton telephone pour repondre.</p>
+      </form>
+    </section>
+
+    <!-- 2. Salon -->
+    <section class="panel" id="pLobby">
+      <div class="waiting">
+        <div class="pulse-ring">🎶</div>
+        <div>
+          <h2 class="big">Tu es dans la place</h2>
+          <p class="muted" style="margin-top:6px">L'animateur lance la partie quand tout le monde est la.</p>
+        </div>
+        <div class="roster" id="roster"></div>
+      </div>
+    </section>
+
+    <!-- 3. Compte a rebours -->
+    <section class="panel" id="pCountdown">
+      <div class="countdown"><div class="n" id="cdNumber">3</div></div>
+      <p class="muted" style="text-align:center">Manche <b id="cdRound">1</b> — prepare-toi</p>
+    </section>
+
+    <!-- 4a. Reponse libre -->
+    <section class="panel" id="pInput">
+      <div class="answer-head">
+        <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="grow">
+          <div class="stage-title">Manche <span id="inRound">1</span></div>
+          <div style="font-family:var(--display);font-size:17px">C'est quoi ce morceau ?</div>
+        </div>
+      </div>
+
+      <form class="col" id="answerForm" style="gap:12px">
+        <div class="field guess" id="gTitle">
+          <label for="fTitle">Titre</label>
+          <input class="input" id="fTitle" placeholder="Le titre du morceau" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send">
+          <span class="flag">✅</span>
+        </div>
+        <div class="field guess" id="gArtist">
+          <label for="fArtist">Artiste</label>
+          <input class="input" id="fArtist" placeholder="Qui chante ?" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="send">
+          <span class="flag">✅</span>
+        </div>
+        <button class="btn primary lg block" type="submit" id="sendBtn">Valider ma reponse</button>
+        <p class="hint" id="answerHint">Tu peux corriger et revalider autant que tu veux : plus tu trouves tot, plus tu marques.</p>
+      </form>
+      <div class="live-mini" id="liveMini"></div>
+    </section>
+
+    <!-- 4b. Buzzer -->
+    <section class="panel" id="pBuzzer">
+      <div class="stage-title" style="text-align:center">Manche <span id="bzRound">1</span></div>
+      <div class="buzz-zone"><button class="buzzer" id="buzzBtn" type="button">BUZZ</button></div>
+      <div class="buzz-state" id="buzzState"><p class="muted">Sois le premier a appuyer, puis annonce ta reponse a voix haute.</p></div>
+    </section>
+
+    <!-- 5. Reponse -->
+    <section class="panel" id="pReveal">
+      <div class="stage-title">La reponse</div>
+      <div class="card track-card" id="revealTrack"></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="gain" id="gain">+0</div>
+      <div class="board" id="revealBoard"></div>
+    </section>
+
+    <!-- 6. Classement -->
+    <section class="panel" id="pScores">
+      <div class="stage-title">Classement</div>
+      <div class="board" id="scoreBoard"></div>
+    </section>
+
+    <!-- 7. Fin -->
+    <section class="panel" id="pEnd">
+      <div class="final">
+        <div class="medal" id="endMedal">🏆</div>
+        <div>
+          <div class="pos" id="endPos">—</div>
+          <p class="muted" id="endLine">Merci d'avoir joue !</p>
+        </div>
+        <div class="board" id="endBoard"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="actions" id="actions"></footer>
+</div>
+
+<div class="conn-lost" id="connLost">
+  <div>
+    <div style="font-size:44px">📡</div>
+    <h2 class="big" style="margin:10px 0 6px">Connexion perdue</h2>
+    <p class="muted">On tente de te reconnecter…</p>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="/js/play.js"></script>
+</body>
+</html>
