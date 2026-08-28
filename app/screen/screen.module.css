@@ -164,4 +164,10 @@
 .corner:hover { opacity: 1; }
 .corner :global(.btn) { font-size: 1.6vmin; padding: .8vmin 1.6vmin; }
 .corner input[type="range"] { width: 14vmin; }
+/* Lecteur YouTube : present pour la lecture, invisible a l'image. Une opacite
+   quasi nulle plutot que display:none, que les navigateurs traitent en lecteur
+   masque et refusent parfois de laisser demarrer. */
+.ytStage { position: fixed; right: 0; bottom: 0; width: 320px; height: 180px;
+  opacity: .001; pointer-events: none; z-index: -1; overflow: hidden; }
+
 .confetti { position: fixed; inset: 0; z-index: 45; pointer-events: none; width: 100%; height: 100%; }

@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { matchTitle, matchArtist } = require('./match');
 const catalog = require('./catalog');
 const deezer = require('./deezer');
+const youtube = require('./youtube');
 const metrics = require('./metrics');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
@@ -183,6 +184,22 @@ class GameServer {
         subtitle: 'Playlist Deezer importee', accent: '#22D3EE', source: 'deezer', tracks,
       };
       metrics.playlistSelections.inc({ source: 'deezer', id: 'import' });
+    } else if (spec.type === 'youtube') {
+      const listId = youtube.parsePlaylistId(spec.id);
+      if (!listId) throw new Error('Lien de playlist YouTube invalide (il faut le parametre « list »).');
+      if (!this.audioDeviceOnline(room)) {
+        throw new Error(this.audioTargetLabel(room) + ' n\'est pas connecte : c\'est lui qui charge la playlist.');
+      }
+      // Sans cle API, le serveur ne peut pas lister la playlist : le lecteur
+      // YouTube du terminal audio s'en charge et nous renvoie les identifiants.
+      room.playlist = {
+        id: `yt-${listId}`, title: 'Playlist YouTube', emoji: '▶️',
+        subtitle: 'Chargement par le lecteur…', accent: '#FF3D46',
+        source: 'youtube', ytPlaylistId: listId, tracks: [], pending: true,
+      };
+      this.io.to(this.audioRoom(room)).emit('youtube:load', { playlistId: listId });
+      metrics.playlistSelections.inc({ source: 'youtube', id: 'import' });
+      return room.playlist;
     } else if (spec.type === 'custom') {
       const tracks = catalog.diversify(room.customTracks, 99);
       if (tracks.length < 3) throw new Error('Ajoute au moins 3 titres a ta selection.');
@@ -224,8 +241,50 @@ class GameServer {
   /* Deroulement de la partie                                         */
   /* ---------------------------------------------------------------- */
 
+  /** Salle Socket.IO du terminal charge du son. */
+  audioRoom(room) {
+    return room.audioTarget === 'host' ? `${room.code}:host` : `${room.code}:screen`;
+  }
+
+  audioTargetLabel(room) {
+    return room.audioTarget === 'host' ? 'La regie' : 'L\'ecran de diffusion';
+  }
+
+  audioDeviceOnline(room) {
+    return room.audioTarget === 'host' ? room.hostOnline : room.screenOnline > 0;
+  }
+
+  /** Le terminal audio a lu la playlist YouTube et renvoie les identifiants. */
+  setYoutubeVideos(room, playlistId, videoIds) {
+    const pl = room.playlist;
+    if (!pl || pl.source !== 'youtube' || pl.ytPlaylistId !== playlistId) return false;
+    const ids = [...new Set((videoIds || []).filter((v) => typeof v === 'string' && v.length > 5))];
+    pl.tracks = ids.map((id, i) => youtube.toTrack(id, i));
+    pl.pending = false;
+    pl.subtitle = `${pl.tracks.length} videos chargees`;
+    if (pl.tracks.length) room.settings.rounds = clamp(room.settings.rounds, 3, pl.tracks.length);
+    this.broadcast(room);
+    return true;
+  }
+
+  /** Titre de la video en cours, remonte par le lecteur pour la correction. */
+  setYoutubeMeta(room, { videoId, title, author }) {
+    const track = room.round?.track;
+    if (!track || track.source !== 'youtube' || track.videoId !== String(videoId)) return false;
+    const parsed = youtube.parseVideoTitle(title, author);
+    track.title = parsed.title;
+    track.artist = parsed.artist;
+    track.album = author ? youtube.cleanChannel(author) : '';
+    this.broadcast(room);
+    return true;
+  }
+
   start(room) {
     if (!room.playlist) throw new Error('Choisis d\'abord une liste de morceaux.');
+    if (room.playlist.pending) throw new Error('La playlist YouTube n\'est pas encore chargee.');
+    if (room.playlist.source === 'youtube' && !this.audioDeviceOnline(room)) {
+      throw new Error(this.audioTargetLabel(room) + ' doit rester connecte pour lire YouTube.');
+    }
     if (room.connectedPlayers.length === 0) throw new Error('Aucun joueur connecte.');
     room.clearTimers();
     room.queue = catalog.shuffle(room.playlist.tracks).slice(0, room.settings.rounds);
@@ -275,6 +334,20 @@ class GameServer {
    * l'URL connue plutot que de retarder la manche.
    */
   cueTrack(room, track) {
+    // Lecture directe YouTube : pas d'extrait a re-resoudre, le lecteur du
+    // terminal audio se charge de tout a partir de l'identifiant de video.
+    if (track.source === 'youtube') {
+      this.sendAudio(room, {
+        action: 'play',
+        kind: 'youtube',
+        videoId: track.videoId,
+        startAt: room.round.startAt,
+        durationMs: room.round.durationMs,
+        index: room.index,
+      });
+      return;
+    }
+
     const send = (preview) => {
       if (!room.round || room.round.track !== track) return; // manche deja passee
       this.sendAudio(room, {
@@ -297,6 +370,18 @@ class GameServer {
         }
         send(track.preview);
       });
+  }
+
+  /**
+   * Demande-t-on l'artiste sur cette manche ?
+   *
+   * Les titres YouTube n'en contiennent pas toujours (« Trois nuits par
+   * semaine » sans nom d'artiste) : exiger un artiste inconnaissable
+   * condamnerait la moitie des points. On decide donc manche par manche.
+   */
+  asksArtist(room) {
+    if (!room.settings.guessArtist) return false;
+    return Boolean(room.round?.track?.artist);
   }
 
   ratioAt(room, at) {
@@ -328,7 +413,7 @@ class GameServer {
         metrics.answersTotal.inc({ field: 'title', result: 'miss' });
       }
     }
-    if (room.settings.guessArtist && !ans.artistOk && artist) {
+    if (this.asksArtist(room) && !ans.artistOk && artist) {
       if (matchArtist(artist, r.track.artist, r.track.contributors)) {
         ans.artistOk = true; ans.artistAt = now; found = found ? 'both' : 'artist';
         metrics.answersTotal.inc({ field: 'artist', result: 'hit' });
@@ -345,9 +430,10 @@ class GameServer {
   everyoneDone(room) {
     const players = room.connectedPlayers;
     if (!players.length) return false;
+    const needArtist = this.asksArtist(room);
     return players.every((p) => {
       const a = room.round.answers.get(p.id);
-      return a && a.titleOk && (!room.settings.guessArtist || a.artistOk);
+      return a && a.titleOk && (!needArtist || a.artistOk);
     });
   }
 
@@ -429,6 +515,7 @@ class GameServer {
   computeResults(room) {
     const s = room.settings;
     const r = room.round;
+    const needArtist = this.asksArtist(room);
     const results = [];
     for (const player of room.players.values()) {
       const a = r.answers.get(player.id);
@@ -438,7 +525,7 @@ class GameServer {
         gained = a.manual;
       } else {
         if (a.titleOk) gained += s.pointsTitle + Math.round(s.speedBonus * this.ratioAt(room, a.titleAt));
-        if (s.guessArtist && a.artistOk) gained += s.pointsArtist + Math.round(s.speedBonus * this.ratioAt(room, a.artistAt));
+        if (needArtist && a.artistOk) gained += s.pointsArtist + Math.round(s.speedBonus * this.ratioAt(room, a.artistAt));
         player.score += gained;
       }
       player.lastGain = gained;
@@ -530,7 +617,9 @@ class GameServer {
       hostOnline: room.hostOnline,
       playlist: room.playlist && {
         id: room.playlist.id, title: room.playlist.title, emoji: room.playlist.emoji,
-        subtitle: room.playlist.subtitle, accent: room.playlist.accent, total: room.playlist.tracks.length,
+        subtitle: room.playlist.subtitle, accent: room.playlist.accent,
+        total: room.playlist.tracks.length,
+        source: room.playlist.source, pending: !!room.playlist.pending,
       },
       players: this.scoreboard(room),
       round: room.round && {
@@ -542,6 +631,7 @@ class GameServer {
         lockedOut: [...room.round.lockedOut],
         answeredCount: room.round.answers.size,
         buzzOpensAt: this.buzzOpensAt(room),
+        askArtist: this.asksArtist(room),
         reason: room.round.reason || null,
       },
       serverNow: Date.now(),
@@ -574,7 +664,10 @@ class GameServer {
 
   trackCard(t) {
     if (!t) return null;
-    return { id: t.id, title: t.title, artist: t.artist, album: t.album, cover: t.cover, link: t.link };
+    return {
+      id: t.id, title: t.title, artist: t.artist, album: t.album,
+      cover: t.cover, coverFallback: t.coverFallback || '', link: t.link,
+    };
   }
 
   broadcast(room) {
@@ -592,7 +685,11 @@ class GameServer {
     const target = room.audioTarget === 'host' ? `${room.code}:host` : `${room.code}:screen`;
     this.io.to(target).emit('audio', payload);
 
-    if (room.settings.playerAudio) this.io.to(`${room.code}:player`).emit('audio', payload);
+    // Les extraits Deezer peuvent etre diffuses sur les telephones ; une video
+    // YouTube ne peut pas etre repliquee proprement sur vingt appareils.
+    if (room.settings.playerAudio && payload.kind !== 'youtube') {
+      this.io.to(`${room.code}:player`).emit('audio', payload);
+    }
 
     // L'autre terminal doit couper le son s'il en jouait
     const other = room.audioTarget === 'host' ? `${room.code}:screen` : `${room.code}:host`;

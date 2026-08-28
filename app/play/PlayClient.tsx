@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { Socket } from 'socket.io-client';
 
 import { confetti } from '@/lib/confetti';
-import { answerMarks, findPlayer, hasFoundAll, hasFoundSome, ordinal } from '@/lib/game';
+import { answerMarks, asksArtist, findPlayer, hasFoundAll, hasFoundSome, ordinal } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
@@ -286,7 +286,7 @@ function AnswerForm({ state, me, mine, socket }: {
   const badge = mine?.answered ?? null;
   const titleOk = Boolean(badge?.titleOk);
   const artistOk = Boolean(badge?.artistOk);
-  const askArtist = state.settings.guessArtist;
+  const askArtist = asksArtist(state);
   const allFound = hasFoundAll(badge, askArtist);
 
   async function submit(event: FormEvent) {
@@ -357,17 +357,18 @@ function AnswerForm({ state, me, mine, socket }: {
 
 function LiveMini({ state, me }: { state: GameState; me: Me }) {
   const rows = state.players.filter((p) => p.connected).slice(0, 6);
+  const ask = asksArtist(state);
   return (
     <div className={styles.liveMini}>
       <div className={styles.head}>Qui a deja trouve ?</div>
       {rows.map((p) => {
-        const done = hasFoundAll(p.answered, state.settings.guessArtist);
+        const done = hasFoundAll(p.answered, ask);
         const part = hasFoundSome(p.answered);
         return (
           <div key={p.id} className={`${styles.lm} ${done ? styles.done : part ? styles.part : ''} ${p.id === me.playerId ? styles.self : ''}`}>
             <span>{p.avatar}</span>
             <span className={`${styles.nm} ellipsis`}>{p.name}</span>
-            <span className={styles.mk}>{answerMarks(p.answered, state.settings.guessArtist)}</span>
+            <span className={styles.mk}>{answerMarks(p.answered, ask)}</span>
             <span className={styles.sc}>{p.score}</span>
           </div>
         );
@@ -479,7 +480,7 @@ function Reveal({ state, me }: { state: GameState; me: Me }) {
         {track.cover ? <img src={track.cover} alt="" /> : <div className="avatar lg">🎵</div>}
         <div className="grow">
           <div className={styles.t}>{track.title}</div>
-          <div className={styles.a}>{track.artist}</div>
+          {track.artist && <div className={styles.a}>{track.artist}</div>}
           {track.album && <div className="faint" style={{ fontSize: 12, marginTop: 3 }}>{track.album}</div>}
         </div>
       </div>
@@ -488,7 +489,7 @@ function Reveal({ state, me }: { state: GameState; me: Me }) {
         <div className={`${styles.v} ${result?.titleOk ? styles.yes : styles.no}`}>
           <b>Titre</b><span>{result?.titleOk ? '✅' : '❌'}</span>
         </div>
-        {state.settings.guessArtist ? (
+        {asksArtist(state) ? (
           <div className={`${styles.v} ${result?.artistOk ? styles.yes : styles.no}`}>
             <b>Artiste</b><span>{result?.artistOk ? '✅' : '❌'}</span>
           </div>

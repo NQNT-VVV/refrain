@@ -97,6 +97,17 @@ function asPlayer(socket) {
   return player ? { room, player } : null;
 }
 
+/**
+ * Seul le terminal charge du son pilote le lecteur YouTube : c'est lui qui
+ * remonte la liste des videos et le titre de celle en cours.
+ */
+function asAudioDevice(socket) {
+  const room = roomOf(socket);
+  if (!room) return null;
+  const expected = room.audioTarget === 'host' ? 'host' : 'screen';
+  return socket.data.role === expected ? room : null;
+}
+
 function bindHost(socket, room) {
   socket.data.role = 'host';
   socket.data.code = room.code;
@@ -241,6 +252,33 @@ io.on('connection', (socket) => {
     room.screenOnline += 1;
     ok(cb, { state: game.publicState(room) });
     game.broadcast(room);
+  });
+
+  /* ---------------- Lecteur YouTube ---------------- */
+
+  socket.on('youtube:videos', ({ playlistId, videoIds } = {}, cb) => {
+    const room = asAudioDevice(socket);
+    if (!room) return fail(cb, 'Ce terminal ne pilote pas le son.');
+    const applied = game.setYoutubeVideos(room, String(playlistId || ''), videoIds);
+    if (!applied) return fail(cb, 'Cette playlist n\'est plus celle du salon.');
+    ok(cb, { total: room.playlist.tracks.length });
+  });
+
+  socket.on('youtube:meta', (payload = {}, cb) => {
+    const room = asAudioDevice(socket);
+    if (!room) return fail(cb, 'Ce terminal ne pilote pas le son.');
+    ok(cb, { applied: game.setYoutubeMeta(room, payload) });
+  });
+
+  socket.on('youtube:failed', ({ videoId, reason } = {}, cb) => {
+    const room = asAudioDevice(socket);
+    if (!room) return fail(cb, 'Ce terminal ne pilote pas le son.');
+    // Video indisponible ou lecture refusee : on passe a la manche suivante.
+    if (room.phase === 'countdown' || room.phase === 'playing') {
+      console.warn(`[youtube] video ${videoId} injouable (${reason || 'inconnu'}), manche passee`);
+      game.reveal(room, 'unavailable');
+    }
+    ok(cb);
   });
 
   /* ---------------- Joueurs ---------------- */

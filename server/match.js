@@ -34,8 +34,14 @@ function normalize(raw) {
     if (idx > 0) t = t.slice(0, idx);
   }
 
+  t = t.replace(/\$/g, 's');            // stylisations : Ke$ha, A$AP
   t = t.replace(/[^a-z0-9]+/g, ' ').trim();
-  t = t.replace(LEADING_ARTICLE, '');
+
+  // On ne retire l'article que s'il reste de quoi identifier : sans ce garde-fou
+  // « a-ha » deviendrait « ha », et plus personne ne le trouverait.
+  const withoutArticle = t.replace(LEADING_ARTICLE, '');
+  if (withoutArticle.replace(/ /g, '').length >= 4) t = withoutArticle;
+
   return t.replace(/\s+/g, ' ').trim();
 }
 
@@ -92,6 +98,9 @@ function threshold(len) {
 function isClose(guess, reference) {
   if (!guess || !reference) return false;
   if (guess === reference) return true;
+  // Les espaces issus de la ponctuation ne doivent pas compter :
+  // « aha » vaut « a-ha », « acdc » vaut « AC/DC », « nwa » vaut « N.W.A ».
+  if (guess.replace(/ /g, '') === reference.replace(/ /g, '')) return true;
   // Le joueur a tape une sous-partie significative ("bohemian" pour "bohemian rhapsody")
   const shorter = guess.length <= reference.length ? guess : reference;
   const longer = shorter === guess ? reference : guess;

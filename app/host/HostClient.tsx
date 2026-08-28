@@ -4,20 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 
 import { QrCode } from '@/components/QrCode';
-import { hasFoundAll, hasFoundSome, PHASE_LABEL } from '@/lib/game';
+import { asksArtist, hasFoundAll, hasFoundSome, PHASE_LABEL } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
 import type { Category, GameState, HostAnswer, SearchTrack, Settings } from '@/lib/types';
-import { useAudioPlayer } from '@/lib/useAudioPlayer';
+import { useAudioDevice } from '@/lib/useAudioDevice';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
 
 import styles from './host.module.css';
 
 interface HostSession { code: string; hostToken: string }
-type Tab = 'catalog' | 'search' | 'deezer';
+type Tab = 'catalog' | 'search' | 'import';
 
 const MODE_NOTE = {
   input: 'Tout le monde tape titre + artiste. Correction automatique, bonus de rapidite.',
@@ -32,7 +32,12 @@ export function HostClient() {
   const [blurred, setBlurred] = useState(false);
   const [loadingCat, setLoadingCat] = useState<string | null>(null);
 
-  const player = useAudioPlayer();
+  const player = useAudioDevice((reason) => toast(
+    reason === 'autoplay'
+      ? 'Clique une fois sur la page pour autoriser le son.'
+      : "L'extrait n'a pas pu etre charge.",
+    'err',
+  ));
   const codeRef = useRef('');
 
   useEffect(() => {
@@ -63,12 +68,7 @@ export function HostClient() {
       codeRef.current = created.code;
       setState(created.state);
     },
-    onAudio: (cue) => player.handleCue(cue, (reason) => toast(
-      reason === 'autoplay'
-        ? 'Clique une fois sur la page pour autoriser le son.'
-        : "L'extrait n'a pas pu etre charge.",
-      'err',
-    )),
+    onAudio: player.handleCue,
   });
 
   const joinUrl = origin && code ? `${origin}/j/${code}` : '';
@@ -96,6 +96,8 @@ export function HostClient() {
   const roundClock = useRoundClock(state);
 
   useKeyboardShortcuts(state, send);
+  // La regie pilote aussi le lecteur quand la sortie du son est reglee sur « Ici ».
+  useEffect(() => player.attach(socket), [socket, player]);
 
   if (!state) {
     return (
@@ -111,6 +113,7 @@ export function HostClient() {
   return (
     <>
       <audio ref={player.audio} preload="auto" />
+      <div ref={player.ytContainer} className={styles.ytStage} aria-hidden="true" />
 
       <div className={styles.shell}>
         <div className={styles.bar}>
@@ -184,7 +187,7 @@ export function HostClient() {
               <>
                 <section className="card pad col" style={{ gap: 16 }}>
                   <div className={styles.tabs} role="tablist">
-                    {([['catalog', '🎧 Listes pretes'], ['search', '🔎 Ma selection'], ['deezer', '📥 Playlist Deezer']] as const).map(([id, label]) => (
+                    {([['catalog', '🎧 Listes pretes'], ['search', '🔎 Ma selection'], ['import', '📥 Importer une playlist']] as const).map(([id, label]) => (
                       <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
                     ))}
                   </div>
@@ -209,7 +212,7 @@ export function HostClient() {
                   )}
 
                   {tab === 'search' && <SearchTab send={send} count={state.customCount ?? 0} />}
-                  {tab === 'deezer' && <DeezerTab send={send} />}
+                  {tab === 'import' && <ImportTab send={send} state={state} />}
                 </section>
 
                 <SettingsPanel settings={state.settings} send={send} />
@@ -235,6 +238,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
     () => new Map((state.round?.answers ?? []).map((a: HostAnswer) => [a.playerId, a])),
     [state.round?.answers],
   );
+  const ask = asksArtist(state);
 
   return (
     <section className={`card pad col ${wide ? styles.bare : ''}`} style={{ gap: 12 }}>
@@ -243,7 +247,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
         {state.players.map((p) => {
           const a = answers.get(p.id);
           const badge = a ? { titleOk: a.titleOk, artistOk: a.artistOk, tries: 0 } : null;
-          const done = hasFoundAll(badge, state.settings.guessArtist);
+          const done = hasFoundAll(badge, ask);
           const part = hasFoundSome(badge);
           const guess = a && (a.title || a.artist) ? `${a.title || '—'} · ${a.artist || '—'}` : null;
           return (
@@ -427,30 +431,75 @@ function SearchTab({ send, count }: { send: Send; count: number }) {
   );
 }
 
-function DeezerTab({ send }: { send: Send }) {
+/** Deezer ou YouTube : on devine la source a partir de l'adresse collee. */
+function detectSource(raw: string): 'youtube' | 'deezer' | null {
+  const value = raw.trim();
+  if (!value) return null;
+  if (/[?&]list=|^(PL|UU|OL|RD|FL|LL)[A-Za-z0-9_-]{10,}$/.test(value)) return 'youtube';
+  if (/deezer\.com|^\d{3,}$/.test(value)) return 'deezer';
+  return null;
+}
+
+function ImportTab({ send, state }: { send: Send; state: GameState }) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const source = detectSource(url);
+  const playlist = state.playlist;
+  const isYoutube = playlist?.source === 'youtube';
+  const audioDeviceReady = state.audioTarget === 'host' ? state.hostOnline : state.screenOnline > 0;
+
+  async function submit() {
+    if (!source) return;
+    setBusy(true);
+    const res = await send('host:playlist', { type: source, id: url.trim() }, 60000);
+    setBusy(false);
+    if (res?.ok) {
+      toast(source === 'youtube' ? 'Playlist envoyee au lecteur…' : 'Playlist Deezer importee', 'ok');
+    }
+  }
 
   return (
     <div>
       <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
-        Colle l&apos;adresse d&apos;une playlist Deezer publique (ou juste son numero).
+        Colle une playlist <b>Deezer</b> publique ou une playlist <b>YouTube</b>. Le type est
+        reconnu automatiquement.
       </p>
       <div className="row">
         <input
-          className="input grow" placeholder="https://www.deezer.com/fr/playlist/1234567890" autoComplete="off"
+          className="input grow" autoComplete="off"
+          placeholder="https://www.youtube.com/playlist?list=… ou https://www.deezer.com/playlist/…"
           value={url} onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && source) { e.preventDefault(); void submit(); } }}
         />
-        <button
-          className="btn" disabled={busy || !url.trim()}
-          onClick={async () => {
-            setBusy(true);
-            const res = await send('host:playlist', { type: 'deezer', id: url.trim() }, 60000);
-            setBusy(false);
-            if (res?.ok) toast('Playlist importee', 'ok');
-          }}
-        >Importer</button>
+        <button className="btn" disabled={busy || !source} onClick={submit}>
+          {source === 'youtube' ? '▶️ Charger' : 'Importer'}
+        </button>
       </div>
+
+      {url.trim() && !source && (
+        <p className={styles.note} style={{ marginTop: 10 }}>
+          Adresse non reconnue. Pour YouTube il faut le parametre <code>list=</code> d&apos;une playlist,
+          pas un simple lien de video.
+        </p>
+      )}
+
+      {!audioDeviceReady && (
+        <p className={styles.note} style={{ marginTop: 10 }}>
+          ⚠️ {state.audioTarget === 'host' ? 'La regie' : "L'ecran de diffusion"} doit etre connecte :
+          c&apos;est lui qui lit la playlist YouTube.
+        </p>
+      )}
+
+      {isYoutube && (
+        <p className={styles.note} style={{ marginTop: 12 }}>
+          {playlist?.pending
+            ? '⏳ Le lecteur parcourt la playlist…'
+            : `▶️ ${playlist?.total} videos pretes. Les titres viennent de YouTube : ils sont moins
+               propres que ceux de Deezer, le mode buzzer est souvent plus confortable. Le son ne
+               peut pas etre diffuse sur les telephones dans ce mode.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -543,8 +592,13 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
   let content: React.ReactNode;
 
   if (state.phase === 'lobby') {
-    const ready = Boolean(state.playlist) && state.players.some((p) => p.connected);
-    const why = !state.playlist ? 'Choisis une liste de morceaux' : !state.players.some((p) => p.connected) ? 'Attends au moins un joueur' : null;
+    const loaded = Boolean(state.playlist) && !state.playlist!.pending && state.playlist!.total > 0;
+    const ready = loaded && state.players.some((p) => p.connected);
+    const why = !state.playlist
+      ? 'Choisis une liste de morceaux'
+      : !loaded ? 'Playlist en cours de chargement…'
+      : !state.players.some((p) => p.connected) ? 'Attends au moins un joueur'
+      : null;
     content = (
       <>
         <div className="grow muted" style={{ fontSize: 13.5 }}>

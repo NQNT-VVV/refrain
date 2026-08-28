@@ -112,6 +112,9 @@
 .upnext .u b { color: var(--muted); font-weight: 600; }
 
 /* --- Barre de commande ---------------------------------------- */
+.ytStage { position: fixed; right: 0; bottom: 0; width: 320px; height: 180px;
+  opacity: .001; pointer-events: none; z-index: -1; overflow: hidden; }
+
 .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgba(7,6,14,.97) 60%, transparent); }

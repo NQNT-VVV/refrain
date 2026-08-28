@@ -135,7 +135,35 @@ secondes ; ensuite c'est instantane.
 Deux autres sources dans la regie :
 
 - **🔎 Ma selection** — recherche libre, on ajoute les titres un par un ;
-- **📥 Playlist Deezer** — colle l'adresse d'une playlist publique
+- **📥 Importer une playlist** — colle une adresse **Deezer** ou **YouTube**, le
+  type est reconnu tout seul.
+
+### Playlists YouTube
+
+Colle l'adresse d'une playlist publique (celle qui contient `list=`). La lecture
+est directe : pas de passage par Deezer.
+
+Comme il n'y a **aucune cle API**, le serveur ne peut pas lire une playlist
+YouTube. C'est le terminal charge du son — l'ecran de diffusion, ou la regie si
+la sortie est reglee sur « Ici » — qui embarque un lecteur YouTube invisible,
+remonte la liste des videos a l'import, puis le titre de chaque video au moment
+de la jouer. Ce titre sert ensuite a la correction.
+
+Trois consequences a connaitre :
+
+- **Les titres sont ceux de YouTube**, pas d'un catalogue propre. Le serveur
+  nettoie ce qu'il peut (« (Official Video) », « [Remastered in 4K] », « | Label »,
+  conventions K-pop `ARTISTE 'Titre'`), mais ca reste moins net que Deezer.
+- **L'artiste n'est demande que s'il est connaissable.** Une video intitulee
+  simplement « Trois nuits par semaine » ne nomme pas Indochine : sur ces
+  manches-la, le champ artiste disparait cote joueur et seuls les points du
+  titre comptent. Le **mode buzzer** est souvent plus confortable sur ces listes.
+- **Le son ne peut pas etre diffuse sur les telephones** avec YouTube : une video
+  ne se replique pas proprement sur vingt appareils.
+- L'ecran (ou la regie) doit rester connecte pendant toute la partie : c'est lui
+  qui joue. Une video indisponible fait passer la manche automatiquement.
+
+- **📥 Playlist Deezer** — l'adresse d'une playlist publique
   (`https://www.deezer.com/fr/playlist/1234567890`) ou juste son numero.
 
 ---

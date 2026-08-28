@@ -48,6 +48,8 @@ export interface TrackCard {
   artist: string;
   album: string;
   cover: string;
+  /** Image de repli quand `cover` n'existe pas (miniatures YouTube). */
+  coverFallback?: string;
   link: string;
 }
 
@@ -91,6 +93,8 @@ export interface RoundState {
   answeredCount: number;
   /** Instant absolu ou le buzzer s'ouvre, en millisecondes. */
   buzzOpensAt: number;
+  /** L'artiste est-il demande sur cette manche ? (faux si le titre YouTube n'en donne pas) */
+  askArtist: boolean;
   reason: string | null;
   /** Present uniquement pour la regie, ou pour tous a la revelation. */
   track?: TrackCard;
@@ -105,6 +109,10 @@ export interface PlaylistMeta {
   subtitle: string;
   accent: string;
   total: number;
+  /** 'catalog' | 'deezer' | 'custom' | 'youtube' */
+  source: string;
+  /** Vrai tant que le lecteur YouTube n'a pas remonte la liste des videos. */
+  pending: boolean;
 }
 
 export interface GameState {
@@ -142,6 +150,9 @@ export interface SearchTrack {
 
 export interface AudioCue {
   action: 'play' | 'pause' | 'resume' | 'stop';
+  /** 'youtube' pour une lecture directe ; absent pour un extrait Deezer. */
+  kind?: 'youtube';
+  videoId?: string;
   preview?: string;
   startAt?: number;
   durationMs?: number;

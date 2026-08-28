@@ -17,6 +17,15 @@ export function answerMarks(badge: AnswerBadge | null | undefined, guessArtist: 
   return `${title}${artist}`;
 }
 
+/**
+ * L'artiste est-il demande maintenant ? La manche a le dernier mot : une video
+ * YouTube dont le titre ne nomme pas l'artiste ne peut pas l'exiger.
+ */
+export function asksArtist(state: GameState | null): boolean {
+  if (!state) return false;
+  return state.round?.askArtist ?? state.settings.guessArtist;
+}
+
 export function findPlayer(state: GameState | null, playerId: string | null): PlayerRow | null {
   if (!state || !playerId) return null;
   return state.players.find((p) => p.id === playerId) ?? null;

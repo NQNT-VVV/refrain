@@ -5,13 +5,13 @@ import { useSearchParams } from 'next/navigation';
 
 import { QrCode } from '@/components/QrCode';
 import { confetti } from '@/lib/confetti';
-import { answerMarks, hasFoundAll, hasFoundSome } from '@/lib/game';
+import { answerMarks, asksArtist, hasFoundAll, hasFoundSome } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
 import type { GameState, PlayerRow } from '@/lib/types';
-import { useAudioPlayer } from '@/lib/useAudioPlayer';
+import { useAudioDevice } from '@/lib/useAudioDevice';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
 
@@ -30,7 +30,12 @@ export function ScreenClient() {
   const codeRef = useRef('');
   const joinedRef = useRef(false);
 
-  const player = useAudioPlayer();
+  const player = useAudioDevice((reason) => toast(
+    reason === 'autoplay'
+      ? 'Le navigateur bloque la lecture — clique sur la page.'
+      : "L'extrait n'a pas pu etre charge.",
+    'err',
+  ));
 
   useEffect(() => {
     const initial = clean(params.get('code') ?? store.get('refrain.screen.code', ''));
@@ -44,12 +49,7 @@ export function ScreenClient() {
       // Reconnexion : on rejoint automatiquement le salon deja valide.
       if (joinedRef.current && codeRef.current) await call(s, 'screen:join', { code: codeRef.current });
     },
-    onAudio: (cue) => player.handleCue(cue, (reason) => toast(
-      reason === 'autoplay'
-        ? 'Le navigateur bloque la lecture — clique sur la page.'
-        : "L'extrait n'a pas pu etre charge.",
-      'err',
-    )),
+    onAudio: player.handleCue,
   });
 
   async function enter(event: FormEvent) {
@@ -90,9 +90,13 @@ export function ScreenClient() {
     document.documentElement.style.setProperty('--accent', accent || '#8b5cf6');
   }, [accent]);
 
+  // Le serveur demande le chargement d'une playlist YouTube par evenement.
+  useEffect(() => player.attach(socket), [socket, player]);
+
   return (
     <>
       <audio ref={player.audio} preload="auto" />
+      <div ref={player.ytContainer} className={styles.ytStage} aria-hidden="true" />
 
       {joined && state ? (
         <Stage state={state} code={code} />
@@ -250,6 +254,8 @@ function Playing({ state, ratio, seconds, buzzLock }: {
     [],
   );
 
+  const ask = asksArtist(state);
+
   useEffect(() => {
     if (seconds <= 5 && seconds > 0) { sfx.unlock(); sfx.tick(); }
   }, [seconds]);
@@ -289,11 +295,11 @@ function Playing({ state, ratio, seconds, buzzLock }: {
         <h3>{state.settings.mode === 'buzzer' ? 'Au buzzer' : 'Qui a trouve ?'}</h3>
         <div className={styles.list}>
           {state.players.slice(0, 12).map((p) => {
-            const done = hasFoundAll(p.answered, state.settings.guessArtist);
+            const done = hasFoundAll(p.answered, ask);
             const part = hasFoundSome(p.answered);
             const marks = state.settings.mode === 'buzzer'
               ? (state.round?.lockedOut.includes(p.id) ? '⛔' : '')
-              : answerMarks(p.answered, state.settings.guessArtist).replace(/·/g, '');
+              : answerMarks(p.answered, ask).replace(/·/g, '');
             return (
               <div key={p.id} className={`${styles.prow} ${done ? styles.done : part ? styles.part : ''} ${p.connected ? '' : styles.off}`}>
                 <span className={styles.av}>{p.avatar}</span>
@@ -346,11 +352,20 @@ function Reveal({ state }: { state: GameState }) {
   return (
     <section className={`${styles.scene} ${styles.reveal}`}>
       <div className={styles.revealMain}>
-        {track.cover && <img className={styles.coverLg} src={track.cover} alt="" key={track.id} />}
+        {track.cover && (
+          <img
+            className={styles.coverLg} src={track.cover} alt="" key={track.id}
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (track.coverFallback && img.src !== track.coverFallback) img.src = track.coverFallback;
+              else img.style.display = 'none';
+            }}
+          />
+        )}
         <div className={`${styles.revealText} grow`}>
           <div className={styles.kicker}>La reponse etait</div>
           <div className={styles.revealTitle}>{track.title}</div>
-          <div className={styles.revealArtist}>{track.artist}</div>
+          {track.artist && <div className={styles.revealArtist}>{track.artist}</div>}
           {track.album && <div className={styles.revealAlbum}>{track.album}</div>}
           <div className={styles.scorers}>
             {winners.length ? winners.slice(0, 10).map((r, i) => (
