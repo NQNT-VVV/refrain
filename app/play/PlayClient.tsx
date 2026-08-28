@@ -11,6 +11,7 @@ import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
 import type { GameState, PlayerRow } from '@/lib/types';
+import { useAudioPlayer } from '@/lib/useAudioPlayer';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
 
@@ -29,6 +30,8 @@ export function PlayClient() {
   const [me, setMe] = useState<Me | null>(null);
   const [pseudo, setPseudo] = useState('');
   const [joining, setJoining] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const player = useAudioPlayer();
   const meRef = useRef<Me | null>(null);
   meRef.current = me;
 
@@ -62,6 +65,8 @@ export function PlayClient() {
       // pendant que la synchronisation d'horloge est encore en cours.
       if (!meRef.current) setPseudo((current) => current || store.get('refrain.lastName', ''));
     },
+    // N'arrive que si l'animateur a active la diffusion sur les telephones.
+    onAudio: (cue) => player.handleCue(cue),
     onKicked: () => {
       store.del(sessionKey);
       toast('Tu as ete retire de la partie.', 'err');
@@ -75,7 +80,10 @@ export function PlayClient() {
   async function join(event: FormEvent) {
     event.preventDefault();
     if (!socket) return;
+    // Ce clic est le seul geste utilisateur garanti : on en profite pour
+    // debloquer la lecture au cas ou l'animateur diffuse sur les telephones.
     sfx.unlock();
+    player.unlock();
     const name = pseudo.trim();
     if (!name) return;
     setJoining(true);
@@ -85,6 +93,7 @@ export function PlayClient() {
     setJoining(false);
     if (!res.ok) return toast(res.error, 'err');
     store.set('refrain.lastName', name);
+    setMuted(store.get('refrain.player.muted', false));
     adopt(res);
     setState(res.state);
   }
@@ -94,6 +103,7 @@ export function PlayClient() {
   if (!me || !state) {
     return (
       <div className={styles.app}>
+        <audio ref={player.audio} preload="auto" />
         <main className={styles.main}>
           <form className={styles.hello} onSubmit={join}>
             <div className={styles.logo}>🎧</div>
@@ -123,11 +133,23 @@ export function PlayClient() {
     );
   }
 
+  function toggleSound() {
+    const next = !muted;
+    setMuted(next);
+    store.set('refrain.player.muted', next);
+    player.setVolume(next ? 0 : 0.9);
+    if (!next) player.unlock();
+  }
+
   return (
-    <PlayScreen
-      code={code} me={me} mine={mine} rank={rank}
-      state={state} socket={socket} connected={connected}
-    />
+    <>
+      <audio ref={player.audio} preload="auto" />
+      <PlayScreen
+        code={code} me={me} mine={mine} rank={rank}
+        state={state} socket={socket} connected={connected}
+        muted={muted} onToggleSound={toggleSound}
+      />
+    </>
   );
 }
 
@@ -135,9 +157,10 @@ export function PlayClient() {
 /* Partie en cours                                                    */
 /* ------------------------------------------------------------------ */
 
-function PlayScreen({ code, me, mine, rank, state, socket, connected }: {
+function PlayScreen({ code, me, mine, rank, state, socket, connected, muted, onToggleSound }: {
   code: string; me: Me; mine: PlayerRow | null; rank: number;
   state: GameState; socket: Socket | null; connected: boolean;
+  muted: boolean; onToggleSound: () => void;
 }) {
   const { ratio, countdown, buzzLock, answerLeft } = useRoundClock(state);
   const showTimer = state.phase === 'playing';
@@ -155,6 +178,15 @@ function PlayScreen({ code, me, mine, rank, state, socket, connected }: {
               </div>
             </div>
           </div>
+          {state.settings.playerAudio && (
+            <button
+              type="button" className={`${styles.soundToggle} ${muted ? styles.off : ''}`}
+              onClick={onToggleSound} aria-label={muted ? 'Reactiver le son' : 'Couper le son'}
+              title={muted ? 'Reactiver le son' : 'Couper le son'}
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
+          )}
           <div className={styles.scoreChip}>
             <span className={`${styles.val} tnum`}>{mine?.score ?? 0}</span>
             <span className={styles.unit}>pts</span>

@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   buzzerPoints: 5,
   buzzDelay: 3,         // secondes d'ecoute imposees avant d'ouvrir le buzzer
   buzzAnswerTime: 5,    // secondes laissees au buzzeur pour donner sa reponse
+  playerAudio: false,   // diffuser aussi l'extrait sur les telephones
   revealDelay: 9,       // duree de l'ecran de reponse
   autoNext: true,
 };
@@ -206,6 +207,12 @@ class GameServer {
     if (patch.speedBonus !== undefined) s.speedBonus = clamp(Math.round(+patch.speedBonus || 0), 0, 6);
     if (patch.revealDelay !== undefined) s.revealDelay = clamp(Math.round(+patch.revealDelay || 0), 4, 30);
     if (patch.autoNext !== undefined) s.autoNext = !!patch.autoNext;
+  if (patch.playerAudio !== undefined) {
+    const before = s.playerAudio;
+    s.playerAudio = !!patch.playerAudio;
+    // Coupure immediate si on desactive en pleine manche
+    if (before && !s.playerAudio) this.io.to(`${room.code}:player`).emit('audio', { action: 'stop' });
+  }
     if (patch.buzzerPoints !== undefined) s.buzzerPoints = clamp(Math.round(+patch.buzzerPoints || 0), 1, 20);
   if (patch.buzzDelay !== undefined) s.buzzDelay = clamp(Math.round(+patch.buzzDelay || 0), 0, 15);
   if (patch.buzzAnswerTime !== undefined) s.buzzAnswerTime = clamp(Math.round(+patch.buzzAnswerTime || 0), 3, 30);
@@ -576,10 +583,17 @@ class GameServer {
     this.io.to(`${room.code}:host`).emit('state', this.hostState(room));
   }
 
-  /** Envoie l'ordre de lecture uniquement au terminal charge du son. */
+  /**
+   * Envoie l'ordre de lecture au terminal charge du son — et, si l'animateur
+   * l'a demande, aux telephones des joueurs. Tout le monde part du meme
+   * horodatage absolu, donc les lectures restent alignees.
+   */
   sendAudio(room, payload) {
     const target = room.audioTarget === 'host' ? `${room.code}:host` : `${room.code}:screen`;
     this.io.to(target).emit('audio', payload);
+
+    if (room.settings.playerAudio) this.io.to(`${room.code}:player`).emit('audio', payload);
+
     // L'autre terminal doit couper le son s'il en jouait
     const other = room.audioTarget === 'host' ? `${room.code}:screen` : `${room.code}:host`;
     if (payload.action === 'play') this.io.to(other).emit('audio', { action: 'stop' });

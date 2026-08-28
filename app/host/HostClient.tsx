@@ -519,6 +519,14 @@ function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
             <input type="checkbox" checked={settings.autoNext} onChange={(e) => patch({ autoNext: e.target.checked })} />
             <span className="track" /><span style={{ fontSize: 13.5 }}>Enchainer les manches tout seul</span>
           </label>
+          <label className="switch">
+            <input type="checkbox" checked={settings.playerAudio} onChange={(e) => patch({ playerAudio: e.target.checked })} />
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Son aussi sur les telephones</span>
+          </label>
+          <p className={styles.note}>
+            Indispensable a distance (visio, joueurs eparpilles). Dans une meme piece, laisse
+            plutot ferme : une dizaine de telephones legerement decales font de la bouillie.
+          </p>
         </div>
       </div>
     </section>

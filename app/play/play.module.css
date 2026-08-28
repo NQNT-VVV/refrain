@@ -25,6 +25,10 @@
   background: linear-gradient(135deg, rgba(139,92,246,.28), rgba(34,211,238,.2));
   border: 1px solid var(--stroke-strong);
 }
+.soundToggle { width: 36px; height: 36px; flex: none; border-radius: 12px; font-size: 17px;
+  background: var(--surface); border: 1px solid var(--stroke); cursor: pointer; }
+.soundToggle.off { opacity: .5; }
+
 .scoreChip .val { font-size: 18px; }
 .scoreChip .unit { font-size: 11px; color: var(--muted); }
 

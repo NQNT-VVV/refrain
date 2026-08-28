@@ -58,6 +58,17 @@ Pour changer de port : `PORT=8080 npm start`.
 > musique sort alors de la page animateur. Pratique en visio avec partage
 > d'ecran, ou sur un simple ordinateur portable.
 
+### Jouer a distance
+
+L'option **« Son aussi sur les telephones »** (reglages de la regie) diffuse
+l'extrait sur chaque telephone en plus de la sortie principale. Tous les
+appareils partent du meme horodatage serveur, donc les lectures restent calees.
+Chaque joueur garde un bouton 🔊 / 🔇 dans sa barre du haut.
+
+C'est indispensable quand les joueurs ne sont pas dans la meme piece — visio,
+soiree a distance. **Dans une meme piece, laisse l'option fermee** : une dizaine
+de telephones a quelques dizaines de millisecondes d'ecart font de la bouillie.
+
 ---
 
 ## Modes de jeu
@@ -105,10 +116,16 @@ Deux garde-fous, tous deux reglables depuis la regie :
 
 ## Listes de morceaux
 
-**17 listes pretes** : Top du moment, Hymnes de soiree, Chanson francaise,
+**23 listes pretes** : Top du moment, Hymnes de soiree, Chanson francaise,
 Rap FR, Annees 80 / 90 / 2000 / 2010, Rock legendes, Disco & Funk, Dancefloor,
 Films & Series, Disney & dessins animes, Jeux video, R&B & Soul,
-Latino & Reggaeton, Metal.
+Latino & Reggaeton, Sons TikTok, K-pop, Afro & Amapiano, Punk & Emo,
+Tubes de l'ete, Classique, Metal.
+
+> **Classique** est volontairement etiquete « plutot au buzzer » : les titres
+> renvoyes par Deezer ressemblent a « Symphony No. 5 in C minor, Op. 67: I.
+> Allegro con brio », impossibles a taper au clavier. En buzzer, la liste
+> fonctionne tres bien.
 
 Elles sont construites a la volee depuis l'API Deezer (60 a 100 titres chacune,
 melanges, deux morceaux maximum par artiste), puis mises en cache dans

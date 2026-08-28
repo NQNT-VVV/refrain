@@ -22,6 +22,8 @@ export interface Settings {
   buzzAnswerTime: number;
   revealDelay: number;
   autoNext: boolean;
+  /** Diffuser aussi l'extrait sur les telephones des joueurs. */
+  playerAudio: boolean;
 }
 
 export interface AnswerBadge {
