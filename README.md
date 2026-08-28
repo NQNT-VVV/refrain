@@ -231,6 +231,45 @@ kubectl -n refrain rollout restart deploy/refrain
 
 ---
 
+## Supervision
+
+L'application expose des metriques Prometheus sur un **port distinct** du port
+applicatif (`METRICS_PORT`, 9464 par defaut). L'Ingress ne route que le port
+3000 : `/metrics` reste donc joignable depuis le cluster uniquement, sans avoir
+a filtrer quoi que ce soit cote nginx.
+
+```bash
+kubectl apply -f deploy/monitoring.yaml
+```
+
+Cree un `ServiceMonitor` (repris automatiquement par le kube-prometheus-stack) et
+une ConfigMap `grafana_dashboard=1` que le sidecar Grafana charge dans un dossier
+**Refrain**.
+
+Au-dela des metriques Node standard (`process_*`, `nodejs_*`), Refrain expose :
+
+| Metrique | Ce qu'elle raconte |
+|---|---|
+| `refrain_rooms{phase}` | Ou en sont les parties : salon, ecoute, revelation… |
+| `refrain_players{state}` | Joueurs connectes / total |
+| `refrain_screens_connected`, `refrain_hosts_online` | Ecrans de diffusion et regies ouvertes |
+| `refrain_socket_clients` | Connexions Socket.IO, tous roles confondus |
+| `refrain_games_started_total{mode}` | Parties lancees, par mode de jeu |
+| `refrain_rounds_finished_total{reason}` | Manches terminees : `timeout`, `complete`, `buzzer`, `host` |
+| `refrain_answers_total{field,result}` | Titres et artistes soumis, trouves ou rates |
+| `refrain_answer_latency_seconds{field}` | Rapidite des bonnes reponses dans l'extrait |
+| `refrain_buzzes_total`, `refrain_buzz_verdicts_total{verdict}` | Activite au buzzer et arbitrages |
+| `refrain_points_awarded_total` | Points distribues |
+| `refrain_playlist_selections_total{source,id}` | Listes reellement jouees |
+| `refrain_deezer_requests_total{outcome}` | Appels Deezer : `ok`, `quota`, `timeout`, `error` |
+| `refrain_deezer_cache_total{result}` | Efficacite du cache 6 h |
+| `refrain_catalog_build_duration_seconds{category}` | Cout de construction d'une liste a froid |
+
+Le tableau de bord regroupe tout ca en quatre blocs : vue d'ensemble, activite de
+jeu, Deezer, sante du processus.
+
+---
+
 ## En cas de pepin
 
 **Pas de son sur l'ecran.** Clique une fois sur la page. Les navigateurs

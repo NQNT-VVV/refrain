@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { matchTitle, matchArtist } = require('./match');
 const catalog = require('./catalog');
+const metrics = require('./metrics');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
 const MAX_PLAYERS = 60;
@@ -99,6 +100,7 @@ class GameServer {
   createRoom() {
     const room = new Room(makeCode(this.rooms));
     this.rooms.set(room.code, room);
+    metrics.roomsCreated.inc();
     return room;
   }
 
@@ -146,6 +148,7 @@ class GameServer {
       joinedAt: Date.now(),
     };
     room.players.set(player.id, player);
+    metrics.playersJoined.inc();
     return player;
   }
 
@@ -163,6 +166,7 @@ class GameServer {
         id: cat.id, title: cat.title, emoji: cat.emoji,
         subtitle: cat.subtitle, accent: cat.accent, source: 'catalog', tracks,
       };
+      metrics.playlistSelections.inc({ source: 'catalog', id: cat.id });
     } else if (spec.type === 'deezer') {
       const id = String(spec.id || '').match(/(\d{3,})/)?.[1];
       if (!id) throw new Error('Identifiant de playlist Deezer invalide.');
@@ -174,6 +178,7 @@ class GameServer {
         id: `dz-${id}`, title: pl.title, emoji: '🎧',
         subtitle: 'Playlist Deezer importee', accent: '#22D3EE', source: 'deezer', tracks,
       };
+      metrics.playlistSelections.inc({ source: 'deezer', id: 'import' });
     } else if (spec.type === 'custom') {
       const tracks = catalog.diversify(room.customTracks, 99);
       if (tracks.length < 3) throw new Error('Ajoute au moins 3 titres a ta selection.');
@@ -181,6 +186,7 @@ class GameServer {
         id: 'custom', title: 'Ma selection', emoji: '⭐',
         subtitle: `${tracks.length} titres choisis a la main`, accent: '#FBBF24', source: 'custom', tracks,
       };
+      metrics.playlistSelections.inc({ source: 'custom', id: 'custom' });
     } else {
       throw new Error('Type de liste inconnu.');
     }
@@ -214,6 +220,7 @@ class GameServer {
     room.index = -1;
     room.history = [];
     for (const p of room.players.values()) { p.score = 0; p.lastGain = 0; }
+    metrics.gamesStarted.inc({ mode: room.settings.mode });
     this.nextRound(room);
   }
 
@@ -275,12 +282,23 @@ class GameServer {
     if (artist) ans.artist = String(artist).slice(0, 80);
 
     let found = null;
-    if (!ans.titleOk && title && matchTitle(title, r.track.title)) {
-      ans.titleOk = true; ans.titleAt = now; found = 'title';
+    if (!ans.titleOk && title) {
+      if (matchTitle(title, r.track.title)) {
+        ans.titleOk = true; ans.titleAt = now; found = 'title';
+        metrics.answersTotal.inc({ field: 'title', result: 'hit' });
+        metrics.answerLatency.observe({ field: 'title' }, (now - r.startAt) / 1000);
+      } else {
+        metrics.answersTotal.inc({ field: 'title', result: 'miss' });
+      }
     }
-    if (room.settings.guessArtist && !ans.artistOk && artist
-        && matchArtist(artist, r.track.artist, r.track.contributors)) {
-      ans.artistOk = true; ans.artistAt = now; found = found ? 'both' : 'artist';
+    if (room.settings.guessArtist && !ans.artistOk && artist) {
+      if (matchArtist(artist, r.track.artist, r.track.contributors)) {
+        ans.artistOk = true; ans.artistAt = now; found = found ? 'both' : 'artist';
+        metrics.answersTotal.inc({ field: 'artist', result: 'hit' });
+        metrics.answerLatency.observe({ field: 'artist' }, (now - r.startAt) / 1000);
+      } else {
+        metrics.answersTotal.inc({ field: 'artist', result: 'miss' });
+      }
     }
     this.broadcast(room);
     if (this.everyoneDone(room)) room.after(600, () => this.reveal(room, 'complete'));
@@ -301,6 +319,7 @@ class GameServer {
     if (room.round.buzz || room.round.lockedOut.has(player.id)) return false;
     const now = Date.now();
     room.round.buzz = { playerId: player.id, name: player.name, avatar: player.avatar, at: now };
+    metrics.buzzesTotal.inc();
     room.round.remainingMs = Math.max(0, room.round.endAt - now);
     room.clearTimers();
     room.phase = 'buzzed';
@@ -312,6 +331,7 @@ class GameServer {
   judge(room, { ok, points }) {
     if (room.phase !== 'buzzed' || !room.round.buzz) return;
     const player = room.players.get(room.round.buzz.playerId);
+    metrics.buzzVerdicts.inc({ verdict: ok ? 'good' : 'bad' });
     if (ok) {
       const gain = clamp(Math.round(+points || room.settings.buzzerPoints), 0, 50);
       if (player) { player.score += gain; player.lastGain = gain; }
@@ -350,6 +370,7 @@ class GameServer {
         player.score += gained;
       }
       player.lastGain = gained;
+      if (gained > 0) metrics.pointsAwarded.inc(gained);
       results.push({
         playerId: player.id, name: player.name, avatar: player.avatar, gained,
         titleOk: !!a.titleOk, artistOk: !!a.artistOk,
@@ -365,6 +386,7 @@ class GameServer {
     if (!room.round || room.phase === 'reveal' || room.phase === 'scores' || room.phase === 'ended') return;
     room.clearTimers();
     room.phase = 'reveal';
+    metrics.roundsFinished.inc({ reason });
     room.round.results = this.computeResults(room);
     room.round.reason = reason;
     room.history.push({ track: room.round.track, results: room.round.results });
@@ -387,6 +409,7 @@ class GameServer {
 
   finish(room) {
     room.clearTimers();
+    metrics.gamesFinished.inc();
     room.phase = 'ended';
     room.round = null;
     this.sendAudio(room, { action: 'stop' });

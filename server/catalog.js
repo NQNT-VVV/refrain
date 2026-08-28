@@ -1,6 +1,7 @@
 'use strict';
 
 const dz = require('./deezer');
+const metrics = require('./metrics');
 const { normalize } = require('./match');
 
 /**
@@ -345,6 +346,7 @@ async function buildCategory(id) {
   if (buildLocks.has(id)) return buildLocks.get(id);
 
   const job = (async () => {
+    const stopTimer = metrics.catalogBuildDuration.startTimer({ category: id });
     const chunks = [];
     const seeds = cat.seeds;
     // Petits lots pour rester sous le quota Deezer
@@ -356,6 +358,7 @@ async function buildCategory(id) {
     const maxPerArtist = cat.seeds.length > 15 ? 2 : 4;
     const tracks = diversify(shuffle(flat), maxPerArtist);
     if (tracks.length) dz.writeCache(cacheKey, tracks);
+    stopTimer();
     return tracks;
   })().finally(() => buildLocks.delete(id));
 

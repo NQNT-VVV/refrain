@@ -10,8 +10,10 @@ const QRCode = require('qrcode');
 const catalog = require('./catalog');
 const deezer = require('./deezer');
 const { GameServer, cleanName } = require('./game');
+const metrics = require('./metrics');
 
 const PORT = Number(process.env.PORT) || 3000;
+const METRICS_PORT = Number(process.env.METRICS_PORT) || 9464;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 const app = express();
@@ -21,6 +23,7 @@ app.use(express.static(PUBLIC_DIR, { extensions: ['html'], maxAge: '1h' }));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 20000 });
 const game = new GameServer(io);
+metrics.bind(game, io);
 
 /* ------------------------------------------------------------------ */
 /* API                                                                */
@@ -261,6 +264,7 @@ io.on('connection', (socket) => {
     const player = room.players.get(playerId);
     if (!player || player.token !== token) return fail(cb, 'Session joueur expiree.');
     player.connected = true;
+    metrics.playersResumed.inc();
     socket.data.role = 'player';
     socket.data.code = room.code;
     socket.data.playerId = player.id;
@@ -322,6 +326,25 @@ function localAddresses() {
   }
   return out;
 }
+
+/**
+ * Les metriques ecoutent sur un port distinct : l'Ingress ne route que le port
+ * applicatif, donc /metrics n'est joignable que depuis le cluster.
+ */
+const metricsApp = express();
+metricsApp.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', metrics.registry.contentType);
+    res.end(await metrics.registry.metrics());
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
+metricsApp.get('/healthz', (req, res) => res.json({ ok: true }));
+
+metricsApp.listen(METRICS_PORT, () => {
+  console.log(`     metriques : http://localhost:${METRICS_PORT}/metrics`);
+});
 
 server.listen(PORT, () => {
   const urls = ['localhost', ...localAddresses()].map((h) => `http://${h}:${PORT}`);

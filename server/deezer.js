@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const metrics = require('./metrics');
 
 const API = 'https://api.deezer.com';
 const CACHE_DIR = path.join(__dirname, '..', '.cache');
@@ -69,14 +70,19 @@ function diskPath(key) {
 
 function readCache(key, ttl) {
   const hit = MEM.get(key);
-  if (hit && Date.now() - hit.at < ttl) return hit.value;
+  if (hit && Date.now() - hit.at < ttl) {
+    metrics.deezerCache.inc({ result: 'hit' });
+    return hit.value;
+  }
   try {
     const raw = JSON.parse(fs.readFileSync(diskPath(key), 'utf8'));
     if (Date.now() - raw.at < ttl) {
       MEM.set(key, raw);
+      metrics.deezerCache.inc({ result: 'hit' });
       return raw.value;
     }
   } catch { /* pas de cache disque */ }
+  metrics.deezerCache.inc({ result: 'miss' });
   return null;
 }
 
@@ -89,6 +95,8 @@ function writeCache(key, value) {
 async function fetchOnce(endpoint) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
+  const stopTimer = metrics.deezerDuration.startTimer();
+  let outcome = 'error';
   try {
     const res = await fetch(API + endpoint, {
       signal: controller.signal,
@@ -101,9 +109,15 @@ async function fetchOnce(endpoint) {
       const msg = json.error.message || json.error.type || 'erreur inconnue';
       throw Object.assign(new Error(`Deezer: ${msg}`), { quota: /quota/i.test(msg) });
     }
+    outcome = 'ok';
     return json;
+  } catch (err) {
+    outcome = err.quota ? 'quota' : err.name === 'AbortError' ? 'timeout' : 'error';
+    throw err;
   } finally {
     clearTimeout(timer);
+    stopTimer();
+    metrics.deezerRequests.inc({ outcome });
   }
 }
 
