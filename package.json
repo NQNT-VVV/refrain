@@ -22,14 +22,13 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "socket": {},
-    "socket.io-client": "^4.8.3",
     "typescript": "^5.9.3"
   }
 }
