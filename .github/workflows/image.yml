@@ -20,12 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verifier la syntaxe des modules front
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Verifier les types et la syntaxe serveur
         run: |
-          for f in public/js/*.js; do
-            cp "$f" "/tmp/$(basename "$f" .js).mjs"
-            node --check "/tmp/$(basename "$f" .js).mjs"
-          done
+          npm run typecheck
           for f in server/*.js; do node --check "$f"; done
 
       - uses: docker/setup-buildx-action@v3

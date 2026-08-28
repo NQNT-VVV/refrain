@@ -1,0 +1,607 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Socket } from 'socket.io-client';
+
+import { QrCode } from '@/components/QrCode';
+import { hasFoundAll, hasFoundSome, PHASE_LABEL } from '@/lib/game';
+import { sfx } from '@/lib/sfx';
+import { call } from '@/lib/socket';
+import { copyToClipboard, store } from '@/lib/storage';
+import { toast } from '@/lib/toast';
+import type { Category, GameState, HostAnswer, SearchTrack, Settings } from '@/lib/types';
+import { useAudioPlayer } from '@/lib/useAudioPlayer';
+import { useGameSocket } from '@/lib/useGameSocket';
+import { useRoundClock } from '@/lib/useRoundClock';
+
+import styles from './host.module.css';
+
+interface HostSession { code: string; hostToken: string }
+type Tab = 'catalog' | 'search' | 'deezer';
+
+const MODE_NOTE = {
+  input: 'Tout le monde tape titre + artiste. Correction automatique, bonus de rapidite.',
+  buzzer: 'Le premier qui buzze coupe la musique et repond a voix haute. Tu valides ou non.',
+} as const;
+
+export function HostClient() {
+  const [code, setCode] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tab, setTab] = useState<Tab>('catalog');
+  const [blurred, setBlurred] = useState(false);
+  const [loadingCat, setLoadingCat] = useState<string | null>(null);
+
+  const player = useAudioPlayer();
+  const codeRef = useRef('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setBlurred(store.get('refrain.host.blur', false));
+    fetch('/api/catalog')
+      .then((r) => r.json())
+      .then((d: { categories: Category[] }) => setCategories(d.categories))
+      .catch(() => toast('Impossible de charger les listes.', 'err'));
+  }, []);
+
+  const { socket, state, setState } = useGameSocket({
+    onReady: async (s) => {
+      const saved = store.get<HostSession | null>('refrain.host', null);
+      if (saved?.code && saved.hostToken) {
+        const res = await call<{ code: string; state: GameState }>(s, 'host:resume', saved);
+        if (res.ok) {
+          setCode(res.code);
+          codeRef.current = res.code;
+          setState(res.state);
+          return;
+        }
+      }
+      const created = await call<{ code: string; hostToken: string; state: GameState }>(s, 'host:create');
+      if (!created.ok) return toast(created.error, 'err');
+      store.set('refrain.host', { code: created.code, hostToken: created.hostToken });
+      setCode(created.code);
+      codeRef.current = created.code;
+      setState(created.state);
+    },
+    onAudio: (cue) => player.handleCue(cue, (reason) => toast(
+      reason === 'autoplay'
+        ? 'Clique une fois sur la page pour autoriser le son.'
+        : "L'extrait n'a pas pu etre charge.",
+      'err',
+    )),
+  });
+
+  const joinUrl = origin && code ? `${origin}/j/${code}` : '';
+  const inGame = Boolean(state && state.phase !== 'lobby' && state.phase !== 'ended');
+
+  const send = useCallback(
+    async (event: string, payload?: unknown, timeout?: number) => {
+      if (!socket) return;
+      const res = await call(socket, event, payload, timeout);
+      if (!res.ok) toast(res.error, 'err');
+      return res;
+    },
+    [socket],
+  );
+
+  async function pickCategory(cat: Category) {
+    setLoadingCat(cat.id);
+    const res = await send('host:playlist', { type: 'catalog', id: cat.id }, 60000);
+    setLoadingCat(null);
+    if (res?.ok) toast(`${cat.emoji} ${cat.title} — liste prete`, 'ok');
+  }
+
+  useKeyboardShortcuts(state, send);
+
+  if (!state) {
+    return (
+      <div className={styles.shell}>
+        <div className={styles.bar}><div className={styles.brand}>🎛️ <span>Regie</span></div></div>
+        <p className="muted">Ouverture du salon…</p>
+      </div>
+    );
+  }
+
+  const playersCard = <PlayersCard state={state} send={send} wide={inGame} />;
+
+  return (
+    <>
+      <audio ref={player.audio} preload="auto" />
+
+      <div className={styles.shell}>
+        <div className={styles.bar}>
+          <div className={styles.brand}>🎛️ <span>Regie</span></div>
+          <span className="pill">{PHASE_LABEL[state.phase]}</span>
+          <div className="grow" />
+          <span className={`pill ${state.screenOnline > 0 ? 'ok' : ''}`}>
+            {state.screenOnline > 0
+              ? `📺 ${state.screenOnline} ecran${state.screenOnline > 1 ? 's' : ''} connecte${state.screenOnline > 1 ? 's' : ''}`
+              : '📺 aucun ecran'}
+          </span>
+          <a className="btn sm" href={`/screen?code=${code}`} target="_blank" rel="noopener">Ouvrir l&apos;ecran ↗</a>
+        </div>
+
+        <div className={styles.grid}>
+          <div className={styles.sticky}>
+            <section className="card pad col" style={{ gap: 14 }}>
+              <div className="section-title">Salon</div>
+              <div className={styles.roomCode}>
+                <div className="grow">
+                  <div className={styles.big} data-testid="room-code">{code || '····'}</div>
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                    Code a saisir sur {origin.replace(/^https?:\/\//, '')}
+                  </div>
+                </div>
+                {joinUrl && <QrCode className={styles.qrMini} text={joinUrl} />}
+              </div>
+              <div className={styles.linkRow}>
+                <code>{joinUrl.replace(/^https?:\/\//, '') || '—'}</code>
+                <button
+                  className="btn icon" title="Copier le lien joueur"
+                  onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copie !', 'ok'))}
+                >🔗</button>
+              </div>
+
+              <div className="col" style={{ gap: 7 }}>
+                <div className="section-title" style={{ fontSize: 11 }}>Sortie du son</div>
+                <div className="seg" role="group" aria-label="Sortie du son">
+                  {(['screen', 'host'] as const).map((target) => (
+                    <button
+                      key={target} type="button" aria-pressed={state.audioTarget === target}
+                      onClick={() => {
+                        if (target === 'host') { sfx.unlock(); player.unlock(); }
+                        void send('host:audioTarget', { target });
+                      }}
+                    >
+                      {target === 'screen' ? '📺 Ecran' : '💻 Ici'}
+                    </button>
+                  ))}
+                </div>
+                <p className="faint" style={{ fontSize: 11.5 }}>
+                  « Ici » joue la musique depuis cette page — pratique si tu n&apos;as pas d&apos;ecran separe.
+                </p>
+              </div>
+            </section>
+
+            {!inGame && playersCard}
+          </div>
+
+          <div className="col" style={{ gap: 18 }}>
+            {inGame && state.round && (
+              <LivePanel
+                state={state} blurred={blurred}
+                onBlur={(v) => { setBlurred(v); store.set('refrain.host.blur', v); }}
+              >
+                {playersCard}
+              </LivePanel>
+            )}
+
+            {!inGame && (
+              <>
+                <section className="card pad col" style={{ gap: 16 }}>
+                  <div className={styles.tabs} role="tablist">
+                    {([['catalog', '🎧 Listes pretes'], ['search', '🔎 Ma selection'], ['deezer', '📥 Playlist Deezer']] as const).map(([id, label]) => (
+                      <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
+                    ))}
+                  </div>
+
+                  {tab === 'catalog' && (
+                    <div className={styles.cats}>
+                      {categories.map((c) => (
+                        <button
+                          key={c.id} type="button" className={styles.cat}
+                          data-testid="category" data-category={c.id}
+                          aria-pressed={state.playlist?.id === c.id}
+                          style={{ ['--c' as string]: c.accent }}
+                          onClick={() => pickCategory(c)}
+                        >
+                          <span className={styles.check}>✅</span>
+                          <span className={styles.em}>{c.emoji}</span>
+                          <span className={styles.t}>{c.title}</span>
+                          <span className={styles.s}>{loadingCat === c.id ? 'Chargement des extraits…' : c.subtitle}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {tab === 'search' && <SearchTab send={send} count={state.customCount ?? 0} />}
+                  {tab === 'deezer' && <DeezerTab send={send} />}
+                </section>
+
+                <SettingsPanel settings={state.settings} send={send} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Controls state={state} send={send} unlockAudio={player.unlock} />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Joueurs                                                            */
+/* ------------------------------------------------------------------ */
+
+type Send = (event: string, payload?: unknown, timeout?: number) => Promise<{ ok: boolean } | undefined>;
+
+function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide: boolean }) {
+  const answers = useMemo(
+    () => new Map((state.round?.answers ?? []).map((a: HostAnswer) => [a.playerId, a])),
+    [state.round?.answers],
+  );
+
+  return (
+    <section className={`card pad col ${wide ? styles.bare : ''}`} style={{ gap: 12 }}>
+      <div className="section-title">Joueurs <span className="pill">{state.players.length}</span></div>
+      <div className={`${styles.plist} ${wide ? styles.wide : ''}`}>
+        {state.players.map((p) => {
+          const a = answers.get(p.id);
+          const badge = a ? { titleOk: a.titleOk, artistOk: a.artistOk, tries: 0 } : null;
+          const done = hasFoundAll(badge, state.settings.guessArtist);
+          const part = hasFoundSome(badge);
+          const guess = a && (a.title || a.artist) ? `${a.title || '—'} · ${a.artist || '—'}` : null;
+          return (
+            <div key={p.id} className={`${styles.pcard} ${p.connected ? '' : styles.off} ${done ? styles.done : part ? styles.part : ''}`}>
+              <span>{p.avatar}</span>
+              <div className="grow">
+                <div className={`${styles.nm} ellipsis`}>{p.name}</div>
+                {guess && (
+                  <div className={`${styles.guess} ellipsis`}>
+                    {a?.titleOk ? '🎵' : ''}{a?.artistOk ? '🎤' : ''} {guess}
+                  </div>
+                )}
+              </div>
+              <div className={styles.tools}>
+                <button className="btn xs" title="Retirer un point" onClick={() => send('host:award', { playerId: p.id, delta: -1 })}>−</button>
+                <button className="btn xs" title="Donner un point" onClick={() => send('host:award', { playerId: p.id, delta: 1 })}>+</button>
+                <button
+                  className="btn xs danger" title="Exclure"
+                  onClick={() => { if (confirm(`Retirer ${p.name} de la partie ?`)) void send('host:kick', { playerId: p.id }); }}
+                >✕</button>
+              </div>
+              {p.lastGain > 0 && <span className={styles.sc} style={{ color: 'var(--green)' }}>+{p.lastGain}</span>}
+              <span className={styles.sc}>{p.score}</span>
+            </div>
+          );
+        })}
+        {state.players.length === 0 && (
+          <p className="faint" style={{ fontSize: 12.5 }}>Personne pour l&apos;instant. Fais scanner le QR code.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Panneau de jeu                                                     */
+/* ------------------------------------------------------------------ */
+
+function LivePanel({ state, blurred, onBlur, children }: {
+  state: GameState; blurred: boolean; onBlur: (v: boolean) => void; children: React.ReactNode;
+}) {
+  const { ratio } = useRoundClock(state);
+  const round = state.round!;
+  const track = round.track;
+  const buzz = state.phase === 'buzzed' ? round.buzz : null;
+
+  useEffect(() => { if (buzz) { sfx.unlock(); sfx.buzz(); } }, [buzz?.playerId]);
+
+  return (
+    <section className="card pad col" style={{ gap: 14 }}>
+      <div className="row">
+        <div className="section-title grow">Manche {round.index + 1} / {round.total}</div>
+        <label className="switch" title="Masquer la reponse pour ne pas spoiler ton entourage">
+          <input type="checkbox" checked={blurred} onChange={(e) => onBlur(e.target.checked)} />
+          <span className="track" />
+          <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>Masquer</span>
+        </label>
+      </div>
+
+      {buzz && (
+        <div className={styles.buzzAlert}>
+          <span className={styles.av}>{buzz.avatar}</span>
+          <div className="grow">
+            <div className={styles.nm}>{buzz.name}</div>
+            <div className="muted" style={{ fontSize: 13 }}>a buzze — ecoute sa reponse puis tranche.</div>
+          </div>
+        </div>
+      )}
+
+      <div className={`${styles.secret} ${blurred ? styles.blur : ''}`}>
+        <div className={styles.nowPlaying}>
+          {track?.cover
+            ? <img className={styles.hideable} src={track.cover} alt="" />
+            : <div className={`${styles.hideable} avatar lg`}>🎵</div>}
+          <div className="grow">
+            <div className={`${styles.t} ${styles.hideable}`} data-testid="np-title">{track?.title ?? '—'}</div>
+            <div className={`${styles.a} ${styles.hideable}`} data-testid="np-artist">{track?.artist ?? '—'}</div>
+            {track?.album && <div className={`faint ${styles.hideable}`} style={{ fontSize: 12.5, marginTop: 3 }}>{track.album}</div>}
+          </div>
+        </div>
+
+        <div className={styles.liveTimer}><i style={{ transform: `scaleX(${state.phase === 'playing' ? ratio : 1})` }} /></div>
+
+        <div className={`${styles.upnext} ${styles.hideable}`}>
+          {(state.upcoming ?? []).map((u, i) => (
+            <div key={u.id} className={styles.u}>
+              <b>Manche {round.index + 2 + i} :</b> {u.title} — {u.artist}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {children}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Onglets de selection                                               */
+/* ------------------------------------------------------------------ */
+
+function SearchTab({ send, count }: { send: Send; count: number }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchTrack[] | null>(null);
+  const [picked, setPicked] = useState<{ id: string; title: string; artist: string }[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults(null); return; }
+    const timer = setTimeout(async () => {
+      setBusy(true);
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+        const data = (await res.json()) as { tracks?: SearchTrack[] };
+        setResults(data.tracks ?? []);
+      } catch {
+        toast('Recherche indisponible.', 'err');
+      } finally {
+        setBusy(false);
+      }
+    }, 420);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  async function custom(action: string, payload: Record<string, unknown> = {}) {
+    const res = (await send('host:custom', { action, ...payload })) as
+      | { ok: true; tracks: { id: string; title: string; artist: string }[] }
+      | { ok: false }
+      | undefined;
+    if (res?.ok) setPicked(res.tracks);
+  }
+
+  return (
+    <div>
+      <div className="row">
+        <input
+          className="input grow" placeholder="Chercher un titre ou un artiste…" autoComplete="off"
+          value={query} onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      <div className={styles.results}>
+        {busy && <p className="faint" style={{ padding: 10 }}>Recherche…</p>}
+        {!busy && results?.length === 0 && <p className="faint" style={{ padding: 10 }}>Aucun extrait jouable pour cette recherche.</p>}
+        {!busy && results?.map((t) => (
+          <div key={t.id} className={styles.tres}>
+            {t.cover ? <img src={t.cover} alt="" loading="lazy" /> : <div className="avatar">🎵</div>}
+            <div className="grow">
+              <div className={`${styles.t} ellipsis`}>{t.title}</div>
+              <div className={`${styles.a} ellipsis`}>{t.artist}</div>
+            </div>
+            <button className="btn xs" onClick={() => custom('add', { track: t })}>+ Ajouter</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{ marginTop: 14 }}>
+        <div className="section-title grow">Ma selection <span className="pill">{picked.length || count}</span></div>
+        <button className="btn xs danger" onClick={() => custom('clear')}>Vider</button>
+        <button
+          className="btn xs primary"
+          onClick={async () => {
+            const res = await send('host:playlist', { type: 'custom' }, 30000);
+            if (res?.ok) toast('Ta selection est prete', 'ok');
+          }}
+        >Utiliser cette liste</button>
+      </div>
+
+      <div className={styles.picked}>
+        {picked.map((t) => (
+          <span key={t.id} className={styles.p}>
+            {t.title} — {t.artist}
+            <button title="Retirer" onClick={() => custom('remove', { id: t.id })}>✕</button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DeezerTab({ send }: { send: Send }) {
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div>
+      <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
+        Colle l&apos;adresse d&apos;une playlist Deezer publique (ou juste son numero).
+      </p>
+      <div className="row">
+        <input
+          className="input grow" placeholder="https://www.deezer.com/fr/playlist/1234567890" autoComplete="off"
+          value={url} onChange={(e) => setUrl(e.target.value)}
+        />
+        <button
+          className="btn" disabled={busy || !url.trim()}
+          onClick={async () => {
+            setBusy(true);
+            const res = await send('host:playlist', { type: 'deezer', id: url.trim() }, 60000);
+            setBusy(false);
+            if (res?.ok) toast('Playlist importee', 'ok');
+          }}
+        >Importer</button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Reglages                                                           */
+/* ------------------------------------------------------------------ */
+
+function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
+  const patch = (p: Partial<Settings>) => send('host:settings', p);
+
+  const sliders: { key: keyof Settings; label: string; min: number; max: number; format: (v: number) => string }[] = [
+    { key: 'rounds', label: 'Nombre de manches', min: 3, max: 30, format: (v) => String(v) },
+    { key: 'clip', label: "Duree d'ecoute", min: 5, max: 30, format: (v) => `${v} s` },
+    { key: 'speedBonus', label: 'Bonus de rapidite', min: 0, max: 6, format: (v) => String(v) },
+    { key: 'revealDelay', label: "Temps d'affichage de la reponse", min: 4, max: 20, format: (v) => `${v} s` },
+  ];
+
+  const notes: Partial<Record<keyof Settings, string>> = {
+    clip: 'Les extraits Deezer durent 30 s maximum.',
+    speedBonus: 'Points supplementaires max, degressifs pendant l\'extrait.',
+  };
+
+  return (
+    <section className="card pad col" style={{ gap: 16 }}>
+      <div className="section-title">Reglages</div>
+      <div className={styles.settings}>
+        <div className={styles.setting}>
+          <div className={styles.lab}><b>Mode de jeu</b></div>
+          <div className="seg" role="group">
+            {(['input', 'buzzer'] as const).map((mode) => (
+              <button key={mode} type="button" data-testid={`mode-${mode}`} aria-pressed={settings.mode === mode} onClick={() => patch({ mode })}>
+                {mode === 'input' ? '⌨️ Reponse libre' : '🔔 Buzzer'}
+              </button>
+            ))}
+          </div>
+          <p className={styles.note}>{MODE_NOTE[settings.mode]}</p>
+        </div>
+
+        {sliders.map((s) => (
+          <div key={s.key} className={styles.setting}>
+            <div className={styles.lab}><span>{s.label}</span><b>{s.format(settings[s.key] as number)}</b></div>
+            <input
+              type="range" data-testid={`setting-${s.key}`} min={s.min} max={s.max} value={settings[s.key] as number}
+              onChange={(e) => patch({ [s.key]: Number(e.target.value) } as Partial<Settings>)}
+            />
+            {notes[s.key] && <p className={styles.note}>{notes[s.key]}</p>}
+          </div>
+        ))}
+
+        <div className={styles.setting}>
+          <div className={styles.lab}><b>Options</b></div>
+          <label className="switch">
+            <input type="checkbox" checked={settings.guessArtist} onChange={(e) => patch({ guessArtist: e.target.checked })} />
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Demander aussi l&apos;artiste</span>
+          </label>
+          <label className="switch">
+            <input type="checkbox" checked={settings.autoNext} onChange={(e) => patch({ autoNext: e.target.checked })} />
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Enchainer les manches tout seul</span>
+          </label>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Barre de commande                                                  */
+/* ------------------------------------------------------------------ */
+
+function Controls({ state, send, unlockAudio }: { state: GameState; send: Send; unlockAudio: () => void }) {
+  let content: React.ReactNode;
+
+  if (state.phase === 'lobby') {
+    const ready = Boolean(state.playlist) && state.players.some((p) => p.connected);
+    const why = !state.playlist ? 'Choisis une liste de morceaux' : !state.players.some((p) => p.connected) ? 'Attends au moins un joueur' : null;
+    content = (
+      <>
+        <div className="grow muted" style={{ fontSize: 13.5 }}>
+          {state.playlist
+            ? `${state.playlist.emoji} ${state.playlist.title} · ${state.settings.rounds} manches · ${state.settings.clip} s`
+            : 'Aucune liste selectionnee'}
+        </div>
+        {why && <span className="pill">{why}</span>}
+        <button
+          className="btn primary lg" disabled={!ready} data-testid="primary-action"
+          onClick={() => { sfx.unlock(); if (state.audioTarget === 'host') unlockAudio(); void send('host:start'); }}
+        >▶ Lancer la partie</button>
+      </>
+    );
+  } else if (state.phase === 'buzzed') {
+    content = (
+      <>
+        <div className="grow muted" style={{ fontSize: 13.5 }}>
+          Reponse attendue : {state.round?.track?.title} — {state.round?.track?.artist}
+        </div>
+        <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>❌ Mauvaise reponse</button>
+        <button className="btn good lg" data-testid="judge-good" onClick={() => send('host:judge', { ok: true })}>
+          ✅ Bonne reponse (+{state.settings.buzzerPoints})
+        </button>
+      </>
+    );
+  } else if (state.phase === 'ended') {
+    content = (
+      <>
+        <div className="grow muted" style={{ fontSize: 13.5 }}>
+          Partie terminee — {state.players[0]?.name ?? '—'} gagne avec {state.players[0]?.score ?? 0} points
+        </div>
+        <button className="btn primary lg" data-testid="primary-action" onClick={() => send('host:lobby')}>↩ Nouvelle partie</button>
+      </>
+    );
+  } else {
+    const round = state.round!;
+    const isReveal = state.phase === 'reveal' || state.phase === 'scores';
+    content = (
+      <>
+        <div className="grow muted" style={{ fontSize: 13.5 }}>Manche {round.index + 1} / {round.total}</div>
+        <button
+          className="btn sm"
+          onClick={() => { if (confirm('Arreter la partie et revenir au salon ?')) void send('host:lobby'); }}
+        >↩ Retour au salon</button>
+        {!isReveal && <button className="btn" data-testid="reveal" onClick={() => send('host:reveal')}>👁 Reveler maintenant</button>}
+        <button className="btn primary" data-testid="primary-action" onClick={() => send('host:next')}>
+          {round.index + 1 >= round.total ? '🏁 Terminer' : '⏭ Manche suivante'}
+        </button>
+      </>
+    );
+  }
+
+  return <div className={styles.controls}><div className={styles.inner}>{content}</div></div>;
+}
+
+/* ------------------------------------------------------------------ */
+
+function useKeyboardShortcuts(state: GameState | null, send: Send) {
+  const ref = useRef({ state, send });
+  ref.current = { state, send };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      const { state: s, send: emit } = ref.current;
+      if (!s) return;
+
+      if (s.phase === 'buzzed') {
+        if (e.key === 'o' || e.key === 'Enter') void emit('host:judge', { ok: true });
+        if (e.key === 'n' || e.key === 'Escape') void emit('host:judge', { ok: false });
+        return;
+      }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (s.phase === 'lobby') void emit('host:start');
+        else void emit('host:next');
+      }
+      if (e.key === 'r' && s.phase === 'playing') void emit('host:reveal');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+}

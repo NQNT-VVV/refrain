@@ -37,6 +37,7 @@ const pointsAwarded = counter('refrain_points_awarded_total', 'Points distribues
 const playlistSelections = counter('refrain_playlist_selections_total', 'Listes de morceaux selectionnees.', ['source', 'id']);
 const deezerRequests = counter('refrain_deezer_requests_total', 'Appels a l\'API Deezer.', ['outcome']);
 const deezerCache = counter('refrain_deezer_cache_total', 'Consultations du cache Deezer.', ['result']);
+const previewRefresh = counter('refrain_preview_refresh_total', 'Rafraichissements d\'URL d\'extrait avant lecture.', ['result']);
 
 /* ------------------------------------------------------------------ */
 /* Histogrammes                                                       */
@@ -141,6 +142,6 @@ module.exports = {
   registry, bind,
   roomsCreated, playersJoined, playersResumed, gamesStarted, gamesFinished,
   roundsFinished, answersTotal, buzzesTotal, buzzVerdicts, pointsAwarded,
-  playlistSelections, deezerRequests, deezerCache,
+  playlistSelections, deezerRequests, deezerCache, previewRefresh,
   deezerDuration, catalogBuildDuration, answerLatency,
 };

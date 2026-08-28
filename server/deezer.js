@@ -209,6 +209,33 @@ async function chartTracks(genreId = 0, limit = 100) {
   return tracks;
 }
 
+/**
+ * Les URL d'extrait Deezer sont signees et expirent en moins d'une heure :
+ * une URL rangee dans le cache des listes (6 h) renvoie 403 a la lecture.
+ * On les re-resout donc juste avant de jouer, avec un cache memoire tres court.
+ */
+const PREVIEW_TTL = 8 * 60 * 1000;
+const previews = new Map(); // trackId -> { at, url }
+
+async function freshPreview(trackId) {
+  const id = String(trackId);
+  const hit = previews.get(id);
+  if (hit && Date.now() - hit.at < PREVIEW_TTL) return hit.url;
+
+  const json = await dz(`/track/${id}`);
+  const url = json?.preview || null;
+  if (url) {
+    previews.set(id, { at: Date.now(), url });
+    // Evite une croissance sans fin sur les longues sessions
+    if (previews.size > 500) {
+      for (const [key, value] of previews) {
+        if (Date.now() - value.at > PREVIEW_TTL) previews.delete(key);
+      }
+    }
+  }
+  return url;
+}
+
 async function playlistTracks(playlistId, limit = 200) {
   const key = `playlist_${playlistId}_${limit}`;
   const cached = readCache(key, DEFAULT_TTL);
@@ -220,4 +247,4 @@ async function playlistTracks(playlistId, limit = 200) {
   return value;
 }
 
-module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, chartTracks, playlistTracks, readCache, writeCache };
+module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, chartTracks, playlistTracks, readCache, writeCache };

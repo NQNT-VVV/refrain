@@ -4,6 +4,7 @@ const path = require('path');
 const os = require('os');
 const express = require('express');
 const http = require('http');
+const next = require('next');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
@@ -14,11 +15,15 @@ const metrics = require('./metrics');
 
 const PORT = Number(process.env.PORT) || 3000;
 const METRICS_PORT = Number(process.env.METRICS_PORT) || 9464;
-const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const ROOT_DIR = path.join(__dirname, '..');
+const dev = process.env.NODE_ENV !== 'production';
+
+// Next rend les pages ; Express garde l'API et Socket.IO sur le meme serveur HTTP.
+const nextApp = next({ dev, dir: ROOT_DIR });
+const renderPage = nextApp.getRequestHandler();
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(PUBLIC_DIR, { extensions: ['html'], maxAge: '1h' }));
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 20000 });
@@ -64,11 +69,8 @@ app.get('/api/health', (req, res) => {
 
 // Lien court d'invitation : /j/ABCD
 app.get('/j/:code', (req, res) => {
-  res.redirect(`/play.html?code=${encodeURIComponent(String(req.params.code).toUpperCase())}`);
+  res.redirect(`/play?code=${encodeURIComponent(String(req.params.code).toUpperCase())}`);
 });
-app.get('/host', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'host.html')));
-app.get('/screen', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'screen.html')));
-app.get('/play', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'play.html')));
 
 /* ------------------------------------------------------------------ */
 /* Temps reel                                                         */
@@ -346,14 +348,28 @@ metricsApp.listen(METRICS_PORT, () => {
   console.log(`     metriques : http://localhost:${METRICS_PORT}/metrics`);
 });
 
-server.listen(PORT, () => {
-  const urls = ['localhost', ...localAddresses()].map((h) => `http://${h}:${PORT}`);
-  console.log('\n  🎧  Refrain — serveur pret\n');
-  for (const u of urls) console.log(`     ${u}`);
-  console.log('\n     Animateur : /host      Ecran : /screen      Joueurs : /j/CODE\n');
+/**
+ * Next se prepare avant l'ecoute : les routes API et le lien court sont deja
+ * declarees, le rendu des pages sert de dernier recours.
+ */
+nextApp
+  .prepare()
+  .then(() => {
+    app.all('*', (req, res) => renderPage(req, res));
 
-  // Prechauffage discret des listes les plus utilisees
-  for (const id of ['top', 'hymnes', 'fr']) {
-    catalog.buildCategory(id).catch(() => {});
-  }
-});
+    server.listen(PORT, () => {
+      const urls = ['localhost', ...localAddresses()].map((h) => `http://${h}:${PORT}`);
+      console.log('\n  🎧  Refrain — serveur pret\n');
+      for (const u of urls) console.log(`     ${u}`);
+      console.log('\n     Animateur : /host      Ecran : /screen      Joueurs : /j/CODE\n');
+
+      // Prechauffage discret des listes les plus utilisees
+      for (const id of ['top', 'hymnes', 'fr']) {
+        catalog.buildCategory(id).catch(() => {});
+      }
+    });
+  })
+  .catch((err) => {
+    console.error('Next n\'a pas pu demarrer :', err);
+    process.exit(1);
+  });

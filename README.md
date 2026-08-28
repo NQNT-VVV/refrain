@@ -13,8 +13,12 @@ necessaire**.
 
 ```bash
 npm install
+npm run build     # compile le front Next
 npm start
 ```
+
+En developpement, `npm run dev` suffit : Next compile a la volee, pas besoin de
+build prealable.
 
 Le serveur affiche les adresses utilisables :
 
@@ -145,9 +149,18 @@ joueurs peuvent voir ton ecran.
 
 ## Notes techniques
 
-- Node 18+, Express, Socket.IO, `qrcode`. Aucun build, aucune base de donnees :
-  l'etat des parties vit en memoire.
+- **Front** : Next.js 15 (App Router) en TypeScript, CSS Modules par page et un
+  socle de jetons partages dans `app/globals.css`. Polices auto-hebergees via
+  `next/font`, donc aucune requete vers un CDN externe au chargement.
+- **Serveur** : Express + Socket.IO montent Next sur le meme serveur HTTP. Une
+  seule connexion, un seul port, et les routes `/api/*` restent devant le rendu.
+  Aucune base de donnees : l'etat des parties vit en memoire.
 - Les extraits Deezer durent 30 s au maximum — d'ou la limite de duree d'ecoute.
+- **Les URL d'extrait Deezer sont signees et expirent en moins d'une heure.** Les
+  listes sont mises en cache 6 h, mais l'URL est systematiquement re-resolue
+  pendant le compte a rebours de la manche : sans ca, une soiree un peu longue
+  perdrait le son sur un `403`. La metrique
+  `refrain_preview_refresh_total{result}` suit ce rafraichissement.
 - La reponse n'est **jamais** envoyee aux telephones ni a l'ecran avant la
   revelation. Seule la regie la connait. L'URL de l'extrait ne part que vers le
   terminal charge du son.
@@ -160,25 +173,39 @@ joueurs peuvent voir ton ecran.
 ### Structure
 
 ```
-server/
-  index.js     serveur HTTP + Socket.IO + API
-  game.js      salons, manches, scores, reconnexion
-  catalog.js   les 17 listes et leur construction
-  deezer.js    client API Deezer (cache disque + limiteur de debit)
-  match.js     normalisation et comparaison floue des reponses
-public/
-  index.html   accueil
-  host.html    regie
-  screen.html  ecran de diffusion
-  play.html    telephone joueur
-test/
-  e2e.mjs      partie complete simulee, dans les deux modes
+server/                 CommonJS, sans build
+  index.js              serveur HTTP, API, Socket.IO, montage de Next
+  game.js               salons, manches, scores, reconnexion
+  catalog.js            les 17 listes et leur construction
+  deezer.js             client API Deezer (cache, limiteur de debit, extraits)
+  match.js              normalisation et comparaison floue des reponses
+  metrics.js            registre Prometheus
+
+app/                    Next.js App Router
+  layout.tsx            coquille commune, polices, fond anime, notifications
+  globals.css           jetons de design et composants partages
+  page.tsx              accueil (rendu serveur)
+  host/                 regie animateur
+  screen/               ecran de diffusion
+  play/                 telephone joueur
+
+lib/                    logique client partagee
+  types.ts              types des charges utiles Socket.IO
+  useGameSocket.ts      connexion temps reel et etat de partie
+  useRoundClock.ts      compte a rebours cale sur l'horloge serveur
+  useAudioPlayer.ts     lecture des extraits et deblocage autoplay
+  sfx.ts, confetti.ts, clock.ts, toast.ts, storage.ts, game.ts
+
+components/             Aurora, Toaster, QrCode
+deploy/                 manifestes Kubernetes et supervision
+test/e2e.mjs            partie complete simulee, dans les deux modes
 ```
 
 ### Tests
 
 ```bash
-npm start          # dans un terminal
+npm run typecheck  # TypeScript
+npm run dev        # dans un terminal
 npm test           # dans un autre
 ```
 
@@ -285,3 +312,7 @@ a la main via l'onglet recherche. Supprimer `.cache/` force une reconstruction.
 
 **Un morceau n'a pas d'extrait.** Les titres sans extrait jouable sont ecartes
 automatiquement a la construction de la liste.
+
+**« L'extrait n'a pas pu etre charge ».** L'URL signee de Deezer a expire ou son
+CDN a refuse la requete. Le serveur re-resout l'URL a chaque manche ; si le
+message revient souvent, verifie la connectivite sortante vers `dzcdn.net`.

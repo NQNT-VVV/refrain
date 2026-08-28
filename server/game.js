@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { matchTitle, matchArtist } = require('./match');
 const catalog = require('./catalog');
+const deezer = require('./deezer');
 const metrics = require('./metrics');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
@@ -245,13 +246,7 @@ class GameServer {
     };
     for (const p of room.players.values()) p.lastGain = 0;
 
-    this.sendAudio(room, {
-      action: 'play',
-      preview: track.preview,
-      startAt: room.round.startAt,
-      durationMs: room.round.durationMs,
-      index: room.index,
-    });
+    this.cueTrack(room, track);
 
     room.after(COUNTDOWN_MS, () => {
       room.phase = 'playing';
@@ -260,6 +255,36 @@ class GameServer {
     });
 
     this.broadcast(room);
+  }
+
+  /**
+   * Envoie l'ordre de lecture, apres avoir re-resolu l'URL de l'extrait.
+   * Le compte a rebours laisse le temps de l'appel ; au-dela, on part sur
+   * l'URL connue plutot que de retarder la manche.
+   */
+  cueTrack(room, track) {
+    const send = (preview) => {
+      if (!room.round || room.round.track !== track) return; // manche deja passee
+      this.sendAudio(room, {
+        action: 'play',
+        preview,
+        startAt: room.round.startAt,
+        durationMs: room.round.durationMs,
+        index: room.index,
+      });
+    };
+
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), COUNTDOWN_MS - 600));
+    Promise.race([deezer.freshPreview(track.id).catch(() => null), timeout])
+      .then((url) => {
+        if (url) {
+          track.preview = url;
+          metrics.previewRefresh.inc({ result: 'refreshed' });
+        } else {
+          metrics.previewRefresh.inc({ result: 'fallback' });
+        }
+        send(track.preview);
+      });
   }
 
   ratioAt(room, at) {
