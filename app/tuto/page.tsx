@@ -170,6 +170,23 @@ export default function TutoPage() {
       </section>
 
       <section className={styles.section}>
+        <h2>Diffuser en stream</h2>
+        <p className="muted" style={{ fontSize: 14, lineHeight: 1.7, maxWidth: '62ch' }}>
+          La regie fournit un <b>lien pour OBS</b> : a coller dans une source navigateur
+          1920×1080. Le code de la partie reste affiche en permanence pour les viewers qui
+          arrivent en cours, les commandes disparaissent de la capture, et tu choisis de quel
+          cote va le classement pour laisser la place a ta webcam.
+        </p>
+        <div className={styles.tip}>
+          <span className={styles.mark}>⏸</span>
+          <span>
+            Coupure pub, souci technique&nbsp;? La <b>pause</b> fige le chrono et le son la ou ils
+            en sont, et la reprise repart exactement de la.
+          </span>
+        </div>
+      </section>
+
+      <section className={styles.section}>
         <h2>Le son</h2>
         <p className="muted" style={{ fontSize: 14, lineHeight: 1.7, maxWidth: '62ch' }}>
           Par defaut, la musique sort <b>uniquement sur l&apos;ecran de diffusion</b> — c&apos;est ce
@@ -197,6 +214,7 @@ export default function TutoPage() {
         <h2>Raccourcis de la regie</h2>
         <div className={styles.keys}>
           <span><kbd>Espace</kbd> lancer / manche suivante</span>
+          <span><kbd>P</kbd> pause / reprise</span>
           <span><kbd>R</kbd> reveler la reponse</span>
           <span><kbd>O</kbd> ou <kbd>Entree</kbd> valider un buzz</span>
           <span><kbd>N</kbd> ou <kbd>Echap</kbd> refuser un buzz</span>

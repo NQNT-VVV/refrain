@@ -35,6 +35,8 @@ export function HostClient() {
   const [blurred, setBlurred] = useState(false);
   const [loadingCat, setLoadingCat] = useState<string | null>(null);
   const [sources, setSources] = useState<{ spotify?: boolean }>({});
+  const [obsSide, setObsSide] = useState<'right' | 'left'>('right');
+  const [obsTransparent, setObsTransparent] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const player = useAudioDevice((reason) => toast(
@@ -81,6 +83,11 @@ export function HostClient() {
   });
 
   const joinUrl = origin && code ? `${origin}/j/${code}` : '';
+  // Adresse a coller dans une source navigateur OBS : sans commandes a l'ecran,
+  // panneau du cote choisi, fond transparent si le streamer incruste le jeu.
+  const obsUrl = origin && code
+    ? `${origin}/screen?code=${code}&stream=1${obsSide === 'left' ? '&side=left' : ''}${obsTransparent ? '&bg=transparent' : ''}`
+    : '';
   const inGame = Boolean(state && state.phase !== 'lobby' && state.phase !== 'ended');
 
   const send = useCallback(
@@ -157,6 +164,35 @@ export function HostClient() {
                   className="btn icon" title="Copier le lien joueur"
                   onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copie !', 'ok'))}
                 >🔗</button>
+              </div>
+
+              <div className="col" style={{ gap: 8 }}>
+                <div className="section-title" style={{ fontSize: 11 }}>Lien pour OBS / stream</div>
+                <div className={styles.obsRow}>
+                  <div className="seg" role="group" aria-label="Cote du classement">
+                    {(['right', 'left'] as const).map((s) => (
+                      <button key={s} type="button" aria-pressed={obsSide === s} onClick={() => setObsSide(s)}>
+                        {s === 'right' ? 'Classement a droite' : 'a gauche'}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="switch">
+                    <input type="checkbox" checked={obsTransparent} onChange={(e) => setObsTransparent(e.target.checked)} />
+                    <span className="track" /><span style={{ fontSize: 12.5 }}>Fond transparent</span>
+                  </label>
+                </div>
+                <div className={styles.obsUrl}>
+                  <code title={obsUrl}>{obsUrl.replace(/^https?:\/\//, '') || '—'}</code>
+                  <button
+                    className="btn icon" title="Copier le lien OBS" data-testid="copy-obs"
+                    onClick={() => copyToClipboard(obsUrl).then(() => toast('Lien OBS copie !', 'ok'))}
+                  >📺</button>
+                </div>
+                <p className="faint" style={{ fontSize: 11.5 }}>
+                  Source navigateur 1920×1080, « controler l&apos;audio via OBS » coche. Le code de la
+                  partie reste affiche en permanence pour les viewers qui arrivent en cours. Clavier
+                  sur l&apos;ecran : <kbd>F</kbd> plein ecran, <kbd>M</kbd> muet, <kbd>↑↓</kbd> volume.
+                </p>
               </div>
 
               <div className="col" style={{ gap: 7 }}>
@@ -861,9 +897,20 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
   } else {
     const round = state.round!;
     const isReveal = state.phase === 'reveal' || state.phase === 'scores';
+    const canPause = state.phase === 'playing' || state.phase === 'paused';
     content = (
       <>
-        <div className="grow muted" style={{ fontSize: 13.5 }}>Manche {round.index + 1} / {round.total}</div>
+        <div className="grow muted" style={{ fontSize: 13.5 }}>
+          Manche {round.index + 1} / {round.total}{state.paused ? ' — en pause' : ''}
+        </div>
+        {canPause && (
+          <button
+            className={`btn ${state.paused ? 'good' : ''}`} data-testid="pause"
+            onClick={() => send('host:pause')}
+          >
+            {state.paused ? '▶ Reprendre' : '⏸ Pause'}
+          </button>
+        )}
         <button
           className="btn sm"
           onClick={() => { if (confirm('Arreter la partie et revenir au salon ?')) void send('host:lobby'); }}
@@ -903,6 +950,7 @@ function useKeyboardShortcuts(state: GameState | null, send: Send) {
         else void emit('host:next');
       }
       if (e.key === 'r' && s.phase === 'playing') void emit('host:reveal');
+      if ((e.key === 'p' || e.key === 'P') && (s.phase === 'playing' || s.phase === 'paused')) void emit('host:pause');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

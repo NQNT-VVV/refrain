@@ -3,7 +3,7 @@
  * Miroir de `publicState()` / `hostState()` dans server/game.js.
  */
 
-export type Phase = 'lobby' | 'countdown' | 'playing' | 'buzzed' | 'reveal' | 'scores' | 'ended';
+export type Phase = 'lobby' | 'countdown' | 'playing' | 'buzzed' | 'paused' | 'reveal' | 'scores' | 'ended';
 export type Mode = 'input' | 'buzzer';
 export type AudioTarget = 'screen' | 'host';
 
@@ -102,6 +102,14 @@ export interface HostAnswer {
   artist: string;
 }
 
+export interface Fastest {
+  playerId: string;
+  name: string;
+  avatar: string;
+  /** Temps mis depuis le debut de l'extrait, en millisecondes. */
+  ms: number;
+}
+
 export interface RoundState {
   index: number;
   total: number;
@@ -113,6 +121,8 @@ export interface RoundState {
   answerDeadline: number | null;
   lockedOut: string[];
   answeredCount: number;
+  /** Les premiers a avoir tout trouve sur cette manche, dans l'ordre. */
+  fastest: Fastest[];
   /** Instant absolu ou le buzzer s'ouvre, en millisecondes. */
   buzzOpensAt: number;
   /** L'artiste est-il demande sur cette manche ? (faux si le titre YouTube n'en donne pas) */
@@ -154,6 +164,8 @@ export interface GameState {
    */
   leaderboard: PlayerRow[];
   counts: Counts;
+  /** Vrai pendant une pause de l'animateur : chrono et son figes. */
+  paused: boolean;
   round: RoundState | null;
   serverNow: number;
   podium?: PlayerRow[];

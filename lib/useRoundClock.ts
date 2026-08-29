@@ -59,6 +59,9 @@ export function useRoundClock(state: GameState | null): RoundClock {
   const answerDeadline = state?.round?.answerDeadline ?? null;
 
   useEffect(() => {
+    // Pendant une pause, on fige l'affichage sur ses dernieres valeurs plutot que
+    // de le remettre a zero : le chrono reprendra la ou il en etait.
+    if (phase === 'paused') return;
     const live = phase === 'playing' || phase === 'countdown' || phase === 'buzzed';
     if (!startAt || !endAt || !live) {
       publish({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });

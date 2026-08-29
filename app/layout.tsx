@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Noto_Color_Emoji, Space_Grotesk } from 'next/font/google';
 
 import { Aurora } from '@/components/Aurora';
 import { Toaster } from '@/components/Toaster';
@@ -10,6 +10,20 @@ const body = Inter({
   weight: ['400', '500', '600', '700'],
   variable: '--font-body',
   display: 'swap',
+});
+
+/**
+ * Police emoji embarquee. Une source navigateur OBS, ou un PC de projection
+ * fraichement installe, n'a souvent aucune police emoji : avatars, marqueurs et
+ * trophees s'affichent alors en carres vides — sur l'ecran que tout le monde
+ * regarde. L'embarquer garantit le meme rendu partout.
+ */
+const emoji = Noto_Color_Emoji({
+  subsets: ['emoji'],
+  weight: '400',
+  variable: '--font-emoji',
+  display: 'swap',
+  preload: false,
 });
 
 const display = Space_Grotesk({
@@ -39,7 +53,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${body.variable} ${display.variable}`}>
+    <html lang="fr" className={`${body.variable} ${display.variable} ${emoji.variable}`}>
       <body>
         <Aurora />
         {children}

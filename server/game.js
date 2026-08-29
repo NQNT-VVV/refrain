@@ -20,6 +20,7 @@ const MAX_PLAYERS = Number(process.env.MAX_PLAYERS) || 2000;
 const LEADERBOARD_SIZE = 12;   // ce que voient l'ecran et les joueurs
 const HOST_LIST_SIZE = 50;     // ce que la regie peut afficher utilement
 const TOP_GAINS_SIZE = 10;     // marqueurs mis en avant a la revelation
+const FASTEST_SIZE = 5;        // les plus rapides d'une manche, affiches en direct
 const PODIUM_SIZE = 20;
 
 // Les evenements de jeu arrivent en rafale : on regroupe les diffusions.
@@ -85,6 +86,7 @@ class Room {
     this.history = [];
     this.connectedCount = 0;      // tenu a jour, plutot que recompte a chaque fois
     this.playedTrackIds = new Set();   // memoire des parties precedentes du salon
+    this.paused = null;                // { phaseBefore, remainingMs, answerRemainingMs } pendant une pause
     this.broadcastTimer = null;
     this.dirty = false;
   }
@@ -396,6 +398,50 @@ class GameServer {
   }
 
   /**
+   * Pause : fige le chrono et le son la ou ils en sont.
+   *
+   * En stream, une coupure pub ou un souci technique arrive au milieu d'une
+   * manche. Plutot que de la perdre, on memorise ce qu'il reste a jouer et on
+   * repart exactement de la. Fonctionne pendant l'ecoute et pendant un buzz.
+   */
+  pause(room) {
+    if (!room.round || room.paused) return false;
+    if (room.phase !== 'playing' && room.phase !== 'buzzed') return false;
+    const now = Date.now();
+    room.paused = {
+      phaseBefore: room.phase,
+      remainingMs: Math.max(0, room.round.endAt - now),
+      answerRemainingMs: room.round.answerDeadline ? Math.max(0, room.round.answerDeadline - now) : null,
+    };
+    room.clearTimers();
+    if (room.phase === 'playing') this.sendAudio(room, { action: 'pause' });
+    room.phase = 'paused';
+    this.broadcastNow(room);
+    return true;
+  }
+
+  resume(room) {
+    const saved = room.paused;
+    if (!saved || !room.round) return false;
+    const now = Date.now();
+    room.paused = null;
+    room.phase = saved.phaseBefore;
+
+    if (saved.phaseBefore === 'playing') {
+      // On decale la fin de manche du temps passe en pause, puis on relance.
+      room.round.endAt = now + saved.remainingMs;
+      room.round.remainingMs = saved.remainingMs;
+      this.sendAudio(room, { action: 'resume' });
+      room.after(saved.remainingMs, () => this.reveal(room, 'timeout'));
+    } else if (saved.phaseBefore === 'buzzed' && saved.answerRemainingMs !== null) {
+      room.round.answerDeadline = now + saved.answerRemainingMs;
+      room.after(saved.answerRemainingMs, () => this.judge(room, { ok: false, timedOut: true }));
+    }
+    this.broadcastNow(room);
+    return true;
+  }
+
+  /**
    * Compose la liste des manches.
    *
    * Deux regles, dans cet ordre : on sert d'abord ce que ce salon n'a jamais
@@ -442,6 +488,7 @@ class GameServer {
 
   nextRound(room) {
     room.clearTimers();
+    room.paused = null;
     room.index += 1;
     if (room.index >= room.queue.length) return this.finish(room);
 
@@ -456,6 +503,7 @@ class GameServer {
       remainingMs: room.settings.clip * 1000,
       answers: new Map(),
       doneCount: 0,
+      fastest: [],          // les premiers a avoir tout trouve, dans l'ordre — borne
       buzz: null,
       answerDeadline: null,
       lockedOut: new Set(),
@@ -543,7 +591,7 @@ class GameServer {
   }
 
   submitAnswer(room, player, { title, artist }) {
-    if (room.phase !== 'playing' || room.settings.mode !== 'input') return null;
+    if (room.phase !== 'playing' || room.settings.mode !== 'input') return null;   // couvre aussi la pause
     const now = Date.now();
     const r = room.round;
     let ans = r.answers.get(player.id);
@@ -584,7 +632,16 @@ class GameServer {
       }
     }
     // Compteur incremental : inutile de reparcourir tous les joueurs a chaque reponse.
-    if (found && !wasDone && ans.titleOk && (!needArtist || ans.artistOk)) r.doneCount += 1;
+    if (found && !wasDone && ans.titleOk && (!needArtist || ans.artistOk)) {
+      r.doneCount += 1;
+      // L'ordre d'arrivee est l'ordre de rapidite : pas de tri, une insertion.
+      if (r.fastest.length < FASTEST_SIZE) {
+        r.fastest.push({
+          playerId: player.id, name: player.name, avatar: player.avatar,
+          ms: Math.max(0, now - r.startAt),
+        });
+      }
+    }
 
     // Un champ vient d'etre trouve : le joueur doit le voir se verrouiller, et
     // le retrouver verrouille s'il rafraichit sa page. Au plus deux fois par
@@ -709,6 +766,7 @@ class GameServer {
   reveal(room, reason = 'timeout') {
     if (!room.round || room.phase === 'reveal' || room.phase === 'scores' || room.phase === 'ended') return;
     room.clearTimers();
+    room.paused = null;
     room.phase = 'reveal';
     metrics.roundsFinished.inc({ reason });
     room.round.results = this.computeResults(room);
@@ -749,6 +807,7 @@ class GameServer {
 
   backToLobby(room) {
     room.clearTimers();
+    room.paused = null;
     room.phase = 'lobby';
     room.round = null;
     room.index = -1;
@@ -852,6 +911,7 @@ class GameServer {
         askArtist: room.playlist.askArtist !== false,
       },
       counts: this.counts(room),
+      paused: Boolean(room.paused),
       round: room.round && {
         index: room.index, total: room.queue.length,
         startAt: room.round.startAt, endAt: room.round.endAt,
@@ -860,6 +920,7 @@ class GameServer {
         answerDeadline: room.round.answerDeadline,
         lockedOut: [...room.round.lockedOut],
         answeredCount: room.round.answers.size,
+        fastest: room.round.fastest,
         buzzOpensAt: this.buzzOpensAt(room),
         askArtist: this.asksArtist(room),
         reason: room.round.reason || null,

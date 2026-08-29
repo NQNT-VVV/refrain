@@ -71,7 +71,7 @@ const answerLatency = new Histogram({
 /* Jauges : calculees a la volee au moment du scrape                  */
 /* ------------------------------------------------------------------ */
 
-const PHASES = ['lobby', 'countdown', 'playing', 'buzzed', 'reveal', 'scores', 'ended'];
+const PHASES = ['lobby', 'countdown', 'playing', 'buzzed', 'paused', 'reveal', 'scores', 'ended'];
 
 /**
  * Branche les jauges sur l'etat vivant du serveur de jeu.

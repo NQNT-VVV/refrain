@@ -51,6 +51,7 @@ export const PHASE_LABEL: Record<GameState['phase'], string> = {
   countdown: 'Depart…',
   playing: 'En ecoute',
   buzzed: 'Buzz !',
+  paused: 'Pause',
   reveal: 'Reponse',
   scores: 'Classement',
   ended: 'Termine',

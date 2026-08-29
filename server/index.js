@@ -225,6 +225,14 @@ io.on('connection', (socket) => {
     ok(cb);
   });
 
+  socket.on('host:pause', (payload, cb) => {
+    const room = asHost(socket);
+    if (!room) return fail(cb, 'Session animateur expiree.');
+    const done = room.paused ? game.resume(room) : game.pause(room);
+    if (!done) return fail(cb, 'Rien a mettre en pause pour le moment.');
+    ok(cb, { paused: Boolean(room.paused) });
+  });
+
   socket.on('host:reveal', (payload, cb) => {
     const room = asHost(socket);
     if (!room) return fail(cb, 'Session animateur expiree.');

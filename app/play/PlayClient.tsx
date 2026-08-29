@@ -328,6 +328,15 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
         {(state.phase === 'playing' || state.phase === 'buzzed') && state.settings.mode === 'buzzer' && (
           <Buzzer state={state} me={me} you={you} socket={socket} buzzLock={buzzLock} answerLeft={answerLeft} />
         )}
+        {state.phase === 'paused' && (
+          <section className={styles.panel} data-testid="scene-paused">
+            <div className={styles.pausedPanel}>
+              <div className={styles.bars}><i /><i /></div>
+              <h2 className={styles.big}>Pause</h2>
+              <p className="muted">L&apos;animateur revient dans un instant. Ton chrono est fige, rien n&apos;est perdu.</p>
+            </div>
+          </section>
+        )}
         {state.phase === 'reveal' && <Reveal state={state} me={me} self={self} />}
         {state.phase === 'scores' && <Scores state={state} me={me} self={self} />}
         {state.phase === 'ended' && <Ending state={state} me={me} self={self} you={you} code={code} />}

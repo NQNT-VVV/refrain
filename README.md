@@ -276,15 +276,40 @@ Trois consequences a connaitre :
 La page `/screen?code=XXXX` est concue pour du 16/9 et se met a l'echelle en
 `vmin` : elle reste lisible aussi bien en 1280×720 qu'en 4K.
 
-Dans OBS, ajoute une **Source navigateur** :
+### Mode stream
 
-- URL : `http://localhost:3000/screen?code=XXXX`
-- Largeur 1920, hauteur 1080
-- Coche **« Controler l'audio via OBS »** pour capturer la musique
-- Coche **« Rafraichir le navigateur quand la scene devient active »**
+La regie propose un **lien pour OBS**, a copier tel quel dans une source
+navigateur 1920×1080 avec « controler l'audio via OBS » coche. Il porte
+`stream=1` et active tout ce qu'un viewer doit voir — et rien de ce qui sert a
+l'operateur :
 
-Le bouton **⛶ Plein ecran** et le reglage de volume sont en bas a droite ; ils
-s'estompent d'eux-memes, et le curseur disparait apres 3 s d'inactivite.
+| | |
+|---|---|
+| **Carte d'invitation permanente** | Code, adresse et QR restent affiches pendant toute la partie. Un viewer qui arrive au milieu d'un stream peut rejoindre sans attendre le prochain salon. |
+| **Commandes cachees** | Volume, plein ecran et badge beta disparaissent de la capture. Le clavier les remplace : `F` plein ecran, `M` muet, `↑` `↓` volume. |
+| **Cote du classement** | `side=left` ou `side=right` (defaut). L'autre cote reste libre pour la webcam ou le chat ; la carte d'invitation se place a l'oppose. |
+| **Fond transparent** | `bg=transparent` : la page ne peint rien derriere le jeu, OBS compose la scene du streamer au travers. |
+
+Ces options se choisissent dans la regie, qui construit l'adresse.
+
+**Grande audience.** Au-dela de douze joueurs, la liste de noms cede la place a
+un compteur — « 847 / 2000 ont trouve » avec sa barre — et aux **cinq plus
+rapides** de la manche, avec leur temps. A la revelation, le plus rapide a son
+badge. C'est ce qu'un stream retient d'une manche ; douze pseudos sur deux mille
+ne disent rien.
+
+**Pause.** Le bouton ⏸ de la regie (ou `P`) fige le chrono et le son la ou ils
+en sont — une coupure pub, un souci technique — et la reprise repart exactement
+de la : la fin de manche est decalee du temps passe en pause. Fonctionne aussi
+pendant un buzz. L'ecran et les telephones affichent « Pause ».
+
+**Emojis.** Une source navigateur OBS, ou un PC de projection fraichement
+installe, n'a souvent aucune police emoji : avatars et trophees s'affichent
+alors en carres vides — sur l'ecran que tout le monde regarde. La police est
+donc **embarquee** (Noto Color Emoji, 700 Ko) : meme rendu partout.
+
+Sans `stream=1`, le bouton **⛶ Plein ecran** et le volume sont en bas a
+droite ; ils s'estompent d'eux-memes, et le curseur disparait apres 3 s.
 
 ---
 
@@ -296,6 +321,7 @@ s'estompent d'eux-memes, et le curseur disparait apres 3 s d'inactivite.
 | `R` | Reveler la reponse immediatement |
 | `O` ou `Entree` | Valider un buzz (bonne reponse) |
 | `N` ou `Echap` | Refuser un buzz |
+| `P` | Pause / reprise |
 
 Le bouton **Masquer** floute le morceau en cours et les manches a venir, si des
 joueurs peuvent voir ton ecran.
@@ -364,6 +390,7 @@ npm run dev          # dans un terminal
 npm test             # dans un autre
 npm run test:rounds  # on peut repondre a chaque manche, pas qu'a la premiere
 npm run test:artist  # mode artiste : featurings et absence de question artiste
+npm run test:pause   # la pause fige chrono et son, la reprise repart de la
 PLAYERS=2000 npm run load
 ```
 

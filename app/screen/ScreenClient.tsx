@@ -20,6 +20,19 @@ import styles from './screen.module.css';
 
 const RING = 2 * Math.PI * 47;
 const EQ_BARS = 26;
+/** Au-dela, la liste de noms cede la place au compteur et aux plus rapides. */
+const CROWD_FROM = 12;
+
+interface StreamOptions {
+  /** Cache tout ce qui ne sert qu'a l'operateur : volume, plein ecran, badge beta. */
+  stream: boolean;
+  /** Cote du panneau lateral — l'autre reste libre pour la webcam ou le chat. */
+  side: 'left' | 'right';
+  /** Fond transparent, pour incruster le jeu sur la scene du streamer dans OBS. */
+  transparent: boolean;
+}
+
+const fmtSeconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`;
 const clean = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
 
 export function ScreenClient() {
@@ -28,8 +41,15 @@ export function ScreenClient() {
   const [draft, setDraft] = useState('');
   const [joined, setJoined] = useState(false);
   const [volume, setVolumeState] = useState(80);
+  const [muted, setMuted] = useState(false);
   const codeRef = useRef('');
   const joinedRef = useRef(false);
+
+  const options = useMemo<StreamOptions>(() => ({
+    stream: params.get('stream') === '1',
+    side: params.get('side') === 'left' ? 'left' : 'right',
+    transparent: params.get('bg') === 'transparent',
+  }), [params]);
 
   const player = useAudioDevice((reason) => toast(
     reason === 'autoplay'
@@ -66,7 +86,11 @@ export function ScreenClient() {
     if (!res.ok) return toast(res.error, 'err');
 
     store.set('refrain.screen.code', value);
-    window.history.replaceState(null, '', `?code=${value}`);
+    // On ne reecrit que le code : les options de stream (stream, side, bg)
+    // doivent survivre, sinon la regie perd son mode OBS des la validation.
+    const next = new URLSearchParams(window.location.search);
+    next.set('code', value);
+    window.history.replaceState(null, '', `?${next.toString()}`);
     setCode(value);
     codeRef.current = value;
     joinedRef.current = true;
@@ -91,6 +115,34 @@ export function ScreenClient() {
     document.documentElement.style.setProperty('--accent', accent || '#8b5cf6');
   }, [accent]);
 
+  // Fond transparent : OBS compose alors le jeu par-dessus la scene du streamer.
+  useEffect(() => {
+    document.body.classList.toggle('transparent', options.transparent);
+    return () => document.body.classList.remove('transparent');
+  }, [options.transparent]);
+
+  // En mode stream les commandes sont cachees : le clavier les remplace.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.key === 'f' || e.key === 'F') {
+        if (document.fullscreenElement) void document.exitFullscreen();
+        else void document.documentElement.requestFullscreen?.();
+      } else if (e.key === 'm' || e.key === 'M') {
+        setMuted((v) => { player.setVolume(v ? volume / 100 : 0); return !v; });
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setVolumeState((v) => {
+          const next = Math.max(0, Math.min(100, v + (e.key === 'ArrowUp' ? 5 : -5)));
+          player.setVolume(next / 100);
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [player, volume]);
+
   // Le serveur demande le chargement d'une playlist YouTube par evenement.
   useEffect(() => player.attach(socket), [socket, player]);
 
@@ -100,12 +152,12 @@ export function ScreenClient() {
       <div ref={player.ytContainer} className={styles.ytStage} aria-hidden="true" />
 
       {joined && state ? (
-        <Stage state={state} code={code} />
+        <Stage state={state} code={code} options={options} />
       ) : (
         <div className={styles.screen} />
       )}
 
-      <div className={styles.corner}>
+      <div className={styles.corner} hidden={options.stream}>
         <span className="pill">{volume === 0 ? '🔇 son coupe' : '🔊 son actif'}</span>
         <input
           type="range" min={0} max={100} value={volume} aria-label="Volume"
@@ -143,12 +195,14 @@ export function ScreenClient() {
 
 /* ------------------------------------------------------------------ */
 
-function Stage({ state, code }: { state: GameState; code: string }) {
+function Stage({ state, code, options }: { state: GameState; code: string; options: StreamOptions }) {
   const { ratio, seconds, countdown, buzzLock, answerLeft } = useRoundClock(state);
-  const inGame = ['countdown', 'playing', 'buzzed', 'reveal', 'scores'].includes(state.phase);
+  const inGame = ['countdown', 'playing', 'buzzed', 'paused', 'reveal', 'scores'].includes(state.phase);
+  const [origin, setOrigin] = useState('');
+  useEffect(() => setOrigin(window.location.origin), []);
 
   return (
-    <div className={styles.screen}>
+    <div className={`${styles.screen} ${options.stream ? styles.stream : ''}`}>
       <header className={styles.head}>
         <div className={styles.pl}>
           <span className={styles.em}>{state.playlist?.emoji ?? '🎧'}</span>
@@ -162,20 +216,50 @@ function Stage({ state, code }: { state: GameState; code: string }) {
             </>
           )}
         </div>
-        <span className="brand-beta">beta</span>
+        {!options.stream && <span className="brand-beta">beta</span>}
         <span className="pill"><span className="dot" /> <span className={styles.codeMini}>{code}</span></span>
       </header>
 
       <div className={styles.stage}>
         {state.phase === 'lobby' && <Lobby state={state} code={code} />}
         {state.phase === 'countdown' && <Countdown value={countdown} round={state.round!.index + 1} />}
-        {state.phase === 'playing' && <Playing state={state} ratio={ratio} seconds={seconds} buzzLock={buzzLock} />}
+        {state.phase === 'playing' && <Playing state={state} ratio={ratio} seconds={seconds} buzzLock={buzzLock} side={options.side} />}
         {state.phase === 'buzzed' && <Buzzed state={state} answerLeft={answerLeft} />}
+        {state.phase === 'paused' && <Paused />}
         {state.phase === 'reveal' && <Reveal state={state} />}
         {state.phase === 'scores' && <Scores state={state} />}
         {state.phase === 'ended' && <Ended state={state} />}
       </div>
+
+      {/* Toujours la pendant la partie : un viewer qui arrive doit pouvoir rejoindre. */}
+      {state.phase !== 'lobby' && origin && (
+        <JoinCard code={code} origin={origin} side={options.side === 'right' ? 'left' : 'right'} />
+      )}
     </div>
+  );
+}
+
+function JoinCard({ code, origin, side }: { code: string; origin: string; side: 'left' | 'right' }) {
+  const host = origin.replace(/^https?:\/\//, '');
+  return (
+    <div className={`${styles.joinCard} ${side === 'right' ? styles.right : ''}`} data-testid="join-card">
+      <QrCode className={styles.qr} text={`${origin}/j/${code}`} />
+      <div>
+        <div className={styles.lbl}>Rejoins la partie</div>
+        <div className={styles.code}>{code}</div>
+        <div className={styles.url}>{host}<b>/j/{code}</b></div>
+      </div>
+    </div>
+  );
+}
+
+function Paused() {
+  return (
+    <section className={`${styles.scene} ${styles.pausedScene}`} data-testid="scene-paused">
+      <div className={styles.pauseBars}><i /><i /></div>
+      <div className={styles.big}>PAUSE</div>
+      <div className={styles.sub}>On reprend dans un instant — le chrono est fige.</div>
+    </section>
   );
 }
 
@@ -248,9 +332,10 @@ function Countdown({ value, round }: { value: number | null; round: number }) {
 
 /* ---------------- Ecoute ---------------- */
 
-function Playing({ state, ratio, seconds, buzzLock }: {
-  state: GameState; ratio: number; seconds: number; buzzLock: number;
+function Playing({ state, ratio, seconds, buzzLock, side }: {
+  state: GameState; ratio: number; seconds: number; buzzLock: number; side: 'left' | 'right';
 }) {
+  const crowd = state.counts.players > CROWD_FROM;
   const bars = useMemo(
     () => Array.from({ length: EQ_BARS }, (_, i) => ({
       delay: `${-((i * 0.13) % 1)}s`,
@@ -266,7 +351,7 @@ function Playing({ state, ratio, seconds, buzzLock }: {
   }, [seconds]);
 
   return (
-    <section className={`${styles.scene} ${styles.playing}`}>
+    <section className={`${styles.scene} ${styles.playing} ${side === 'left' ? styles.sideLeft : ''}`}>
       <div className={styles.playMain}>
         <div className={styles.ringWrap}>
           <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -297,6 +382,10 @@ function Playing({ state, ratio, seconds, buzzLock }: {
       </div>
 
       <aside className={styles.side}>
+        {crowd && state.settings.mode !== 'buzzer' ? (
+          <Crowd state={state} />
+        ) : (
+        <>
         <h3>{state.settings.mode === 'buzzer' ? 'Au buzzer' : 'Qui a trouve ?'}</h3>
         <div className={styles.list}>
           {state.leaderboard.map((p) => {
@@ -315,8 +404,40 @@ function Playing({ state, ratio, seconds, buzzLock }: {
             );
           })}
         </div>
+        </>
+        )}
       </aside>
     </section>
+  );
+}
+
+/** Grande audience : le compteur et les plus rapides, plutot qu'une liste. */
+function Crowd({ state }: { state: GameState }) {
+  const { done, connected } = state.counts;
+  const pct = connected ? Math.round((done / connected) * 100) : 0;
+  const fastest = state.round?.fastest ?? [];
+  return (
+    <div className={styles.crowd} data-testid="crowd">
+      <h3>Qui a trouve ?</h3>
+      <div className={styles.crowdCount}>
+        <b>{done.toLocaleString('fr-FR')}</b>
+        <span>/ {connected.toLocaleString('fr-FR')} joueurs</span>
+      </div>
+      <div className={styles.crowdBar}><i style={{ width: `${pct}%` }} /></div>
+      {fastest.length > 0 && (
+        <div className={styles.fastest}>
+          <h4>Les plus rapides</h4>
+          {fastest.map((f, i) => (
+            <div key={f.playerId} className={styles.frow} style={{ animationDelay: `${i * 0.06}s` }}>
+              <span className={styles.rk}>{i + 1}</span>
+              <span className={styles.av}>{f.avatar}</span>
+              <span className={styles.nm}>{f.name}</span>
+              <span className={styles.ms}>{fmtSeconds(f.ms)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -348,6 +469,7 @@ function Buzzed({ state, answerLeft }: { state: GameState; answerLeft: number })
 function Reveal({ state }: { state: GameState }) {
   const track = state.round!.track!;
   const winners = state.round!.topGains ?? [];
+  const fastest = state.round!.fastest?.[0];
 
   useEffect(() => {
     sfx.unlock();
@@ -372,6 +494,11 @@ function Reveal({ state }: { state: GameState }) {
           <div className={styles.revealTitle}>{track.title}</div>
           {track.artist && <div className={styles.revealArtist}>{track.artist}</div>}
           {track.album && <div className={styles.revealAlbum}>{track.album}</div>}
+          {fastest && (
+            <div className={styles.fastestBadge}>
+              ⚡ Le plus rapide : {fastest.avatar} <b>{fastest.name}</b> en {fmtSeconds(fastest.ms)}
+            </div>
+          )}
           <div className={styles.scorers}>
             {winners.length ? winners.slice(0, 10).map((r, i) => (
               <span key={r.playerId} className={styles.s} style={{ animationDelay: `${i * 0.07}s` }}>
