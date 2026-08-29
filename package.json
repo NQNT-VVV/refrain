@@ -15,7 +15,8 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "load": "node test/load.mjs",
-    "test:rounds": "node test/rounds.mjs"
+    "test:rounds": "node test/rounds.mjs",
+    "test:norepeat": "node test/norepeat.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",
