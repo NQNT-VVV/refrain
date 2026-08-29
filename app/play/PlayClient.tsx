@@ -105,10 +105,11 @@ export function PlayClient() {
     volume,
     locked: volumeLocked,
     toggleMute() {
+      // Surtout pas de unlock() ici : il remplacerait le morceau en cours par
+      // l'echantillon silencieux, et le son ne reviendrait jamais.
       const next = !muted;
       setMuted(next);
       store.set('refrain.player.muted', next);
-      if (!next) player.unlock();
     },
     setVolume(value) {
       setVolumeState(value);

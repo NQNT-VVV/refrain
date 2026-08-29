@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import { clock } from './clock';
 import type { AudioCue } from './types';
@@ -27,6 +27,7 @@ export function useAudioPlayer() {
   const startTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const volume = useRef(0.8);
+  const unlocked = useRef(false);
 
   const clearTimers = useCallback(() => {
     if (startTimer.current) { clearTimeout(startTimer.current); startTimer.current = null; }
@@ -51,10 +52,21 @@ export function useAudioPlayer() {
     }, 40);
   }, []);
 
-  /** A appeler dans un gestionnaire de clic : autorise la lecture pour la suite. */
+  /**
+   * A appeler dans un gestionnaire de clic : autorise la lecture pour la suite.
+   *
+   * L'echantillon silencieux ecrase la source : on ne l'utilise donc qu'une
+   * fois, et jamais par-dessus une lecture en cours — sinon le morceau
+   * disparait au profit du silence.
+   */
   const unlock = useCallback(() => {
     const el = audio.current;
-    if (!el) return;
+    if (!el || unlocked.current) return;
+    if (el.currentSrc && !el.currentSrc.startsWith('data:')) {
+      unlocked.current = true;   // une vraie source tourne deja : rien a debloquer
+      return;
+    }
+    unlocked.current = true;
     try {
       el.src = SILENCE;
       el.muted = true;
@@ -72,8 +84,8 @@ export function useAudioPlayer() {
 
   const setVolume = useCallback((value: number) => {
     volume.current = value;
-    const el = audio.current;
-    if (el && !el.paused) el.volume = value;
+    // On applique meme a l'arret : le reglage doit tenir d'une manche a l'autre.
+    if (audio.current) audio.current.volume = value;
   }, []);
 
   /**
@@ -123,5 +135,10 @@ export function useAudioPlayer() {
     }
   }, [clearTimers, fadeTo]);
 
-  return { audio, handleCue, unlock, setVolume, canSetVolume, clearTimers };
+  // Identite stable : sans ca, les effets qui dependent du lecteur se
+  // relancent a chaque rendu.
+  return useMemo(
+    () => ({ audio, handleCue, unlock, setVolume, canSetVolume, clearTimers }),
+    [handleCue, unlock, setVolume, canSetVolume, clearTimers],
+  );
 }
