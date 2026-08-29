@@ -157,7 +157,7 @@
 
 /* Superpositions */
 .gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
-  background: rgba(7,6,14,.94); backdrop-filter: blur(10px); text-align: center; padding: 4vmin; }
+  background: rgba(7,6,14,.97); text-align: center; padding: 4vmin; }
 .gate h1 { font-size: 6vmin; margin-bottom: 1.6vmin; }
 .gate p { color: var(--muted); font-size: 2.2vmin; margin-bottom: 3vmin; }
 .gateCode { text-align: center; font-family: var(--display); font-size: 5vmin; letter-spacing: .3em; text-indent: .3em;

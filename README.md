@@ -416,6 +416,42 @@ kubectl -n refrain rollout restart deploy/refrain
 
 ---
 
+## Fluidite de l'affichage
+
+Un rapport de terrain signalait « 10 images par seconde ». Reproduit puis mesure
+page par page, effet par effet — l'origine n'etait pas le JavaScript : ca ramait
+autant dans le salon d'attente, ou rien ne bouge.
+
+Deux coupables, tous deux dans le CSS :
+
+| Mesure sur la regie | Images/s |
+|---|---|
+| Avant | **6 a 7** |
+| Fond en degrade radial au lieu d'un flou anime | 24 |
+| Panneaux translucides au lieu de `backdrop-filter` | **60** |
+
+**Le fond anime.** Trois halos en `filter: blur(90px)` dont l'animation touchait
+a l'echelle : changer la taille d'un element floute oblige le navigateur a
+recalculer le flou a chaque image. Un **degrade radial** est doux par nature,
+sans filtre : le halo devient une texture que le compositeur se contente de
+deplacer. L'animation ne fait plus que translater.
+
+**Le verre depoli des cartes.** `backdrop-filter` doit refaire son flou des que
+le fond change — et le fond bougeait en permanence. Sur la regie, une dizaine de
+cartes recalculaient donc leur flou soixante fois par seconde. Un aplat
+translucide (`--panel`) rend la meme lisibilite pour rien.
+
+En prime, le compte a rebours ne declenche plus un rendu React par image : il ne
+publie que lorsque l'affichage change vraiment, soit une dizaine de fois par
+seconde au lieu de soixante. Sur la regie, chaque rendu re-parcourait la liste
+des joueurs et les vingt-trois cartes du catalogue.
+
+> Les deux regles a retenir : **ne pas animer la taille d'un element floute**, et
+> **ne pas poser de `backdrop-filter` au-dessus d'un fond qui bouge**. Les
+> commentaires du CSS le rappellent sur place.
+
+---
+
 ## Tenir la charge
 
 Une partie diffusee en stream peut rassembler des milliers de joueurs. Deux

@@ -28,6 +28,29 @@ export interface RoundClock {
 export function useRoundClock(state: GameState | null): RoundClock {
   const [tick, setTick] = useState<RoundClock>({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });
   const raf = useRef(0);
+  const last = useRef(tick);
+
+  /**
+   * Ne redessine que si l'affichage change vraiment.
+   *
+   * Sans ce filtre, la boucle d'animation declenche un rendu React soixante
+   * fois par seconde — sur la regie, cela veut dire re-parcourir la liste des
+   * joueurs et les vingt-trois cartes du catalogue a chaque image. Les
+   * secondes sont entieres, et le ratio n'a pas besoin d'etre suivi au
+   * millieme : une barre de progression ne se voit pas bouger a ce point.
+   */
+  const publish = (next: RoundClock) => {
+    const prev = last.current;
+    if (
+      Math.abs(next.ratio - prev.ratio) < 0.004
+      && next.seconds === prev.seconds
+      && next.countdown === prev.countdown
+      && next.buzzLock === prev.buzzLock
+      && next.answerLeft === prev.answerLeft
+    ) return;
+    last.current = next;
+    setTick(next);
+  };
 
   const phase = state?.phase;
   const startAt = state?.round?.startAt;
@@ -38,7 +61,7 @@ export function useRoundClock(state: GameState | null): RoundClock {
   useEffect(() => {
     const live = phase === 'playing' || phase === 'countdown' || phase === 'buzzed';
     if (!startAt || !endAt || !live) {
-      setTick({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });
+      publish({ ratio: 1, seconds: 0, countdown: null, buzzLock: 0, answerLeft: 0 });
       return;
     }
 
@@ -47,11 +70,11 @@ export function useRoundClock(state: GameState | null): RoundClock {
       const buzzLock = buzzOpensAt ? Math.max(0, Math.ceil((buzzOpensAt - now) / 1000)) : 0;
       const answerLeft = answerDeadline ? Math.max(0, Math.ceil((answerDeadline - now) / 1000)) : 0;
       if (phase === 'countdown') {
-        setTick({ ratio: 1, seconds: 0, countdown: Math.max(0, Math.ceil((startAt - now) / 1000)), buzzLock, answerLeft });
+        publish({ ratio: 1, seconds: 0, countdown: Math.max(0, Math.ceil((startAt - now) / 1000)), buzzLock, answerLeft });
       } else {
         const total = endAt - startAt;
         const ratio = Math.max(0, Math.min(1, (endAt - now) / total));
-        setTick({ ratio, seconds: Math.max(0, Math.ceil((endAt - now) / 1000)), countdown: null, buzzLock, answerLeft });
+        publish({ ratio, seconds: Math.max(0, Math.ceil((endAt - now) / 1000)), countdown: null, buzzLock, answerLeft });
       }
       raf.current = requestAnimationFrame(step);
     };

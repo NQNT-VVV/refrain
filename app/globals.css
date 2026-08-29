@@ -6,6 +6,10 @@
   --bg: #07060e;
   --bg-soft: #0e0c1c;
   --surface: rgba(255, 255, 255, 0.045);
+  /* Fond des panneaux. Un `backdrop-filter` donnait le meme effet de verre,
+     mais le fond anime le forcait a recalculer son flou a chaque image : 24
+     images par seconde sur la regie. Un aplat translucide ne coute rien. */
+  --panel: rgba(20, 17, 42, 0.74);
   --surface-2: rgba(255, 255, 255, 0.075);
   --surface-3: rgba(255, 255, 255, 0.11);
   --stroke: rgba(255, 255, 255, 0.10);
@@ -75,18 +79,40 @@ img { max-width: 100%; display: block; }
    Fond anime (aurores + grain)
    -------------------------------------------------------------------------- */
 .aurora { position: fixed; inset: 0; z-index: -2; overflow: hidden; background: radial-gradient(120% 80% at 50% -10%, #171034 0%, var(--bg) 60%); }
+
+/*
+ * Halos du fond.
+ *
+ * Un `filter: blur(90px)` donnait le meme rendu, mais le navigateur
+ * recalculait le flou a chaque image des que l'animation touchait a l'echelle :
+ * 16 images par seconde sur une page qui ne fait rien d'autre. Un degrade
+ * radial est doux par nature, sans filtre et sans recalcul — le halo devient
+ * une simple texture que le compositeur deplace.
+ */
 .aurora span {
-  position: absolute; border-radius: 50%; filter: blur(90px); opacity: .5;
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
   animation: drift 26s var(--ease) infinite alternate;
 }
-.aurora span:nth-child(1) { width: 46vw; height: 46vw; background: #7c3aed; top: -12vw; left: -8vw; }
-.aurora span:nth-child(2) { width: 38vw; height: 38vw; background: #0891b2; bottom: -14vw; right: -6vw; animation-delay: -8s; }
-.aurora span:nth-child(3) { width: 30vw; height: 30vw; background: #db2777; top: 40%; left: 55%; animation-delay: -16s; opacity: .35; }
+.aurora span:nth-child(1) {
+  width: 90vw; height: 90vw; top: -34vw; left: -22vw;
+  background: radial-gradient(circle closest-side, rgba(124, 58, 237, .55), rgba(124, 58, 237, 0));
+}
+.aurora span:nth-child(2) {
+  width: 76vw; height: 76vw; bottom: -32vw; right: -18vw; animation-delay: -8s;
+  background: radial-gradient(circle closest-side, rgba(8, 145, 178, .5), rgba(8, 145, 178, 0));
+}
+.aurora span:nth-child(3) {
+  width: 62vw; height: 62vw; top: 24%; left: 40%; animation-delay: -16s;
+  background: radial-gradient(circle closest-side, rgba(219, 39, 119, .38), rgba(219, 39, 119, 0));
+}
 
+/* Translation seule : une mise a l'echelle forcerait un nouveau rendu. */
 @keyframes drift {
-  0%   { transform: translate3d(0,0,0) scale(1); }
-  50%  { transform: translate3d(4vw, 5vh, 0) scale(1.15); }
-  100% { transform: translate3d(-5vw, -4vh, 0) scale(.95); }
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(5vw, 6vh, 0); }
+  100% { transform: translate3d(-6vw, -5vh, 0); }
 }
 
 .grain {
@@ -103,11 +129,9 @@ img { max-width: 100%; display: block; }
    Blocs
    -------------------------------------------------------------------------- */
 .card {
-  background: var(--surface);
+  background: var(--panel);
   border: 1px solid var(--stroke);
   border-radius: var(--r-lg);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
   box-shadow: var(--shadow-2);
 }
 .card.pad { padding: 22px; }
@@ -244,8 +268,8 @@ input[type="range"]::-moz-range-thumb { border: 0; width: 20px; height: 20px; bo
 #toasts { position: fixed; z-index: 999; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 9px; align-items: center; pointer-events: none; padding: 0 12px; width: min(460px, 96vw); }
 .toast {
   padding: 12px 18px; border-radius: 14px; font-size: 14.5px; font-weight: 500;
-  background: rgba(20, 18, 42, .92); border: 1px solid var(--stroke-strong);
-  backdrop-filter: blur(14px); box-shadow: var(--shadow-2);
+  background: rgba(20, 18, 42, .96); border: 1px solid var(--stroke-strong);
+  box-shadow: var(--shadow-2);
   animation: toastIn .32s var(--ease); max-width: 100%; text-align: center;
 }
 .toast.err { border-color: rgba(251,93,93,.45); color: #ffc0c0; }
