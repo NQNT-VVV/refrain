@@ -1,0 +1,50 @@
+.wrap { max-width: 780px; margin: 0 auto; padding: 4vh 22px 70px; }
+
+.topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 5vh; font-size: 17px; }
+.topbar .spacer { flex: 1; }
+
+.hero h1 {
+  font-size: clamp(30px, 6vw, 48px); line-height: 1.04; margin-bottom: 14px;
+  background: linear-gradient(120deg, #fff 25%, #c4b5fd 55%, #67e8f9 85%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p { color: var(--muted); font-size: clamp(15px, 2vw, 17px); line-height: 1.65; max-width: 62ch; }
+
+.summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 28px 0 8px;
+}
+.summary div {
+  padding: 16px; border-radius: var(--r-md); background: rgba(52, 211, 153, .1);
+  border: 1px solid rgba(52, 211, 153, .28);
+}
+.summary .mark { font-size: 20px; display: block; margin-bottom: 6px; }
+.summary b { display: block; font-family: var(--display); font-size: 14.5px; margin-bottom: 4px; }
+.summary span { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+.section { margin-top: 44px; }
+.section > h2 {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.section > h2::after { content: ''; flex: 1; height: 1px; background: var(--stroke); }
+.section h3 { font-size: 17px; margin: 22px 0 8px; }
+.section p { font-size: 14.5px; color: var(--muted); line-height: 1.7; max-width: 68ch; }
+.section p + p { margin-top: 10px; }
+.section b { color: var(--text); font-weight: 600; }
+.section ul { margin: 10px 0 0; padding-left: 20px; font-size: 14.5px; color: var(--muted); line-height: 1.75; max-width: 68ch; }
+.section li + li { margin-top: 5px; }
+.section code {
+  font-size: 12.5px; padding: 2px 6px; border-radius: 6px;
+  background: rgba(0,0,0,.35); border: 1px solid var(--stroke);
+}
+.section a { color: var(--muted); border-bottom: 1px dotted var(--stroke-strong); }
+
+.note {
+  display: flex; gap: 12px; padding: 15px 17px; border-radius: var(--r-md); margin-top: 16px;
+  background: rgba(251, 191, 36, .09); border: 1px solid rgba(251, 191, 36, .28);
+  font-size: 13.5px; line-height: 1.6; color: var(--muted);
+}
+.note .mark { font-size: 17px; line-height: 1.3; }
+.note b { color: var(--text); }
+
+.updated { margin-top: 40px; font-size: 12px; color: var(--faint); text-align: center; }

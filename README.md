@@ -529,6 +529,35 @@ jeu, Deezer, sante du processus.
 
 ---
 
+## Donnees et conditions
+
+La page **`/legal`** decrit ce que le service fait des donnees et pose les
+conditions d'utilisation. Elle n'a pas ete redigee de memoire : chaque
+affirmation a ete verifiee sur l'application deployee.
+
+| Verifie | Resultat |
+|---|---|
+| Cookies deposes | **aucun**, sur les trois pages |
+| Domaines tiers contactes par le navigateur | **`dzcdn.net` seulement** (pochettes et extraits) |
+| Polices | auto-hebergees par `next/font`, aucun appel a Google |
+| Etiquettes des metriques | `category`, `field`, `phase`, `state`… — aucun pseudo |
+
+Les points que la page assume plutot que de les taire : le CDN Deezer voit
+l'adresse IP des joueurs comme n'importe quelle image du web ; le lecteur
+YouTube depose ses propres cookies, mais uniquement sur l'appareil qui diffuse
+le son et seulement si une playlist YouTube est utilisee ; l'hebergement
+conserve des journaux techniques.
+
+Cote musique, la page rappelle que **rien n'est heberge** — les extraits sont
+diffuses par Deezer et YouTube depuis leurs propres serveurs — et que les droits
+restent entierement ceux des artistes et ayants droit.
+
+> Ce texte decrit fidelement le fonctionnement du service, mais ne vaut pas
+> conseil juridique. Un usage public ou diffuse releve de regles differentes
+> d'une soiree privee : la page le signale explicitement.
+
+---
+
 ## En cas de pepin
 
 **Pas de son sur l'ecran.** Clique une fois sur la page. Les navigateurs
