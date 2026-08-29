@@ -126,6 +126,14 @@ export function PlayClient() {
     },
   };
 
+  /** Quitter pour de bon : le salon oublie le joueur, l'appareil oublie le salon. */
+  async function leave() {
+    if (!window.confirm('Quitter la partie ? Ton score sera perdu.')) return;
+    if (socket) await call(socket, 'player:leave');
+    store.del(sessionKey);
+    router.replace('/');
+  }
+
   async function join(event: FormEvent) {
     event.preventDefault();
     if (!socket) return;
@@ -171,7 +179,7 @@ export function PlayClient() {
       ) : (
         <PlayScreen
           code={code} me={me} self={self} you={you}
-          state={state} socket={socket} connected={connected} sound={sound}
+          state={state} socket={socket} connected={connected} sound={sound} onLeave={leave}
         />
       )}
     </>
@@ -223,9 +231,10 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit }: {
 /* Partie en cours                                                    */
 /* ------------------------------------------------------------------ */
 
-function PlayScreen({ code, me, self, you, state, socket, connected, sound }: {
+function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLeave }: {
   code: string; me: Me; self: PlayerRow | null; you: You | null;
   state: GameState; socket: Socket | null; connected: boolean; sound: SoundControls;
+  onLeave: () => void;
 }) {
   const { ratio, countdown, buzzLock, answerLeft } = useRoundClock(state);
   const [soundOpen, setSoundOpen] = useState(false);
@@ -234,7 +243,14 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound }: {
 
   return (
     <div className={styles.app}>
-      <div className={styles.brandBar}><Brand /></div>
+      <div className={styles.brandBar}>
+        <Brand />
+        <span className={styles.spacer} />
+        <span className="faint" style={{ fontSize: 12 }}>Salon {code}</span>
+        <button type="button" className={styles.leaveBtn} onClick={onLeave} data-testid="leave">
+          Quitter
+        </button>
+      </div>
 
       <header className={styles.topbar}>
         <div className={styles.line}>

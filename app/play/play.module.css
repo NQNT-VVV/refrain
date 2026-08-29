@@ -10,7 +10,14 @@
 :global(body):has(.app) :global(#toasts) { top: calc(env(safe-area-inset-top) + 84px); bottom: auto; }
 
 /* --- Barre du haut ------------------------------------------------- */
-.brandBar { display: flex; align-items: center; padding: 9px 16px 0; font-size: 13.5px; }
+.brandBar { display: flex; align-items: center; gap: 10px; padding: 9px 16px 0; font-size: 13.5px; }
+.brandBar .spacer { flex: 1; }
+.leaveBtn {
+  flex: none; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: transparent; border: 1px solid var(--stroke); color: var(--muted);
+  cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+}
+.leaveBtn:hover, .leaveBtn:active { background: rgba(251,93,93,.14); border-color: rgba(251,93,93,.4); color: #ffc0c0; }
 
 .topbar {
   position: sticky; top: 0; z-index: 20; padding: 12px 16px 0;

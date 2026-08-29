@@ -184,6 +184,17 @@ class GameServer {
     return player;
   }
 
+  /** Un joueur quitte de lui-meme : on le retire pour que les compteurs collent. */
+  removePlayer(room, playerId) {
+    const player = room.players.get(playerId);
+    if (!player) return false;
+    if (player.connected) room.connectedCount = Math.max(0, room.connectedCount - 1);
+    room.players.delete(playerId);
+    room.round?.answers.delete(playerId);
+    room.round?.lockedOut.delete(playerId);
+    return true;
+  }
+
   /* ---------------------------------------------------------------- */
   /* Selection de la playlist                                         */
   /* ---------------------------------------------------------------- */

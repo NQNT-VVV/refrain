@@ -358,6 +358,20 @@ io.on('connection', (socket) => {
     ok(cb, result);
   });
 
+  socket.on('player:leave', (payload, cb) => {
+    const ref = asPlayer(socket);
+    if (!ref) return ok(cb);          // deja parti : rien a faire
+    game.removePlayer(ref.room, ref.player.id);
+    game.playersBySocket.delete(socket.id);
+    socket.leave(`${ref.room.code}:player`);
+    socket.leave(`${ref.room.code}:public`);
+    socket.leave(ref.room.playerRoom(ref.player.id));
+    socket.data.playerId = null;
+    socket.data.role = null;
+    ok(cb);
+    game.broadcast(ref.room);
+  });
+
   socket.on('player:rename', ({ name } = {}, cb) => {
     const ref = asPlayer(socket);
     if (!ref) return fail(cb, 'Session joueur expiree.');
@@ -376,6 +390,7 @@ io.on('connection', (socket) => {
     } else if (socket.data.role === 'screen') {
       room.screenOnline = Math.max(0, room.screenOnline - 1);
     } else if (socket.data.role === 'player') {
+      if (!socket.data.playerId) return game.broadcast(room);
       const player = room.players.get(socket.data.playerId);
       if (player && player.connected) {
         player.connected = false;
