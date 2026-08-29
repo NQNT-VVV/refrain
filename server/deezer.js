@@ -236,6 +236,28 @@ async function freshPreview(trackId) {
   return url;
 }
 
+/**
+ * Recherche par ISRC — l'identifiant international d'un enregistrement.
+ *
+ * C'est le pont exact depuis un autre catalogue : pas d'ambiguite de titre, pas
+ * de reprise prise pour l'original. L'association est stable, on la garde une
+ * semaine ; seule l'URL d'extrait expire, et elle est re-resolue a chaque manche.
+ */
+async function trackByIsrc(isrc) {
+  const key = `isrc_${isrc}`;
+  const cached = readCache(key, 7 * 24 * 60 * 60 * 1000);
+  if (cached !== null) return cached;
+  try {
+    const json = await dz(`/track/isrc:${encodeURIComponent(isrc)}`);
+    const track = toTrack(json);
+    writeCache(key, track);
+    return track;
+  } catch {
+    writeCache(key, false);   // negatif memorise : inutile de reessayer en boucle
+    return null;
+  }
+}
+
 async function playlistTracks(playlistId, limit = 200) {
   const key = `playlist_${playlistId}_${limit}`;
   const cached = readCache(key, DEFAULT_TTL);
@@ -247,4 +269,4 @@ async function playlistTracks(playlistId, limit = 200) {
   return value;
 }
 
-module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, chartTracks, playlistTracks, readCache, writeCache };
+module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, trackByIsrc, chartTracks, playlistTracks, readCache, writeCache };

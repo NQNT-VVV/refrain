@@ -419,8 +419,10 @@ function shuffle(arr, rng = Math.random) {
 async function resolveSeed(seed) {
   try {
     if (seed.chart !== undefined) return await dz.chartTracks(seed.chart, seed.limit || 100);
-    if (seed.artist) return await dz.artistTopTracks(seed.artist, seed.limit || 10);
-    if (seed.q) return await dz.searchTracks(seed.q, seed.limit || 6);
+    // Plus large qu'avant : c'est la profondeur du vivier qui evite de retomber
+    // sur les memes morceaux d'une partie a l'autre.
+    if (seed.artist) return await dz.artistTopTracks(seed.artist, seed.limit || 20);
+    if (seed.q) return await dz.searchTracks(seed.q, seed.limit || 10);
   } catch (err) {
     console.warn(`[catalogue] graine ignoree (${seed.artist || seed.q || `chart ${seed.chart}`}) :`, err.message);
   }
@@ -430,13 +432,15 @@ async function resolveSeed(seed) {
 const buildLocks = new Map();
 
 /** Construit (et met en cache) la liste de morceaux jouables d'une categorie. */
-async function buildCategory(id) {
+async function buildCategory(id, { force = false } = {}) {
   const cat = getCategory(id);
   if (!cat) throw new Error(`Categorie inconnue : ${id}`);
 
-  const cacheKey = `cat_${id}_v2`;
-  const cached = dz.readCache(cacheKey, 6 * 60 * 60 * 1000);
-  if (cached && cached.length >= 20) return cached;
+  const cacheKey = `cat_${id}_v3`;
+  if (!force) {
+    const cached = dz.readCache(cacheKey, 6 * 60 * 60 * 1000);
+    if (cached && cached.length >= 20) return cached;
+  }
 
   if (buildLocks.has(id)) return buildLocks.get(id);
 
@@ -450,7 +454,9 @@ async function buildCategory(id) {
       chunks.push(...batch);
     }
     const flat = chunks.flat();
-    const maxPerArtist = cat.seeds.length > 15 ? 2 : 4;
+    // Quatre titres par artiste dans le vivier : la variete d'une partie donnee
+    // est garantie ailleurs, au moment de composer la liste des manches.
+    const maxPerArtist = cat.seeds.length > 15 ? 4 : 6;
     const tracks = diversify(shuffle(flat), maxPerArtist);
     if (tracks.length) dz.writeCache(cacheKey, tracks);
     stopTimer();

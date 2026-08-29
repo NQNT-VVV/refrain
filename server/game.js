@@ -1,10 +1,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const { matchTitle, matchArtist } = require('./match');
+const { matchTitle, matchArtist, normalize } = require('./match');
 const catalog = require('./catalog');
 const deezer = require('./deezer');
 const youtube = require('./youtube');
+const spotify = require('./spotify');
 const metrics = require('./metrics');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
@@ -83,6 +84,7 @@ class Room {
     this.screenOnline = 0;
     this.history = [];
     this.connectedCount = 0;      // tenu a jour, plutot que recompte a chaque fois
+    this.playedTrackIds = new Set();   // memoire des parties precedentes du salon
     this.broadcastTimer = null;
     this.dirty = false;
   }
@@ -209,6 +211,40 @@ class GameServer {
         subtitle: 'Playlist Deezer importee', accent: '#22D3EE', source: 'deezer', tracks,
       };
       metrics.playlistSelections.inc({ source: 'deezer', id: 'import' });
+    } else if (spec.type === 'spotify') {
+      if (!spotify.enabled()) throw new Error('Spotify n\'est pas configure sur ce serveur.');
+      const id = spotify.parsePlaylistId(spec.id);
+      if (!id) throw new Error('Lien de playlist Spotify invalide.');
+
+      // Retrouver chaque morceau chez Deezer prend une vingtaine de secondes :
+      // l'animateur voit l'avancement plutot qu'un ecran fige.
+      room.playlist = {
+        id: `sp-${id}`, title: 'Playlist Spotify', emoji: '🟢',
+        subtitle: 'Lecture de la playlist…', accent: '#1DB954',
+        source: 'spotify', tracks: [], pending: true,
+      };
+      this.broadcast(room);
+
+      const { info, requested, tracks } = await spotify.playableTracks(id, {
+        onProgress: (done, total, found) => {
+          if (room.playlist?.id !== `sp-${id}`) return;   // l'animateur a change d'avis
+          room.playlist.title = info?.name || 'Playlist Spotify';
+          room.playlist.subtitle = `${done}/${total} morceaux verifies • ${found} jouables`;
+          this.broadcast(room);
+        },
+      });
+
+      const usable = catalog.diversify(catalog.shuffle(tracks), 4);
+      if (usable.length < 5) {
+        room.playlist = null;
+        throw new Error(`Seulement ${usable.length} morceaux jouables sur ${requested} : trop peu pour une partie.`);
+      }
+      room.playlist = {
+        id: `sp-${id}`, title: info.name, emoji: '🟢',
+        subtitle: `${usable.length} titres jouables sur ${requested}`,
+        accent: '#1DB954', source: 'spotify', tracks: usable, pending: false,
+      };
+      metrics.playlistSelections.inc({ source: 'spotify', id: 'import' });
     } else if (spec.type === 'youtube') {
       const listId = youtube.parsePlaylistId(spec.id);
       if (!listId) throw new Error('Lien de playlist YouTube invalide (il faut le parametre « list »).');
@@ -238,6 +274,22 @@ class GameServer {
     }
     room.settings.rounds = clamp(room.settings.rounds, 3, room.playlist.tracks.length);
     return room.playlist;
+  }
+
+  /** Reconstruit la liste courante depuis la source, en ignorant le cache. */
+  async refreshPlaylist(room) {
+    const pl = room.playlist;
+    if (!pl) throw new Error('Aucune liste a actualiser.');
+    if (pl.source !== 'catalog') throw new Error('Seules les listes pretes se reconstruisent.');
+    const tracks = await catalog.buildCategory(pl.id, { force: true });
+    if (tracks.length < 5) throw new Error('Reconstruction impossible (Deezer indisponible ?).');
+    pl.tracks = tracks;
+    pl.subtitle = `${tracks.length} titres, tout juste actualises`;
+    room.settings.rounds = clamp(room.settings.rounds, 3, tracks.length);
+    // La memoire des morceaux joues repart : le vivier n'est plus le meme.
+    room.playedTrackIds = new Set();
+    this.broadcast(room);
+    return tracks.length;
   }
 
   updateSettings(room, patch) {
@@ -312,12 +364,57 @@ class GameServer {
       throw new Error(this.audioTargetLabel(room) + ' doit rester connecte pour lire YouTube.');
     }
     room.clearTimers();
-    room.queue = catalog.shuffle(room.playlist.tracks).slice(0, room.settings.rounds);
+    room.queue = this.pickQueue(room);
     room.index = -1;
     room.history = [];
     for (const p of room.players.values()) { p.score = 0; p.lastGain = 0; }
     metrics.gamesStarted.inc({ mode: room.settings.mode });
     this.nextRound(room);
+  }
+
+  /**
+   * Compose la liste des manches.
+   *
+   * Deux regles, dans cet ordre : on sert d'abord ce que ce salon n'a jamais
+   * entendu — sinon deux parties d'affilee se ressemblent — puis on limite a
+   * deux titres par artiste, pour qu'une partie ne vire pas au monographique.
+   */
+  pickQueue(room) {
+    const wanted = room.settings.rounds;
+    const pool = catalog.shuffle(room.playlist.tracks);
+    const played = room.playedTrackIds;
+
+    const ordered = [
+      ...pool.filter((t) => !played.has(t.id)),
+      ...pool.filter((t) => played.has(t.id)),
+    ];
+
+    const queue = [];
+    const perArtist = new Map();
+    for (const track of ordered) {
+      if (queue.length >= wanted) break;
+      const key = normalize(track.artist || '');
+      const seen = perArtist.get(key) || 0;
+      if (key && seen >= 2) continue;
+      perArtist.set(key, seen + 1);
+      queue.push(track);
+    }
+
+    // Vivier trop etroit pour tenir la contrainte : on complete sans elle.
+    if (queue.length < wanted) {
+      const taken = new Set(queue.map((t) => t.id));
+      for (const track of ordered) {
+        if (queue.length >= wanted) break;
+        if (!taken.has(track.id)) { queue.push(track); taken.add(track.id); }
+      }
+    }
+
+    for (const track of queue) played.add(track.id);
+    // On borne la memoire : au-dela, les plus anciens redeviennent jouables.
+    if (played.size > 400) {
+      room.playedTrackIds = new Set([...played].slice(-300));
+    }
+    return queue;
   }
 
   nextRound(room) {
@@ -344,6 +441,10 @@ class GameServer {
     for (const p of room.players.values()) p.lastGain = 0;
 
     this.cueTrack(room, track);
+
+    // Indispensable : sans ca, chaque joueur garde le badge de reponse de la
+    // manche precedente et se retrouve bloque, comme s'il avait deja repondu.
+    this.sendPersonal(room);
 
     room.after(COUNTDOWN_MS, () => {
       room.phase = 'playing';
@@ -459,6 +560,11 @@ class GameServer {
     }
     // Compteur incremental : inutile de reparcourir tous les joueurs a chaque reponse.
     if (found && !wasDone && ans.titleOk && (!needArtist || ans.artistOk)) r.doneCount += 1;
+
+    // Un champ vient d'etre trouve : le joueur doit le voir se verrouiller, et
+    // le retrouver verrouille s'il rafraichit sa page. Au plus deux fois par
+    // manche et par joueur, donc sans consequence a grande echelle.
+    if (found) this.sendPersonalTo(room, player.id);
 
     this.broadcast(room);
     if (this.everyoneDone(room)) room.after(600, () => this.reveal(room, 'complete'));

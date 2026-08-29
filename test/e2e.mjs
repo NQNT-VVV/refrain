@@ -58,12 +58,14 @@ async function run(mode) {
 
   await sleep(300);
   check('etat = countdown', hostState?.phase === 'countdown', hostState?.phase);
-  check('ordre audio envoye a l\'ecran', audioCues.some((c) => c.action === 'play' && c.preview?.startsWith('http')));
   check('l\'ecran ne connait pas le titre', !screenState?.round?.track);
   check('la regie connait le titre', !!hostState?.round?.track?.title, hostState?.round?.track?.title);
 
   await sleep(3400);
   check('etat = playing', hostState?.phase === 'playing', hostState?.phase);
+  // L'ordre part apres re-resolution de l'URL d'extrait : on verifie une fois
+  // le compte a rebours ecoule, pas pendant.
+  check('ordre audio envoye a l\'ecran', audioCues.some((c) => c.action === 'play' && c.preview?.startsWith('http')));
 
   const track = hostState.round.track;
 

@@ -45,10 +45,13 @@
 .soundPanel input[type="range"] { flex: 1; min-width: 0; }
 .soundPanel .lvl { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums;
   width: 40px; text-align: right; font-size: 13.5px; }
-.soundNote { margin-top: 8px; font-size: 11.5px; color: var(--faint); line-height: 1.5; }
+.soundNote { flex: 1; min-width: 0; font-size: 11.5px; color: var(--faint); line-height: 1.4; }
 
 .listenLink { display: inline-flex; align-items: center; gap: 7px; align-self: center;
   font-size: 13px; color: var(--muted); border-bottom: 1px dotted var(--stroke-strong); padding-bottom: 2px; }
+
+.scoreChip.bump { animation: scorePop .55s var(--ease); }
+@keyframes scorePop { 0%, 100% { transform: scale(1) } 32% { transform: scale(1.16) } }
 
 .scoreChip .val { font-size: 18px; }
 .scoreChip .unit { font-size: 11px; color: var(--muted); }
@@ -93,8 +96,26 @@
 .guess { position: relative; }
 .guess .flag { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); font-size: 17px; opacity: 0; transition: opacity .25s; }
 .guess.found .flag { opacity: 1; }
+.guess.found { animation: fieldPop .45s var(--ease); }
+@keyframes fieldPop { 0% { transform: scale(1) } 40% { transform: scale(1.025) } 100% { transform: scale(1) } }
 .guess.found :global(.input) { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.55); color: #b6f7de; font-weight: 600; }
 .hint { font-size: 12.5px; color: var(--faint); }
+
+/* Tout trouve : plutot qu'un formulaire mort, une recompense. */
+.allFound {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 20px; border-radius: var(--r-md); text-align: center;
+  background: rgba(52, 211, 153, .13); border: 1px solid rgba(52, 211, 153, .4);
+  animation: popIn .4s var(--ease);
+}
+.allFound .mark { font-size: 34px; line-height: 1; }
+.allFound .t { font-family: var(--display); font-size: 18px; color: #b6f7de; }
+.allFound .s { font-size: 13px; color: var(--muted); }
+
+/* Au doigt, les champs de reponse meritent d'etre genereux. */
+@media (max-width: 899px) {
+  .guess :global(.input) { padding: 16px; font-size: 17px; }
+}
 
 .liveMini { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
 .answerCol { display: flex; flex-direction: column; gap: 16px; }

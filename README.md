@@ -138,11 +138,60 @@ melanges, deux morceaux maximum par artiste), puis mises en cache dans
 `.cache/` pendant 6 h. Le premier chargement d'une liste prend quelques
 secondes ; ensuite c'est instantane.
 
+Chaque liste tient **90 a 215 titres** — quatre morceaux par artiste au
+maximum — et se reconstruit toute seule au bout de six heures. Le bouton
+**🔄 Actualiser** force la reconstruction immediatement.
+
+### Ne pas rejouer les memes morceaux
+
+Un vivier profond ne suffit pas : avec douze manches tirees dans quatre-vingts
+titres, deux parties d'affilee partagent statistiquement trois morceaux. Le
+salon **retient donc ce qu'il a deja joue** et sert d'abord les inedits. Il faut
+epuiser tout le vivier avant qu'un morceau revienne.
+
+Une seconde regle s'applique en composant la liste des manches : **deux titres
+par artiste au maximum**, pour qu'une partie ne vire pas au monographique meme
+si le vivier en contient quatre.
+
 Deux autres sources dans la regie :
 
 - **🔎 Ma selection** — recherche libre, on ajoute les titres un par un ;
-- **📥 Importer une playlist** — colle une adresse **Deezer** ou **YouTube**, le
-  type est reconnu tout seul.
+- **📥 Importer une playlist** — colle une adresse **Deezer**, **YouTube** ou
+  **Spotify**, le type est reconnu tout seul.
+
+### Playlists Spotify
+
+Colle l'adresse d'une playlist publique. Spotify sert de **catalogue**, Deezer
+de **source sonore** : depuis fin 2024, l'API Spotify ne renvoie plus d'extrait
+de 30 s sur la plupart des morceaux en client-credentials. Elle reste excellente
+pour savoir *quoi* jouer, mais ne donne plus de quoi le jouer.
+
+Chaque morceau est donc retrouve chez Deezer par son **ISRC**, l'identifiant
+international de l'enregistrement : pas d'ambiguite de titre, pas de reprise
+prise pour l'original. A defaut d'ISRC, une recherche titre + artiste prend le
+relais, verifiee par le meme correcteur que les reponses des joueurs. L'ecart
+entre morceaux demandes et morceaux jouables s'affiche a l'import.
+
+Compter une vingtaine de secondes pour une playlist de cent titres —
+l'avancement est visible dans la regie.
+
+**Configuration.** Cree une application sur
+[developer.spotify.com](https://developer.spotify.com/dashboard) : elle donne un
+Client ID et un Client Secret. Le flux « client credentials » suffit.
+
+```bash
+kubectl -n refrain create secret generic refrain-spotify \
+  --from-literal=SPOTIFY_CLIENT_ID='ton-client-id' \
+  --from-literal=SPOTIFY_CLIENT_SECRET='ton-client-secret' \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl -n refrain rollout restart deploy/refrain
+```
+
+En local, `SPOTIFY_CLIENT_ID` et `SPOTIFY_CLIENT_SECRET` dans l'environnement.
+Le Deployment lit ces cles en `optional: true` : **sans elles l'application
+tourne normalement**, l'import Spotify est simplement masque dans la regie.
+`GET /api/sources` dit ce que le serveur sait faire.
 
 ### Playlists YouTube
 
@@ -262,9 +311,10 @@ test/e2e.mjs            partie complete simulee, dans les deux modes
 ### Tests
 
 ```bash
-npm run typecheck  # TypeScript
-npm run dev        # dans un terminal
-npm test           # dans un autre
+npm run typecheck    # TypeScript
+npm run dev          # dans un terminal
+npm test             # dans un autre
+npm run test:rounds  # on peut repondre a chaque manche, pas qu'a la premiere
 PLAYERS=2000 npm run load
 ```
 

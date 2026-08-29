@@ -1,18 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Socket } from 'socket.io-client';
 
 import { Brand } from '@/components/Brand';
 import { SupportNote } from '@/components/SupportNote';
+import { clock } from '@/lib/clock';
 import { confetti } from '@/lib/confetti';
 import { answerMarks, asksArtist, boardWithSelf, hasFoundAll, hasFoundSome, ordinal } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
-import type { GameState, PlayerRow, You } from '@/lib/types';
+import type { AnswerBadge, GameState, PlayerRow, You } from '@/lib/types';
 import { useAudioPlayer } from '@/lib/useAudioPlayer';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
@@ -28,6 +29,8 @@ interface SoundControls {
   locked: boolean;
   toggleMute: () => void;
   setVolume: (value: number) => void;
+  /** Re-teste si le navigateur accepte qu'on regle le volume. */
+  probe: () => void;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -115,6 +118,11 @@ export function PlayClient() {
       setVolumeState(value);
       store.set('refrain.player.volume', value);
       if (value > 0 && muted) { setMuted(false); store.set('refrain.player.muted', false); }
+    },
+    probe() {
+      // Teste au moment ou l'utilisateur ouvre le panneau : l'element a alors
+      // une vraie source, ce qui rend la detection fiable.
+      setVolumeLocked(!player.canSetVolume());
     },
   };
 
@@ -250,39 +258,42 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound }: {
             <button
               type="button"
               className={`${styles.soundToggle} ${sound.muted ? styles.off : ''} ${soundOpen ? styles.open : ''}`}
-              onClick={() => setSoundOpen((v) => !v)}
+              onClick={() => { if (!soundOpen) sound.probe(); setSoundOpen((v) => !v); }}
               aria-expanded={soundOpen} aria-label="Reglage du son" title="Reglage du son"
             >
               {sound.muted || sound.volume === 0 ? '🔇' : '🔊'}
             </button>
           )}
 
-          <div className={styles.scoreChip}>
-            <span className={`${styles.val} tnum`}>{self?.score ?? 0}</span>
-            <span className={styles.unit}>pts</span>
-          </div>
+          <ScoreChip score={self?.score ?? 0} />
         </div>
 
         {soundOpen && state.settings.playerAudio && (
-          <>
-            <div className={styles.soundPanel}>
-              <button type="button" onClick={sound.toggleMute} aria-label={sound.muted ? 'Reactiver' : 'Couper'}>
-                {sound.muted ? '🔇' : '🔊'}
-              </button>
-              <input
-                type="range" min={0} max={100} step={5} value={sound.muted ? 0 : sound.volume}
-                aria-label="Volume" disabled={sound.locked}
-                onChange={(e) => sound.setVolume(Number(e.target.value))}
-              />
-              <span className={styles.lvl}>{sound.muted ? 0 : sound.volume}%</span>
-            </div>
-            {sound.locked && (
-              <p className={styles.soundNote}>
-                Ton navigateur ne laisse pas regler le volume depuis la page — utilise les boutons
-                de volume de ton appareil. Couper / remettre fonctionne, lui.
-              </p>
+          <div className={styles.soundPanel}>
+            <button
+              type="button" onClick={sound.toggleMute}
+              aria-label={sound.muted ? 'Reactiver le son' : 'Couper le son'}
+            >
+              {sound.muted ? '🔇' : '🔊'}
+            </button>
+
+            {sound.locked ? (
+              // Sur iOS, ecrire dans `volume` n'a aucun effet : un curseur ici
+              // serait un mensonge. On garde ce qui marche, on dit le reste.
+              <span className={styles.soundNote}>
+                Volume : utilise les boutons de ton appareil. Couper / remettre fonctionne ici.
+              </span>
+            ) : (
+              <>
+                <input
+                  type="range" min={0} max={100} step={5} value={sound.muted ? 0 : sound.volume}
+                  aria-label="Volume"
+                  onChange={(e) => sound.setVolume(Number(e.target.value))}
+                />
+                <span className={styles.lvl}>{sound.muted ? 0 : sound.volume}%</span>
+              </>
             )}
-          </>
+          </div>
         )}
 
         {showTimer && (
@@ -315,6 +326,29 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Le score tressaille quand il monte : on voit ses points arriver. */
+function ScoreChip({ score }: { score: number }) {
+  const [bump, setBump] = useState(false);
+  const previous = useRef(score);
+
+  useEffect(() => {
+    if (score > previous.current) {
+      setBump(true);
+      const timer = setTimeout(() => setBump(false), 600);
+      previous.current = score;
+      return () => clearTimeout(timer);
+    }
+    previous.current = score;
+  }, [score]);
+
+  return (
+    <div className={`${styles.scoreChip} ${bump ? styles.bump : ''}`}>
+      <span className={`${styles.val} tnum`}>{score}</span>
+      <span className={styles.unit}>pts</span>
     </div>
   );
 }
@@ -385,11 +419,29 @@ function AnswerForm({ state, me, self, socket }: {
   const [sending, setSending] = useState(false);
   const [hint, setHint] = useState('Tu peux corriger et revalider autant que tu veux : plus tu trouves tot, plus tu marques.');
 
-  const badge = self?.answered ?? null;
+  const titleRef = useRef<HTMLInputElement>(null);
+  const [foundAt, setFoundAt] = useState<number | null>(null);
+
+  // L'accuse de reception fait foi immediatement : le verrouillage ne doit pas
+  // attendre l'aller-retour de la ligne personnelle.
+  const [localBadge, setLocalBadge] = useState<AnswerBadge | null>(null);
+  const badge = localBadge ?? self?.answered ?? null;
   const titleOk = Boolean(badge?.titleOk);
   const artistOk = Boolean(badge?.artistOk);
   const askArtist = asksArtist(state);
   const allFound = hasFoundAll(badge, askArtist);
+
+  // Le champ est pret des le depart : une seconde gagnee, c'est un bonus de plus.
+  useEffect(() => { titleRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    if (allFound && foundAt === null) setFoundAt(clock.now() - state.round!.startAt);
+  }, [allFound, foundAt, state]);
+
+  const elapsed = useMemo(
+    () => (foundAt === null ? null : Math.max(0.1, foundAt / 1000).toFixed(1)),
+    [foundAt],
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -405,6 +457,8 @@ function AnswerForm({ state, me, self, socket }: {
     setSending(false);
     if (!res.ok) return toast(res.error, 'err');
     if (res.throttled) return setHint('Doucement — laisse une seconde entre deux essais.');
+
+    setLocalBadge({ titleOk: res.titleOk, artistOk: res.artistOk, tries: 0 });
 
     const gotTitle = res.titleOk && !before.title;
     const gotArtist = res.artistOk && !before.artist;
@@ -429,6 +483,7 @@ function AnswerForm({ state, me, self, socket }: {
           <div className={`field ${styles.guess} ${titleOk ? styles.found : ''}`}>
             <label htmlFor="fTitle">Titre</label>
             <input
+              ref={titleRef}
               className="input" id="fTitle" data-testid="answer-title" placeholder="Le titre du morceau" readOnly={titleOk}
               autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="send"
               value={title} onChange={(e) => setTitle(e.target.value)}
@@ -448,10 +503,22 @@ function AnswerForm({ state, me, self, socket }: {
             </div>
           )}
 
-          <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={allFound || sending}>
-            Valider ma reponse
-          </button>
-          <p className={styles.hint}>{allFound ? '🎯 Tout trouve ! Repose-toi une seconde.' : hint}</p>
+          {allFound ? (
+            <div className={styles.allFound}>
+              <span className={styles.mark}>🎯</span>
+              <span className={styles.t}>Tout trouve !</span>
+              <span className={styles.s}>
+                {elapsed ? `En ${elapsed} s — les points arrivent a la revelation.` : 'Les points arrivent a la revelation.'}
+              </span>
+            </div>
+          ) : (
+            <>
+              <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={sending}>
+                Valider ma reponse
+              </button>
+              <p className={styles.hint}>{hint}</p>
+            </>
+          )}
         </form>
       </div>
 

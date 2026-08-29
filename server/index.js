@@ -11,6 +11,7 @@ const QRCode = require('qrcode');
 const catalog = require('./catalog');
 const deezer = require('./deezer');
 const { GameServer, cleanName } = require('./game');
+const spotify = require('./spotify');
 const metrics = require('./metrics');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -61,6 +62,11 @@ app.get('/api/qr', async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
+});
+
+/** Ce que ce serveur sait faire : l'interface s'y adapte. */
+app.get('/api/sources', (req, res) => {
+  res.json({ deezer: true, youtube: true, spotify: spotify.enabled() });
 });
 
 app.get('/api/health', (req, res) => {
@@ -165,6 +171,15 @@ io.on('connection', (socket) => {
     }
     ok(cb, { tracks: room.customTracks.map((t) => ({ id: t.id, title: t.title, artist: t.artist, cover: t.cover })) });
     game.broadcast(room);
+  });
+
+  socket.on('host:refresh', async (payload, cb) => {
+    const room = asHost(socket);
+    if (!room) return fail(cb, 'Session animateur expiree.');
+    try {
+      const total = await game.refreshPlaylist(room);
+      ok(cb, { total });
+    } catch (err) { fail(cb, err.message); }
   });
 
   socket.on('host:settings', (patch, cb) => {
@@ -416,7 +431,8 @@ nextApp
       const urls = ['localhost', ...localAddresses()].map((h) => `http://${h}:${PORT}`);
       console.log('\n  🎧  Refrain — serveur pret\n');
       for (const u of urls) console.log(`     ${u}`);
-      console.log('\n     Animateur : /host      Ecran : /screen      Joueurs : /j/CODE\n');
+      console.log('\n     Animateur : /host      Ecran : /screen      Joueurs : /j/CODE');
+      console.log(`     Spotify : ${spotify.enabled() ? 'configure' : 'absent (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)'}\n`);
 
       // Prechauffage discret des listes les plus utilisees
       for (const id of ['top', 'hymnes', 'fr']) {

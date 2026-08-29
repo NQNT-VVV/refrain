@@ -14,7 +14,8 @@
     "test": "node test/e2e.mjs",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "load": "node test/load.mjs"
+    "load": "node test/load.mjs",
+    "test:rounds": "node test/rounds.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",
