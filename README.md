@@ -153,7 +153,29 @@ Une seconde regle s'applique en composant la liste des manches : **deux titres
 par artiste au maximum**, pour qu'une partie ne vire pas au monographique meme
 si le vivier en contient quatre.
 
-Deux autres sources dans la regie :
+### Une partie sur un seul artiste
+
+L'onglet **🎤 Un artiste** cherche un artiste et construit la partie sur son
+seul repertoire. Trois profondeurs, calees sur le rang de popularite que Deezer
+attribue a chaque piste :
+
+| | |
+|---|---|
+| ⭐ **Les classiques** | Ses titres les plus connus — tout le monde peut suivre. |
+| 🎲 **Au hasard** | Pioches dans toute la discographie, tubes et faces B melanges. |
+| 🕵️ **T'es un vrai fan ?** | Uniquement ce que le grand public ne connait pas. |
+
+La discographie complete est reconstituee album par album, EP et singles
+compris, puis dedoublonnee : un morceau sorti en single, en reedition et en
+version « reloaded » ne compte qu'une fois, dans sa version la mieux classee.
+Intros, interludes et pistes de moins d'une minute sont ecartes — ils ne font
+pas de bonnes manches.
+
+Exemple mesure : **Vald**, 226 titres au repertoire une fois nettoye. Classiques
+45 titres (rang moyen 681 000), au hasard 226, vrai fan 156 (rang moyen 398 000).
+Sur **Queen** l'ecart est encore plus marque : 614 000 contre 183 000.
+
+Autres sources dans la regie :
 
 - **🔎 Ma selection** — recherche libre, on ajoute les titres un par un ;
 - **📥 Importer une playlist** — colle une adresse **Deezer**, **YouTube** ou

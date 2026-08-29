@@ -167,6 +167,21 @@ export interface Category {
   accent: string;
 }
 
+export interface ArtistHit {
+  id: string;
+  name: string;
+  picture: string;
+  fans: number;
+  albums: number;
+}
+
+export interface ArtistMode {
+  id: 'hits' | 'random' | 'deep';
+  emoji: string;
+  title: string;
+  hint: string;
+}
+
 export interface SearchTrack {
   id: string;
   title: string;

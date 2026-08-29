@@ -36,7 +36,21 @@ metrics.bind(game, io);
 /* ------------------------------------------------------------------ */
 
 app.get('/api/catalog', (req, res) => {
-  res.json({ categories: catalog.listCategories() });
+  res.json({
+    categories: catalog.listCategories(),
+    artistModes: Object.entries(catalog.ARTIST_MODES).map(([id, m]) => ({ id, ...m })),
+  });
+});
+
+/** Recherche d'artiste, pour le mode « une partie sur un artiste ». */
+app.get('/api/artists', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json({ artists: [] });
+  try {
+    res.json({ artists: await deezer.searchArtists(q, 8) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 app.get('/api/search', async (req, res) => {

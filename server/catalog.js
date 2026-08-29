@@ -467,4 +467,91 @@ async function buildCategory(id, { force = false } = {}) {
   return job;
 }
 
-module.exports = { CATEGORIES, listCategories, getCategory, buildCategory, diversify, shuffle };
+/* ------------------------------------------------------------------ */
+/* Mode artiste                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Trois facons de jouer un artiste : ses tubes, tout son repertoire au hasard,
+ * ou seulement ce que les vrais connaissent.
+ */
+const ARTIST_MODES = {
+  hits: {
+    emoji: '⭐', title: 'Les classiques',
+    hint: 'Ses titres les plus connus — tout le monde peut suivre.',
+  },
+  random: {
+    emoji: '🎲', title: 'Au hasard',
+    hint: 'Pioches dans toute la discographie, tubes et faces B melanges.',
+  },
+  deep: {
+    emoji: '🕵️', title: 'T\'es un vrai fan ?',
+    hint: 'Uniquement les morceaux que le grand public ne connait pas.',
+  },
+};
+
+/** Intros, interludes et pistes trop courtes ne font pas de bonnes manches. */
+const FILLER = /^\s*(intro|outro|interlude|skit|prologue|epilogue|transition)\b/i;
+
+function playableForGame(track) {
+  if (!track?.preview) return false;
+  if (track.duration && track.duration < 60) return false;
+  return !FILLER.test(track.title || '');
+}
+
+/**
+ * Compose une liste a partir d'un artiste.
+ * Le rang de popularite Deezer separe les tubes du reste.
+ */
+async function buildArtist(artistId, mode = 'hits') {
+  const config = ARTIST_MODES[mode] || ARTIST_MODES.hits;
+  const [info, discography] = await Promise.all([
+    dz.artistInfo(artistId),
+    dz.artistDiscography(artistId),
+  ]);
+
+  // Un meme morceau revient en single, en reedition, en version « reloaded » :
+  // on ne garde que la version la mieux classee de chaque titre.
+  const byTitle = new Map();
+  for (const track of discography) {
+    if (!playableForGame(track)) continue;
+    const key = normalize(track.title);
+    if (!key) continue;
+    const kept = byTitle.get(key);
+    if (!kept || (track.rank || 0) > (kept.rank || 0)) byTitle.set(key, track);
+  }
+
+  const ranked = [...byTitle.values()].sort((a, b) => (b.rank || 0) - (a.rank || 0));
+  if (ranked.length < 8) {
+    throw new Error(`Trop peu de morceaux jouables pour ${info.name}.`);
+  }
+
+  // La frontiere entre tube et rarete depend de la taille du repertoire.
+  // On la place franchement : sinon « vrai fan » ressemble a « au hasard ».
+  const hitCount = Math.max(15, Math.min(45, Math.round(ranked.length * 0.2)));
+  const deepFrom = Math.max(12, Math.min(70, Math.round(ranked.length * 0.45)));
+
+  let tracks;
+  if (mode === 'hits') tracks = ranked.slice(0, hitCount);
+  else if (mode === 'deep') tracks = ranked.slice(deepFrom);
+  else tracks = ranked;
+
+  if (tracks.length < 8) tracks = ranked;   // repertoire trop mince pour trancher
+
+  return {
+    id: `artist-${artistId}-${mode}`,
+    title: `${info.name} — ${config.title}`,
+    emoji: config.emoji,
+    subtitle: `${tracks.length} titres sur ${ranked.length} au repertoire`,
+    accent: '#F472B6',
+    source: 'artist',
+    artist: info,
+    mode,
+    tracks: shuffle(tracks),
+  };
+}
+
+module.exports = {
+  CATEGORIES, listCategories, getCategory, buildCategory, diversify, shuffle,
+  ARTIST_MODES, buildArtist,
+};

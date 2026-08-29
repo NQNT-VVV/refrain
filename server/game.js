@@ -222,6 +222,16 @@ class GameServer {
         subtitle: 'Playlist Deezer importee', accent: '#22D3EE', source: 'deezer', tracks,
       };
       metrics.playlistSelections.inc({ source: 'deezer', id: 'import' });
+    } else if (spec.type === 'artist') {
+      const artistId = String(spec.artistId || '').replace(/[^0-9]/g, '');
+      if (!artistId) throw new Error('Artiste inconnu.');
+      const built = await catalog.buildArtist(artistId, spec.mode);
+      room.playlist = { ...built, pending: false };
+      metrics.playlistSelections.inc({ source: 'artist', id: spec.mode || 'hits' });
+      room.settings.rounds = clamp(room.settings.rounds, 3, built.tracks.length);
+      // Nouveau repertoire : la memoire du salon repart de zero.
+      room.playedTrackIds = new Set();
+      return room.playlist;
     } else if (spec.type === 'spotify') {
       if (!spotify.enabled()) throw new Error('Spotify n\'est pas configure sur ce serveur.');
       const id = spotify.parsePlaylistId(spec.id);

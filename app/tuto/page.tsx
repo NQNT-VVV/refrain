@@ -138,11 +138,26 @@ export default function TutoPage() {
             </p>
           </div>
           <div className={styles.card2}>
+            <span className={styles.icon}>🎤</span>
+            <h3>Un seul artiste</h3>
+            <p>
+              Toute la partie sur un artiste, avec trois profondeurs : ses
+              <b> classiques</b>, sa discographie <b>au hasard</b>, ou seulement ce que le grand
+              public ignore — le mode <b>«&nbsp;t&apos;es un vrai fan&nbsp;?&nbsp;»</b>.
+            </p>
+            <ul>
+              <li>La discographie est reconstituee album par album, singles compris.</li>
+              <li>Intros et interludes sont ecartes, les doublons fusionnes.</li>
+              <li>La frontiere tube / rarete suit la popularite reelle des morceaux.</li>
+            </ul>
+          </div>
+
+          <div className={styles.card2}>
             <span className={styles.icon}>📥</span>
             <h3>Tes propres listes</h3>
             <p>
               Cherche des titres un par un pour composer ta selection, ou colle une playlist
-              <b> Deezer</b> ou <b>YouTube</b> — le type est reconnu tout seul.
+              <b> Deezer</b>, <b>YouTube</b> ou <b>Spotify</b> — le type est reconnu tout seul.
             </p>
             <ul>
               <li>Sur YouTube, les titres sont ceux des videos : moins nets, souvent sans nom d&apos;artiste.</li>

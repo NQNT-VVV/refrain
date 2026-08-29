@@ -11,7 +11,7 @@ import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
-import type { Category, GameState, SearchTrack, Settings } from '@/lib/types';
+import type { ArtistHit, ArtistMode, Category, GameState, SearchTrack, Settings } from '@/lib/types';
 import { useAudioDevice } from '@/lib/useAudioDevice';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
@@ -19,7 +19,7 @@ import { useRoundClock } from '@/lib/useRoundClock';
 import styles from './host.module.css';
 
 interface HostSession { code: string; hostToken: string }
-type Tab = 'catalog' | 'search' | 'import';
+type Tab = 'catalog' | 'artist' | 'search' | 'import';
 
 const MODE_NOTE = {
   input: 'Tout le monde tape titre + artiste. Correction automatique, bonus de rapidite.',
@@ -30,6 +30,7 @@ export function HostClient() {
   const [code, setCode] = useState('');
   const [origin, setOrigin] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [artistModes, setArtistModes] = useState<ArtistMode[]>([]);
   const [tab, setTab] = useState<Tab>('catalog');
   const [blurred, setBlurred] = useState(false);
   const [loadingCat, setLoadingCat] = useState<string | null>(null);
@@ -49,7 +50,10 @@ export function HostClient() {
     setBlurred(store.get('refrain.host.blur', false));
     fetch('/api/catalog')
       .then((r) => r.json())
-      .then((d: { categories: Category[] }) => setCategories(d.categories))
+      .then((d: { categories: Category[]; artistModes: ArtistMode[] }) => {
+        setCategories(d.categories);
+        setArtistModes(d.artistModes ?? []);
+      })
       .catch(() => toast('Impossible de charger les listes.', 'err'));
     fetch('/api/sources').then((r) => r.json()).then(setSources).catch(() => {});
   }, []);
@@ -194,7 +198,12 @@ export function HostClient() {
               <>
                 <section className="card pad col" style={{ gap: 16 }}>
                   <div className={styles.tabs} role="tablist">
-                    {([['catalog', '🎧 Listes pretes'], ['search', '🔎 Ma selection'], ['import', '📥 Importer une playlist']] as const).map(([id, label]) => (
+                    {([
+                      ['catalog', '🎧 Listes pretes'],
+                      ['artist', '🎤 Un artiste'],
+                      ['search', '🔎 Ma selection'],
+                      ['import', '📥 Importer'],
+                    ] as const).map(([id, label]) => (
                       <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
                     ))}
                   </div>
@@ -239,6 +248,7 @@ export function HostClient() {
                     </>
                   )}
 
+                  {tab === 'artist' && <ArtistTab send={send} modes={artistModes} state={state} />}
                   {tab === 'search' && <SearchTab send={send} count={state.customCount ?? 0} />}
                   {tab === 'import' && <ImportTab send={send} state={state} sources={sources} />}
                 </section>
@@ -387,6 +397,116 @@ function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
 /* ------------------------------------------------------------------ */
 /* Onglets de selection                                               */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Une partie entiere sur un seul artiste.
+ *
+ * Trois profondeurs : ses tubes, tout son repertoire, ou seulement ce que le
+ * grand public ne connait pas. Le rang de popularite de chaque morceau chez
+ * Deezer sert de frontiere.
+ */
+function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; state: GameState }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ArtistHit[] | null>(null);
+  const [picked, setPicked] = useState<ArtistHit | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults(null); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/artists?q=${encodeURIComponent(query.trim())}`);
+        const data = (await res.json()) as { artists?: ArtistHit[] };
+        setResults(data.artists ?? []);
+      } catch {
+        toast('Recherche d\'artiste indisponible.', 'err');
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  async function choose(mode: ArtistMode) {
+    if (!picked) return;
+    setBusy(mode.id);
+    const res = await send('host:playlist', { type: 'artist', artistId: picked.id, mode: mode.id }, 90000);
+    setBusy(null);
+    if (res?.ok) toast(`${mode.emoji} ${picked.name} — ${mode.title}`, 'ok');
+  }
+
+  const active = state.playlist?.source === 'artist' ? state.playlist : null;
+
+  return (
+    <div>
+      <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
+        Toute la partie sur un seul artiste. Cherche-le, puis choisis a quel point tu veux
+        malmener les joueurs.
+      </p>
+
+      {!picked && (
+        <>
+          <div className="row">
+            <input
+              className="input grow" placeholder="Vald, Queen, Angele…" autoComplete="off"
+              value={query} onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className={styles.artists}>
+            {results?.map((a) => (
+              <button key={a.id} type="button" className={styles.artistCard} onClick={() => setPicked(a)}>
+                {a.picture
+                  ? <img src={a.picture} alt="" loading="lazy" />
+                  : <span className="avatar">🎤</span>}
+                <span className="grow" style={{ minWidth: 0 }}>
+                  <span className={`${styles.n} ellipsis`} style={{ display: 'block' }}>{a.name}</span>
+                  <span className={styles.f}>{a.fans.toLocaleString('fr-FR')} fans</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          {results?.length === 0 && (
+            <p className={styles.note} style={{ marginTop: 10 }}>Aucun artiste trouve.</p>
+          )}
+        </>
+      )}
+
+      {picked && (
+        <>
+          <div className={styles.artistPicked}>
+            {picked.picture && <img src={picked.picture} alt="" />}
+            <div className="grow">
+              <div className={styles.n}>{picked.name}</div>
+              <div className="faint" style={{ fontSize: 12 }}>{picked.fans.toLocaleString('fr-FR')} fans</div>
+            </div>
+            <button className="btn xs" onClick={() => { setPicked(null); setQuery(''); setResults(null); }}>
+              Changer
+            </button>
+          </div>
+
+          <div className={styles.modes}>
+            {modes.map((mode) => (
+              <button
+                key={mode.id} type="button" className={styles.modeCard}
+                disabled={busy !== null}
+                aria-pressed={active?.id === `artist-${picked.id}-${mode.id}`}
+                onClick={() => choose(mode)}
+              >
+                <span className={styles.em}>{mode.emoji}</span>
+                <span className={styles.t}>{busy === mode.id ? 'Construction…' : mode.title}</span>
+                <span className={styles.h}>{mode.hint}</span>
+              </button>
+            ))}
+          </div>
+
+          {active && (
+            <p className={styles.note} style={{ marginTop: 12 }}>
+              ✅ {active.title} — {active.subtitle}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function SearchTab({ send, count }: { send: Send; count: number }) {
   const [query, setQuery] = useState('');

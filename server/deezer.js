@@ -243,6 +243,78 @@ async function freshPreview(trackId) {
  * de reprise prise pour l'original. L'association est stable, on la garde une
  * semaine ; seule l'URL d'extrait expire, et elle est re-resolue a chaque manche.
  */
+/** Artistes correspondant a une recherche, les plus suivis d'abord. */
+async function searchArtists(query, limit = 8) {
+  const key = `artists_${query}_${limit}`;
+  const cached = readCache(key, DEFAULT_TTL);
+  if (cached) return cached;
+  const json = await dz(`/search/artist?q=${encodeURIComponent(query)}&limit=${limit}`);
+  const artists = (json.data || []).map((a) => ({
+    id: String(a.id),
+    name: a.name,
+    picture: a.picture_medium || a.picture || '',
+    fans: a.nb_fan || 0,
+    albums: a.nb_album || 0,
+  }));
+  writeCache(key, artists);
+  return artists;
+}
+
+async function artistInfo(artistId) {
+  const key = `artistinfo_${artistId}`;
+  const cached = readCache(key, DEFAULT_TTL);
+  if (cached) return cached;
+  const json = await dz(`/artist/${artistId}`);
+  const info = {
+    id: String(json.id),
+    name: json.name,
+    picture: json.picture_big || json.picture_medium || '',
+    fans: json.nb_fan || 0,
+  };
+  writeCache(key, info);
+  return info;
+}
+
+/**
+ * Discographie complete d'un artiste : albums, EP et singles.
+ *
+ * Le top d'un artiste tient en cinquante titres ; pour un mode « vrai fan » il
+ * faut descendre dans les albums, piste par piste. Chaque piste porte son rang
+ * de popularite, ce qui permet ensuite de separer les tubes des faces B.
+ */
+async function artistDiscography(artistId, { maxReleases = 45 } = {}) {
+  const key = `discog_${artistId}_${maxReleases}`;
+  const cached = readCache(key, 24 * 60 * 60 * 1000);
+  if (cached) return cached;
+
+  const releases = await dz(`/artist/${artistId}/albums?limit=${maxReleases}`);
+  // Les albums et EP d'abord : les singles reprennent souvent leurs pistes.
+  const order = { album: 0, ep: 1, single: 2, compile: 3 };
+  const sorted = (releases.data || [])
+    .sort((a, b) => (order[a.record_type] ?? 9) - (order[b.record_type] ?? 9))
+    .slice(0, maxReleases);
+
+  const tracks = [];
+  for (let i = 0; i < sorted.length; i += 4) {
+    const batch = await Promise.all(sorted.slice(i, i + 4).map(async (album) => {
+      try {
+        const full = await dz(`/album/${album.id}`);
+        return (full.tracks?.data || []).map((t) => toTrack({
+          ...t,
+          album: { title: full.title, cover_big: full.cover_big, cover_medium: full.cover_medium },
+          artist: t.artist || { name: full.artist?.name },
+        }));
+      } catch {
+        return [];
+      }
+    }));
+    for (const list of batch) for (const t of list) if (t) tracks.push(t);
+  }
+
+  writeCache(key, tracks);
+  return tracks;
+}
+
 async function trackByIsrc(isrc) {
   const key = `isrc_${isrc}`;
   const cached = readCache(key, 7 * 24 * 60 * 60 * 1000);
@@ -269,4 +341,5 @@ async function playlistTracks(playlistId, limit = 200) {
   return value;
 }
 
-module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, trackByIsrc, chartTracks, playlistTracks, readCache, writeCache };
+module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, trackByIsrc,
+  searchArtists, artistInfo, artistDiscography, chartTracks, playlistTracks, readCache, writeCache };
