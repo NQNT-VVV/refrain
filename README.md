@@ -172,8 +172,15 @@ prise pour l'original. A defaut d'ISRC, une recherche titre + artiste prend le
 relais, verifiee par le meme correcteur que les reponses des joueurs. L'ecart
 entre morceaux demandes et morceaux jouables s'affiche a l'import.
 
-Compter une vingtaine de secondes pour une playlist de cent titres —
-l'avancement est visible dans la regie.
+Le taux de resolution est eleve : mesure sur deux playlists publiques,
+**115 titres jouables sur 116** et **198 sur 200**. Compter une vingtaine de
+secondes pour une playlist de cent titres — l'avancement est visible dans la
+regie.
+
+⚠️ Les playlists **editoriales** de Spotify (identifiants en `37i9dQ…`, du genre
+« Today's Top Hits ») ne sont plus accessibles en client-credentials depuis fin
+2024 : elles repondent 404. Les playlists creees par des utilisateurs, elles,
+fonctionnent normalement.
 
 **Configuration.** Cree une application sur
 [developer.spotify.com](https://developer.spotify.com/dashboard) : elle donne un
