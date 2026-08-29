@@ -53,6 +53,8 @@ export function useAudioDevice(onFailure?: (reason: AudioFailure) => void) {
     youtube.setVolume(value);
   }, [deezer, youtube]);
 
+  const canSetVolume = deezer.canSetVolume;
+
   /** Debloque la lecture : a appeler depuis un vrai geste utilisateur. */
   const unlock = useCallback(() => {
     deezer.unlock();
@@ -78,6 +80,7 @@ export function useAudioDevice(onFailure?: (reason: AudioFailure) => void) {
     ytContainer: youtube.container,
     handleCue,
     setVolume,
+    canSetVolume,
     unlock,
     attach,
     loadingPlaylist,

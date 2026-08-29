@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { Brand } from '@/components/Brand';
+import { SupportNote } from '@/components/SupportNote';
+
 import { JoinForm } from '@/components/JoinForm';
 import styles from './page.module.css';
 
@@ -13,6 +16,12 @@ const FEATURES = [
 export default function HomePage() {
   return (
     <div className={styles.wrap}>
+      <div className={styles.topbar}>
+        <Brand href={null} />
+        <span className={styles.spacer} />
+        <Link className="btn sm" href="/tuto">📖 Comment ca marche</Link>
+      </div>
+
       <header className={styles.hero}>
         <span className={`pill ${styles.badge}`}>
           <span className="dot" /> Extraits de 30 s • aucun compte requis
@@ -55,7 +64,8 @@ export default function HomePage() {
       </section>
 
       <footer className={styles.footer}>
-        Deja anime une partie ? <Link href="/host">Reprendre la regie</Link> — le lien retrouve ton salon en cours.
+        <p>Deja anime une partie ? <Link href="/host">Reprendre la regie</Link> — le lien retrouve ton salon en cours.</p>
+        <SupportNote className={styles.support} />
       </footer>
     </div>
   );

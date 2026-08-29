@@ -42,7 +42,8 @@ Pour changer de port : `PORT=8080 npm start`.
 |---|---|---|
 | **Regie** | `/host` | L'animateur. Choix des listes, reglages, pilotage des manches. |
 | **Ecran** | `/screen` | La projection / le stream. Joue le son, affiche le QR code, les compte a rebours et les reponses. |
-| **Joueur** | `/j/CODE` | Les telephones. Formulaire de reponse ou buzzer. |
+| **Joueur** | `/j/CODE` | Telephone **ou ordinateur** — la page s'adapte : une colonne au pouce, deux colonnes a la souris. |
+| **Tuto** | `/tuto` | Comment ca marche, pour ceux qui decouvrent. |
 
 ### Deroule type
 
@@ -68,6 +69,11 @@ Chaque joueur garde un bouton 🔊 / 🔇 dans sa barre du haut.
 C'est indispensable quand les joueurs ne sont pas dans la meme piece — visio,
 soiree a distance. **Dans une meme piece, laisse l'option fermee** : une dizaine
 de telephones a quelques dizaines de millisecondes d'ecart font de la bouillie.
+
+Chaque joueur dispose alors d'un reglage de volume dans sa barre du haut. Sur
+iOS, ecrire dans `audio.volume` n'a aucun effet — seuls les boutons physiques
+agissent : l'application le detecte et le dit, plutot que d'afficher un curseur
+inerte.
 
 ---
 
@@ -259,6 +265,7 @@ test/e2e.mjs            partie complete simulee, dans les deux modes
 npm run typecheck  # TypeScript
 npm run dev        # dans un terminal
 npm test           # dans un autre
+PLAYERS=2000 npm run load
 ```
 
 Simule deux parties completes (reponse libre et buzzer) avec trois joueurs :
@@ -307,6 +314,42 @@ Mise a jour vers la derniere image :
 ```bash
 kubectl -n refrain rollout restart deploy/refrain
 ```
+
+---
+
+## Tenir la charge
+
+Une partie diffusee en stream peut rassembler des milliers de joueurs. Deux
+regles rendent ca tenable, et `test/load.mjs` verifie qu'elles tiennent :
+
+- **On ne diffuse jamais la liste complete des joueurs.** L'etat public porte un
+  classement borne (douze lignes pour les joueurs et l'ecran, cinquante pour la
+  regie) plus des compteurs. Chaque joueur recoit **sa** ligne — score, rang,
+  reponses — sur un canal Socket.IO qui lui est propre, aux bornes de manche
+  seulement.
+- **Les diffusions sont regroupees.** Deux mille joueurs qui rejoignent ou qui
+  repondent dans la meme seconde ne declenchent pas deux mille serialisations :
+  l'etat part au plus toutes les 180 ms, sauf changement de phase qui passe
+  devant. Les reponses sont par ailleurs limitees a une toutes les 300 ms par
+  joueur.
+
+Mesure sur une manche complete avec **2000 joueurs** (24 cœurs, Node 22) :
+
+| | |
+|---|---|
+| Connexion des 2000 joueurs | **1,9 s**, aucun echec |
+| 2000 reponses traitees | **1,0 s** |
+| Messages `state` recus par joueur, sur toute la manche | **9** |
+| Charge `state` la plus grosse | **5,1 Ko** — identique a 500 joueurs |
+| Total recu par un joueur | 26 Ko |
+| Memoire du serveur | 119 Mo au repos → **183 Mo** |
+| Temps processeur | 3 s |
+
+Le point important est la ligne **5,1 Ko a 500 comme a 2000 joueurs** : c'est ce
+qui prouve que la charge ne depend plus du nombre de participants. Sans le
+classement borne, l'etat aurait pese ~240 Ko et serait parti a chaque reponse.
+
+`MAX_PLAYERS` (2000 par defaut) plafonne un salon.
 
 ---
 

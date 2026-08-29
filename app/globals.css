@@ -250,6 +250,24 @@ input[type="range"]::-moz-range-thumb { border: 0; width: 20px; height: 20px; bo
 @keyframes toastOut { to { opacity: 0; transform: translateY(-8px) scale(.97); } }
 
 /* --------------------------------------------------------------------------
+   Marque
+   -------------------------------------------------------------------------- */
+.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; }
+.brand-mark { font-size: 1.15em; line-height: 1; }
+.brand-name {
+  background: linear-gradient(120deg, #fff, #c4b5fd 60%, #67e8f9);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand-beta {
+  font-family: var(--body); font-size: .56em; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  padding: .28em .6em; border-radius: 999px; color: #ffc9dc; line-height: 1;
+  background: rgba(255, 61, 139, .16); border: 1px solid rgba(255, 61, 139, .35);
+}
+
+.support-note { font-size: 11.5px; color: var(--faint); text-align: center; line-height: 1.5; }
+.support-note b { color: var(--muted); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
    Utilitaires
    -------------------------------------------------------------------------- */
 .row { display: flex; align-items: center; gap: 12px; }

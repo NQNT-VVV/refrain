@@ -5,7 +5,7 @@ import type { Socket } from 'socket.io-client';
 
 import { clock } from './clock';
 import { connect } from './socket';
-import type { AudioCue, GameState } from './types';
+import type { AudioCue, GameState, You } from './types';
 
 interface Options {
   /** Appele une fois l'horloge synchronisee : c'est la qu'on rejoint le salon. */
@@ -23,6 +23,7 @@ interface Options {
  */
 export function useGameSocket({ onReady, onAudio, onKicked }: Options) {
   const [state, setState] = useState<GameState | null>(null);
+  const [you, setYou] = useState<You | null>(null);
   const [connected, setConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
 
@@ -42,6 +43,7 @@ export function useGameSocket({ onReady, onAudio, onKicked }: Options) {
     s.on('connect', onConnect);
     s.on('disconnect', () => setConnected(false));
     s.on('state', (next: GameState) => setState(next));
+    s.on('you', (next: You) => setYou(next));
     s.on('audio', (cue: AudioCue) => handlers.current.onAudio?.(cue));
     s.on('kicked', () => handlers.current.onKicked?.());
 
@@ -51,5 +53,5 @@ export function useGameSocket({ onReady, onAudio, onKicked }: Options) {
     };
   }, []);
 
-  return { socket, state, setState, connected };
+  return { socket, state, setState, you, setYou, connected };
 }

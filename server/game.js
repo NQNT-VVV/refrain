@@ -8,7 +8,22 @@ const youtube = require('./youtube');
 const metrics = require('./metrics');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
-const MAX_PLAYERS = 60;
+
+/**
+ * Une partie diffusee en stream peut rassembler des milliers de joueurs. Deux
+ * regles rendent ca tenable :
+ *   - on ne diffuse jamais la liste complete, seulement un classement borne ;
+ *   - chaque joueur recoit sa ligne a lui, sur son propre canal, et rarement.
+ */
+const MAX_PLAYERS = Number(process.env.MAX_PLAYERS) || 2000;
+const LEADERBOARD_SIZE = 12;   // ce que voient l'ecran et les joueurs
+const HOST_LIST_SIZE = 50;     // ce que la regie peut afficher utilement
+const TOP_GAINS_SIZE = 10;     // marqueurs mis en avant a la revelation
+const PODIUM_SIZE = 20;
+
+// Les evenements de jeu arrivent en rafale : on regroupe les diffusions.
+const BROADCAST_INTERVAL_MS = 180;
+const ANSWER_THROTTLE_MS = 300;
 const COUNTDOWN_MS = 3400;
 const ROOM_TTL_MS = 3 * 60 * 60 * 1000;
 const SCOREBOARD_EVERY = 5;
@@ -67,6 +82,9 @@ class Room {
     this.hostOnline = false;
     this.screenOnline = 0;
     this.history = [];
+    this.connectedCount = 0;      // tenu a jour, plutot que recompte a chaque fois
+    this.broadcastTimer = null;
+    this.dirty = false;
   }
 
   touch() { this.touchedAt = Date.now(); }
@@ -87,6 +105,11 @@ class Room {
 
   get connectedPlayers() {
     return [...this.players.values()].filter((p) => p.connected);
+  }
+
+  /** Salle Socket.IO propre a un joueur, pour lui envoyer sa ligne a lui. */
+  playerRoom(playerId) {
+    return `${this.code}:p:${playerId}`;
   }
 }
 
@@ -117,6 +140,7 @@ class GameServer {
 
   destroy(room) {
     room.clearTimers();
+    if (room.broadcastTimer) clearTimeout(room.broadcastTimer);
     this.rooms.delete(room.code);
   }
 
@@ -124,7 +148,7 @@ class GameServer {
     const now = Date.now();
     for (const room of [...this.rooms.values()]) {
       const idle = now - room.touchedAt > ROOM_TTL_MS;
-      const empty = !room.hostOnline && room.connectedPlayers.length === 0 && now - room.touchedAt > 20 * 60 * 1000;
+      const empty = !room.hostOnline && room.connectedCount === 0 && now - room.touchedAt > 20 * 60 * 1000;
       if (idle || empty) this.destroy(room);
     }
   }
@@ -153,6 +177,7 @@ class GameServer {
       joinedAt: Date.now(),
     };
     room.players.set(player.id, player);
+    room.connectedCount += 1;
     metrics.playersJoined.inc();
     return player;
   }
@@ -282,10 +307,10 @@ class GameServer {
   start(room) {
     if (!room.playlist) throw new Error('Choisis d\'abord une liste de morceaux.');
     if (room.playlist.pending) throw new Error('La playlist YouTube n\'est pas encore chargee.');
+    if (room.connectedCount === 0) throw new Error('Aucun joueur connecte.');
     if (room.playlist.source === 'youtube' && !this.audioDeviceOnline(room)) {
       throw new Error(this.audioTargetLabel(room) + ' doit rester connecte pour lire YouTube.');
     }
-    if (room.connectedPlayers.length === 0) throw new Error('Aucun joueur connecte.');
     room.clearTimers();
     room.queue = catalog.shuffle(room.playlist.tracks).slice(0, room.settings.rounds);
     room.index = -1;
@@ -310,6 +335,7 @@ class GameServer {
       endAt: now + COUNTDOWN_MS + room.settings.clip * 1000,
       remainingMs: room.settings.clip * 1000,
       answers: new Map(),
+      doneCount: 0,
       buzz: null,
       answerDeadline: null,
       lockedOut: new Set(),
@@ -321,11 +347,11 @@ class GameServer {
 
     room.after(COUNTDOWN_MS, () => {
       room.phase = 'playing';
-      this.broadcast(room);
+      this.broadcastNow(room);
       room.after(room.round.durationMs, () => this.reveal(room, 'timeout'));
     });
 
-    this.broadcast(room);
+    this.broadcastNow(room);
   }
 
   /**
@@ -396,12 +422,21 @@ class GameServer {
     const r = room.round;
     let ans = r.answers.get(player.id);
     if (!ans) {
-      ans = { titleOk: false, artistOk: false, titleAt: 0, artistAt: 0, title: '', artist: '', tries: 0 };
+      ans = { titleOk: false, artistOk: false, titleAt: 0, artistAt: 0, title: '', artist: '', tries: 0, lastAt: 0 };
       r.answers.set(player.id, ans);
     }
+    // Garde-fou : a deux mille joueurs, un client qui s'emballe ne doit pas
+    // pouvoir saturer la boucle du serveur.
+    if (now - ans.lastAt < ANSWER_THROTTLE_MS) {
+      return { titleOk: ans.titleOk, artistOk: ans.artistOk, found: null, throttled: true };
+    }
+    ans.lastAt = now;
     ans.tries += 1;
     if (title) ans.title = String(title).slice(0, 80);
     if (artist) ans.artist = String(artist).slice(0, 80);
+
+    const needArtist = this.asksArtist(room);
+    const wasDone = ans.titleOk && (!needArtist || ans.artistOk);
 
     let found = null;
     if (!ans.titleOk && title) {
@@ -413,7 +448,7 @@ class GameServer {
         metrics.answersTotal.inc({ field: 'title', result: 'miss' });
       }
     }
-    if (this.asksArtist(room) && !ans.artistOk && artist) {
+    if (needArtist && !ans.artistOk && artist) {
       if (matchArtist(artist, r.track.artist, r.track.contributors)) {
         ans.artistOk = true; ans.artistAt = now; found = found ? 'both' : 'artist';
         metrics.answersTotal.inc({ field: 'artist', result: 'hit' });
@@ -422,19 +457,17 @@ class GameServer {
         metrics.answersTotal.inc({ field: 'artist', result: 'miss' });
       }
     }
+    // Compteur incremental : inutile de reparcourir tous les joueurs a chaque reponse.
+    if (found && !wasDone && ans.titleOk && (!needArtist || ans.artistOk)) r.doneCount += 1;
+
     this.broadcast(room);
     if (this.everyoneDone(room)) room.after(600, () => this.reveal(room, 'complete'));
     return { titleOk: ans.titleOk, artistOk: ans.artistOk, found };
   }
 
   everyoneDone(room) {
-    const players = room.connectedPlayers;
-    if (!players.length) return false;
-    const needArtist = this.asksArtist(room);
-    return players.every((p) => {
-      const a = room.round.answers.get(p.id);
-      return a && a.titleOk && (!needArtist || a.artistOk);
-    });
+    if (!room.round || room.connectedCount === 0) return false;
+    return room.round.doneCount >= room.connectedCount;
   }
 
   /** Instant a partir duquel le buzzer s'ouvre sur la manche en cours. */
@@ -480,7 +513,7 @@ class GameServer {
     room.round.answerDeadline = now + room.settings.buzzAnswerTime * 1000;
     room.after(room.settings.buzzAnswerTime * 1000, () => this.judge(room, { ok: false, timedOut: true }));
 
-    this.broadcast(room);
+    this.broadcastNow(room);
     return { accepted: true, reason: null };
   }
 
@@ -501,6 +534,7 @@ class GameServer {
     } else {
       room.round.lockedOut.add(room.round.buzz.playerId);
       if (player) player.lastGain = 0;
+      this.sendPersonalTo(room, room.round.buzz.playerId);
       room.round.buzz = null;
       const remaining = room.round.remainingMs;
       if (remaining <= 400) return this.reveal(room, 'timeout');
@@ -508,7 +542,7 @@ class GameServer {
       room.round.endAt = Date.now() + remaining;
       this.sendAudio(room, { action: 'resume' });
       room.after(remaining, () => this.reveal(room, 'timeout'));
-      this.broadcast(room);
+      this.broadcastNow(room);
     }
   }
 
@@ -548,9 +582,15 @@ class GameServer {
     metrics.roundsFinished.inc({ reason });
     room.round.results = this.computeResults(room);
     room.round.reason = reason;
-    room.history.push({ track: room.round.track, results: room.round.results });
+    // On ne garde que l'essentiel : douze manches de deux mille resultats
+    // n'ont aucun interet en memoire.
+    room.history.push({
+      track: this.trackCard(room.round.track),
+      topGains: room.round.results.filter((r) => r.gained > 0).slice(0, TOP_GAINS_SIZE),
+    });
     this.sendAudio(room, { action: 'stop' });
-    this.broadcast(room);
+    this.broadcastNow(room);
+    this.sendPersonal(room);
 
     if (!room.settings.autoNext) return;
     const isLast = room.index >= room.queue.length - 1;
@@ -558,7 +598,7 @@ class GameServer {
     room.after(room.settings.revealDelay * 1000, () => {
       if (showBoard) {
         room.phase = 'scores';
-        this.broadcast(room);
+        this.broadcastNow(room);
         room.after(6500, () => this.nextRound(room));
       } else {
         this.nextRound(room);
@@ -572,7 +612,8 @@ class GameServer {
     room.phase = 'ended';
     room.round = null;
     this.sendAudio(room, { action: 'stop' });
-    this.broadcast(room);
+    this.broadcastNow(room);
+    this.sendPersonal(room);
   }
 
   backToLobby(room) {
@@ -584,27 +625,84 @@ class GameServer {
     room.history = [];
     for (const p of room.players.values()) { p.score = 0; p.lastGain = 0; }
     this.sendAudio(room, { action: 'stop' });
-    this.broadcast(room);
+    this.broadcastNow(room);
+    this.sendPersonal(room);
   }
 
   /* ---------------------------------------------------------------- */
   /* Diffusion d'etat                                                 */
   /* ---------------------------------------------------------------- */
 
-  scoreboard(room) {
-    return [...room.players.values()]
-      .map((p) => ({
-        id: p.id, name: p.name, avatar: p.avatar, score: p.score,
-        connected: p.connected, lastGain: p.lastGain,
-        answered: room.round ? this.answerBadge(room, p.id) : null,
-      }))
-      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+  /** Ligne publique d'un joueur. */
+  playerRow(room, player, withGuesses = false) {
+    const row = {
+      id: player.id, name: player.name, avatar: player.avatar, score: player.score,
+      connected: player.connected, lastGain: player.lastGain,
+      answered: this.answerBadge(room, player.id),
+    };
+    if (withGuesses) {
+      const a = room.round?.answers.get(player.id);
+      row.guessTitle = a?.title || '';
+      row.guessArtist = a?.artist || '';
+    }
+    return row;
+  }
+
+  /**
+   * Classement borne — jamais la liste complete.
+   *
+   * Au salon on montre les derniers arrives : c'est ce qu'on regarde en
+   * attendant. En jeu, les meilleurs.
+   */
+  leaderboard(room, size, withGuesses = false) {
+    const players = [...room.players.values()];
+    if (room.phase === 'lobby') players.sort((a, b) => b.joinedAt - a.joinedAt);
+    else players.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+    return players.slice(0, size).map((p) => this.playerRow(room, p, withGuesses));
+  }
+
+  counts(room) {
+    return {
+      players: room.players.size,
+      connected: room.connectedCount,
+      answered: room.round ? room.round.answers.size : 0,
+      done: room.round ? room.round.doneCount : 0,
+    };
   }
 
   answerBadge(room, playerId) {
     const a = room.round?.answers.get(playerId);
     if (!a) return null;
     return { titleOk: !!a.titleOk, artistOk: !!a.artistOk, tries: a.tries || 0 };
+  }
+
+  /** Ce que chaque joueur recoit sur son propre canal : sa ligne, son rang. */
+  youPayload(room, player, rank) {
+    return {
+      id: player.id, name: player.name, avatar: player.avatar,
+      score: player.score, rank, lastGain: player.lastGain,
+      answered: this.answerBadge(room, player.id),
+      lockedOut: Boolean(room.round?.lockedOut.has(player.id)),
+    };
+  }
+
+  /** Une seule passe de tri pour servir tout le monde. */
+  sendPersonal(room) {
+    const sorted = [...room.players.values()]
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+    sorted.forEach((player, i) => {
+      this.io.to(room.playerRoom(player.id)).emit('you', this.youPayload(room, player, i + 1));
+    });
+  }
+
+  sendPersonalTo(room, playerId) {
+    const player = room.players.get(playerId);
+    if (!player) return null;
+    let rank = 1;
+    for (const other of room.players.values()) if (other.score > player.score) rank += 1;
+    const payload = this.youPayload(room, player, rank);
+    this.io.to(room.playerRoom(playerId)).emit('you', payload);
+    return payload;
   }
 
   baseState(room) {
@@ -621,7 +719,7 @@ class GameServer {
         total: room.playlist.tracks.length,
         source: room.playlist.source, pending: !!room.playlist.pending,
       },
-      players: this.scoreboard(room),
+      counts: this.counts(room),
       round: room.round && {
         index: room.index, total: room.queue.length,
         startAt: room.round.startAt, endAt: room.round.endAt,
@@ -640,23 +738,23 @@ class GameServer {
 
   publicState(room) {
     const state = this.baseState(room);
+    state.leaderboard = this.leaderboard(room, LEADERBOARD_SIZE);
     const revealing = room.phase === 'reveal' || room.phase === 'scores';
     if (room.round && revealing) {
       state.round.track = this.trackCard(room.round.track);
-      state.round.results = room.round.results;
+      state.round.topGains = (room.round.results || [])
+        .filter((r) => r.gained > 0)
+        .slice(0, TOP_GAINS_SIZE);
     }
-    if (room.phase === 'ended') state.podium = this.scoreboard(room);
+    if (room.phase === 'ended') state.podium = this.leaderboard(room, PODIUM_SIZE);
     return state;
   }
 
   hostState(room) {
     const state = this.publicState(room);
+    // La regie voit plus de monde, et les reponses tapees — mais toujours borne.
+    state.leaderboard = this.leaderboard(room, HOST_LIST_SIZE, true);
     if (room.round && !state.round.track) state.round.track = this.trackCard(room.round.track);
-    if (room.round && !state.round.results) {
-      state.round.answers = [...room.round.answers.entries()].map(([playerId, a]) => ({
-        playerId, titleOk: !!a.titleOk, artistOk: !!a.artistOk, title: a.title, artist: a.artist,
-      }));
-    }
     state.upcoming = room.queue.slice(room.index + 1, room.index + 4).map((t) => this.trackCard(t));
     state.customCount = room.customTracks.length;
     return state;
@@ -670,8 +768,31 @@ class GameServer {
     };
   }
 
+  /**
+   * Diffusion regroupee. Les evenements arrivent en rafale — deux mille
+   * joueurs qui rejoignent, ou qui repondent dans la meme seconde — et il
+   * serait absurde de re-serialiser l'etat a chaque fois.
+   */
   broadcast(room) {
     room.touch();
+    if (room.broadcastTimer) return;
+    room.broadcastTimer = setTimeout(() => {
+      room.broadcastTimer = null;
+      this.flush(room);
+    }, BROADCAST_INTERVAL_MS);
+  }
+
+  /** Changement de phase : tout le monde doit basculer sans attendre. */
+  broadcastNow(room) {
+    room.touch();
+    this.flush(room);
+  }
+
+  flush(room) {
+    if (room.broadcastTimer) {
+      clearTimeout(room.broadcastTimer);
+      room.broadcastTimer = null;
+    }
     this.io.to(`${room.code}:public`).emit('state', this.publicState(room));
     this.io.to(`${room.code}:host`).emit('state', this.hostState(room));
   }

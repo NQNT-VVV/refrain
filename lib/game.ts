@@ -28,7 +28,17 @@ export function asksArtist(state: GameState | null): boolean {
 
 export function findPlayer(state: GameState | null, playerId: string | null): PlayerRow | null {
   if (!state || !playerId) return null;
-  return state.players.find((p) => p.id === playerId) ?? null;
+  return state.leaderboard.find((p) => p.id === playerId) ?? null;
+}
+
+/**
+ * Classement affichable pour un joueur : le haut du tableau, et sa propre ligne
+ * ajoutee en bas s'il n'y figure pas.
+ */
+export function boardWithSelf(state: GameState, self: PlayerRow | null, size = 10): PlayerRow[] {
+  const rows = state.leaderboard.slice(0, size);
+  if (self && !rows.some((r) => r.id === self.id)) rows.push(self);
+  return rows;
 }
 
 /** Rang affiche : « 1re », « 3e »… */

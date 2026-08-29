@@ -40,6 +40,28 @@ export interface PlayerRow {
   connected: boolean;
   lastGain: number;
   answered: AnswerBadge | null;
+  /** Reponses tapees — envoyees a la regie seulement. */
+  guessTitle?: string;
+  guessArtist?: string;
+}
+
+/** Ce que le serveur envoie a chaque joueur sur son canal personnel. */
+export interface You {
+  id: string;
+  name: string;
+  avatar: string;
+  score: number;
+  rank: number;
+  lastGain: number;
+  answered: AnswerBadge | null;
+  lockedOut: boolean;
+}
+
+export interface Counts {
+  players: number;
+  connected: number;
+  answered: number;
+  done: number;
 }
 
 export interface TrackCard {
@@ -98,8 +120,8 @@ export interface RoundState {
   reason: string | null;
   /** Present uniquement pour la regie, ou pour tous a la revelation. */
   track?: TrackCard;
-  results?: RoundResult[];
-  answers?: HostAnswer[];
+  /** A la revelation : uniquement les meilleurs gains, pas les milliers d'autres. */
+  topGains?: RoundResult[];
 }
 
 export interface PlaylistMeta {
@@ -123,7 +145,13 @@ export interface GameState {
   screenOnline: number;
   hostOnline: boolean;
   playlist: PlaylistMeta | null;
-  players: PlayerRow[];
+  /**
+   * Classement borne : douze lignes pour les joueurs et l'ecran, cinquante pour
+   * la regie. La liste complete n'est jamais diffusee — a deux mille joueurs
+   * elle peserait plus lourd que tout le reste de la partie.
+   */
+  leaderboard: PlayerRow[];
+  counts: Counts;
   round: RoundState | null;
   serverNow: number;
   podium?: PlayerRow[];

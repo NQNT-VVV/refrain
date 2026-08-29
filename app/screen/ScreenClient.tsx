@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+import { Brand } from '@/components/Brand';
 import { QrCode } from '@/components/QrCode';
 import { confetti } from '@/lib/confetti';
 import { answerMarks, asksArtist, hasFoundAll, hasFoundSome } from '@/lib/game';
@@ -161,6 +162,7 @@ function Stage({ state, code }: { state: GameState; code: string }) {
             </>
           )}
         </div>
+        <span className="brand-beta">beta</span>
         <span className="pill"><span className="dot" /> <span className={styles.codeMini}>{code}</span></span>
       </header>
 
@@ -193,10 +195,12 @@ function Lobby({ state, code }: { state: GameState; code: string }) {
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(window.location.origin), []);
   const host = origin.replace(/^https?:\/\//, '');
-  const count = state.players.length;
+  const count = state.counts.players;
+  const hidden = Math.max(0, count - state.leaderboard.length);
 
   return (
     <section className={`${styles.scene} ${styles.lobby}`} data-testid="scene-lobby">
+      <div className={styles.lobbyBrand}><Brand href={null} /></div>
       <div className={styles.joinRow}>
         <div className={styles.codeBox}>
           <span className={styles.lbl}>Code de la partie</span>
@@ -207,9 +211,10 @@ function Lobby({ state, code }: { state: GameState; code: string }) {
       </div>
 
       <div className={styles.lobbyPlayers}>
-        {state.players.map((p) => (
+        {state.leaderboard.map((p) => (
           <span key={p.id} className={`${styles.who} ${p.connected ? '' : styles.off}`}>{p.avatar} {p.name}</span>
         ))}
+        {hidden > 0 && <span className={styles.who}>+ {hidden}</span>}
       </div>
 
       <div className={styles.hint}>
@@ -294,7 +299,7 @@ function Playing({ state, ratio, seconds, buzzLock }: {
       <aside className={styles.side}>
         <h3>{state.settings.mode === 'buzzer' ? 'Au buzzer' : 'Qui a trouve ?'}</h3>
         <div className={styles.list}>
-          {state.players.slice(0, 12).map((p) => {
+          {state.leaderboard.map((p) => {
             const done = hasFoundAll(p.answered, ask);
             const part = hasFoundSome(p.answered);
             const marks = state.settings.mode === 'buzzer'
@@ -342,7 +347,7 @@ function Buzzed({ state, answerLeft }: { state: GameState; answerLeft: number })
 
 function Reveal({ state }: { state: GameState }) {
   const track = state.round!.track!;
-  const winners = (state.round!.results ?? []).filter((r) => r.gained > 0);
+  const winners = state.round!.topGains ?? [];
 
   useEffect(() => {
     sfx.unlock();
@@ -383,7 +388,7 @@ function Reveal({ state }: { state: GameState }) {
 /* ---------------- Classement ---------------- */
 
 function Scores({ state }: { state: GameState }) {
-  const rows = state.players.slice(0, 10);
+  const rows = state.leaderboard.slice(0, 10);
   const max = Math.max(1, ...rows.map((p) => p.score));
   return (
     <section className={`${styles.scene} ${styles.scores}`}>
@@ -408,7 +413,7 @@ function Scores({ state }: { state: GameState }) {
 /* ---------------- Podium ---------------- */
 
 function Ended({ state }: { state: GameState }) {
-  const board: PlayerRow[] = state.podium ?? state.players;
+  const board: PlayerRow[] = state.podium ?? state.leaderboard;
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

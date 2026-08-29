@@ -217,12 +217,15 @@ io.on('connection', (socket) => {
     if (!player) return fail(cb, 'Joueur introuvable.');
     player.score = Math.max(0, player.score + Math.round(Number(delta) || 0));
     ok(cb);
+    game.sendPersonalTo(room, playerId);
     game.broadcast(room);
   });
 
   socket.on('host:kick', ({ playerId } = {}, cb) => {
     const room = asHost(socket);
     if (!room) return fail(cb, 'Session animateur expiree.');
+    const removed = room.players.get(playerId);
+    if (removed?.connected) room.connectedCount = Math.max(0, room.connectedCount - 1);
     room.players.delete(playerId);
     for (const [sid, ref] of game.playersBySocket) {
       if (ref.playerId === playerId) {
@@ -291,9 +294,14 @@ io.on('connection', (socket) => {
       socket.data.role = 'player';
       socket.data.code = room.code;
       socket.data.playerId = player.id;
-      socket.join([`${room.code}:player`, `${room.code}:public`]);
+      // Chaque joueur a sa propre salle : c'est par la qu'arrive sa ligne a lui,
+      // sans imposer la liste complete a tout le monde.
+      socket.join([`${room.code}:player`, `${room.code}:public`, room.playerRoom(player.id)]);
       game.playersBySocket.set(socket.id, { code: room.code, playerId: player.id });
-      ok(cb, { playerId: player.id, token: player.token, name: player.name, avatar: player.avatar, state: game.publicState(room) });
+      ok(cb, {
+        playerId: player.id, token: player.token, name: player.name, avatar: player.avatar,
+        state: game.publicState(room), you: game.sendPersonalTo(room, player.id),
+      });
       game.broadcast(room);
     } catch (err) { fail(cb, err.message); }
   });
@@ -303,14 +311,20 @@ io.on('connection', (socket) => {
     if (!room) return fail(cb, 'Cette partie n\'existe plus.');
     const player = room.players.get(playerId);
     if (!player || player.token !== token) return fail(cb, 'Session joueur expiree.');
-    player.connected = true;
+    if (!player.connected) {
+      player.connected = true;
+      room.connectedCount += 1;
+    }
     metrics.playersResumed.inc();
     socket.data.role = 'player';
     socket.data.code = room.code;
     socket.data.playerId = player.id;
-    socket.join([`${room.code}:player`, `${room.code}:public`]);
+    socket.join([`${room.code}:player`, `${room.code}:public`, room.playerRoom(player.id)]);
     game.playersBySocket.set(socket.id, { code: room.code, playerId: player.id });
-    ok(cb, { playerId: player.id, name: player.name, avatar: player.avatar, state: game.publicState(room) });
+    ok(cb, {
+      playerId: player.id, name: player.name, avatar: player.avatar,
+      state: game.publicState(room), you: game.sendPersonalTo(room, player.id),
+    });
     game.broadcast(room);
   });
 
@@ -348,7 +362,10 @@ io.on('connection', (socket) => {
       room.screenOnline = Math.max(0, room.screenOnline - 1);
     } else if (socket.data.role === 'player') {
       const player = room.players.get(socket.data.playerId);
-      if (player) player.connected = false;
+      if (player && player.connected) {
+        player.connected = false;
+        room.connectedCount = Math.max(0, room.connectedCount - 1);
+      }
       game.playersBySocket.delete(socket.id);
     }
     game.broadcast(room);

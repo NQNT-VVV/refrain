@@ -41,10 +41,14 @@ async function run(mode) {
     && st.settings.buzzDelay === 2 && st.settings.buzzAnswerTime === 3);
 
   const players = [];
+  const personal = [];
   for (const name of ['Alice', 'Bob', 'Alice']) {
     const s = mk(); await ready(s);
+    const index = players.length;
+    s.on('you', (payload) => { personal[index] = payload; });
     const res = await call(s, 'player:join', { code, name });
     players.push({ s, ...res });
+    if (res.you) personal[index] = res.you;
   }
   check('3 joueurs connectes', players.every((p) => p.ok));
   check('pseudo duplique renomme', players[2].name === 'Alice 2', players[2].name);
@@ -69,19 +73,31 @@ async function run(mode) {
     check('Alice : titre + artiste valides', a1.ok && a1.titleOk && a1.artistOk, JSON.stringify({ t: a1.titleOk, a: a1.artistOk }));
     const b1 = await call(players[1].s, 'player:answer', { title: 'nimportequoi', artist: 'xxxx' });
     check('Bob : mauvaise reponse rejetee', b1.ok && !b1.titleOk && !b1.artistOk);
+
+    const spam = await call(players[1].s, 'player:answer', { title: track.title, artist: '' });
+    check('envoi trop rapproche freine', spam.ok && spam.throttled === true);
+
+    await sleep(400);   // au-dela de la limitation de cadence
     const b2 = await call(players[1].s, 'player:answer', { title: track.title, artist: '' });
     check('Bob : correction acceptee', b2.ok && b2.titleOk && !b2.artistOk);
 
     await sleep(5200);
     check('etat = reveal', hostState?.phase === 'reveal', hostState?.phase);
-    const res = hostState.round.results;
-    const alice = res.find((r) => r.name === 'Alice');
-    const bob = res.find((r) => r.name === 'Bob');
-    const alice2 = res.find((r) => r.name === 'Alice 2');
+
+    // Le classement diffuse est borne : seuls les gains marquants sont publies.
+    const gains = hostState.round.topGains;
+    const alice = gains.find((r) => r.name === 'Alice');
+    const bob = gains.find((r) => r.name === 'Bob');
     check('Alice marque plus que Bob', alice.gained > bob.gained, `${alice.gained} vs ${bob.gained}`);
     check('Bob marque quand meme', bob.gained > 0, String(bob.gained));
-    check('Alice 2 (muette) a 0', alice2.gained === 0);
+    check('les joueurs muets ne polluent pas les gains', !gains.some((r) => r.name === 'Alice 2'));
     check('le titre est revele a l\'ecran', screenState?.round?.track?.title === track.title);
+
+    // Chaque joueur recoit sa propre ligne, meme hors du classement diffuse
+    check('canal personnel alimente', personal[0]?.rank >= 1 && personal[0]?.score > 0,
+      JSON.stringify({ rang: personal[0]?.rank, score: personal[0]?.score }));
+    check('classement public borne', screenState.leaderboard.length <= 12, String(screenState.leaderboard.length));
+    check('compteurs diffuses', screenState.counts.players === 3 && screenState.counts.connected === 3);
   } else {
     check('l\'ouverture du buzzer est annoncee dans l\'etat',
       typeof hostState.round.buzzOpensAt === 'number' && hostState.round.buzzOpensAt > hostState.round.startAt);
@@ -121,7 +137,7 @@ async function run(mode) {
     await call(host, 'host:judge', { ok: true });
     await sleep(250);
     check('etat = reveal apres validation', hostState?.phase === 'reveal', hostState?.phase);
-    const alice = hostState.round.results.find((r) => r.name === 'Alice');
+    const alice = hostState.round.topGains.find((r) => r.name === 'Alice');
     check('points buzzer attribues', alice.gained === 5, String(alice.gained));
   }
 
@@ -149,7 +165,7 @@ async function run(mode) {
 
   const lobby = await call(host, 'host:lobby');
   await sleep(150);
-  check('retour au salon', lobby.ok && hostState?.phase === 'lobby' && hostState.players.every((p) => p.score === 0));
+  check('retour au salon', lobby.ok && hostState?.phase === 'lobby' && hostState.leaderboard.every((p) => p.score === 0));
 
   [host, screen, revived, ...players.map((p) => p.s)].forEach((s) => s.close());
 }

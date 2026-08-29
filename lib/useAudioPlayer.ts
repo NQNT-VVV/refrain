@@ -76,6 +76,25 @@ export function useAudioPlayer() {
     if (el && !el.paused) el.volume = value;
   }, []);
 
+  /**
+   * iOS ignore silencieusement toute ecriture sur `volume` : seuls les boutons
+   * physiques agissent. On le detecte pour proposer le bon reglage plutot qu'un
+   * curseur qui ne fait rien.
+   */
+  const canSetVolume = useCallback((): boolean => {
+    const el = audio.current;
+    if (!el) return true;
+    const before = el.volume;
+    try {
+      el.volume = before > 0.5 ? 0.3 : 0.9;
+      const changed = Math.abs(el.volume - before) > 0.01;
+      el.volume = before;
+      return changed;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const handleCue = useCallback((cue: AudioCue, onFailure?: (reason: AudioFailure) => void) => {
     const el = audio.current;
     if (!el || !cue) return;
@@ -104,5 +123,5 @@ export function useAudioPlayer() {
     }
   }, [clearTimers, fadeTo]);
 
-  return { audio, handleCue, unlock, setVolume, clearTimers };
+  return { audio, handleCue, unlock, setVolume, canSetVolume, clearTimers };
 }

@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 
+import { Brand } from '@/components/Brand';
 import { QrCode } from '@/components/QrCode';
+import { SupportNote } from '@/components/SupportNote';
 import { asksArtist, hasFoundAll, hasFoundSome, PHASE_LABEL } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
-import type { Category, GameState, HostAnswer, SearchTrack, Settings } from '@/lib/types';
+import type { Category, GameState, SearchTrack, Settings } from '@/lib/types';
 import { useAudioDevice } from '@/lib/useAudioDevice';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
@@ -102,7 +104,7 @@ export function HostClient() {
   if (!state) {
     return (
       <div className={styles.shell}>
-        <div className={styles.bar}><div className={styles.brand}>🎛️ <span>Regie</span></div></div>
+        <div className={styles.bar}><Brand /><span className="pill">🎛️ Regie</span></div>
         <p className="muted">Ouverture du salon…</p>
       </div>
     );
@@ -117,8 +119,9 @@ export function HostClient() {
 
       <div className={styles.shell}>
         <div className={styles.bar}>
-          <div className={styles.brand}>🎛️ <span>Regie</span></div>
-          <span className="pill">{PHASE_LABEL[state.phase]}</span>
+          <Brand />
+          <span className="pill">🎛️ Regie</span>
+          <span className="pill" data-testid="phase">{PHASE_LABEL[state.phase]}</span>
           <div className="grow" />
           <span className={`pill ${state.screenOnline > 0 ? 'ok' : ''}`}>
             {state.screenOnline > 0
@@ -171,6 +174,7 @@ export function HostClient() {
             </section>
 
             {!inGame && playersCard}
+            <SupportNote />
           </div>
 
           <div className="col" style={{ gap: 18 }}>
@@ -234,22 +238,23 @@ export function HostClient() {
 type Send = (event: string, payload?: unknown, timeout?: number) => Promise<{ ok: boolean } | undefined>;
 
 function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide: boolean }) {
-  const answers = useMemo(
-    () => new Map((state.round?.answers ?? []).map((a: HostAnswer) => [a.playerId, a])),
-    [state.round?.answers],
-  );
   const ask = asksArtist(state);
+  const { counts, leaderboard } = state;
+  const hidden = Math.max(0, counts.players - leaderboard.length);
 
   return (
     <section className={`card pad col ${wide ? styles.bare : ''}`} style={{ gap: 12 }}>
-      <div className="section-title">Joueurs <span className="pill">{state.players.length}</span></div>
+      <div className="section-title">
+        Joueurs <span className="pill">{counts.players}</span>
+        {counts.connected < counts.players && <span className="pill">{counts.connected} en ligne</span>}
+        {state.round && <span className="pill">{counts.done} ont trouve</span>}
+      </div>
       <div className={`${styles.plist} ${wide ? styles.wide : ''}`}>
-        {state.players.map((p) => {
-          const a = answers.get(p.id);
-          const badge = a ? { titleOk: a.titleOk, artistOk: a.artistOk, tries: 0 } : null;
-          const done = hasFoundAll(badge, ask);
-          const part = hasFoundSome(badge);
-          const guess = a && (a.title || a.artist) ? `${a.title || '—'} · ${a.artist || '—'}` : null;
+        {leaderboard.map((p) => {
+          const done = hasFoundAll(p.answered, ask);
+          const part = hasFoundSome(p.answered);
+          const guess = p.guessTitle || p.guessArtist
+            ? `${p.guessTitle || '—'} · ${p.guessArtist || '—'}` : null;
           return (
             <div key={p.id} className={`${styles.pcard} ${p.connected ? '' : styles.off} ${done ? styles.done : part ? styles.part : ''}`}>
               <span>{p.avatar}</span>
@@ -257,7 +262,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
                 <div className={`${styles.nm} ellipsis`}>{p.name}</div>
                 {guess && (
                   <div className={`${styles.guess} ellipsis`}>
-                    {a?.titleOk ? '🎵' : ''}{a?.artistOk ? '🎤' : ''} {guess}
+                    {p.answered?.titleOk ? '🎵' : ''}{p.answered?.artistOk ? '🎤' : ''} {guess}
                   </div>
                 )}
               </div>
@@ -274,10 +279,17 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
             </div>
           );
         })}
-        {state.players.length === 0 && (
+        {counts.players === 0 && (
           <p className="faint" style={{ fontSize: 12.5 }}>Personne pour l&apos;instant. Fais scanner le QR code.</p>
         )}
       </div>
+      {hidden > 0 && (
+        <p className="faint" style={{ fontSize: 12 }}>
+          {state.phase === 'lobby'
+            ? `+ ${hidden} autres joueurs — la liste montre les derniers arrives.`
+            : `+ ${hidden} autres joueurs — la liste montre le haut du classement.`}
+        </p>
+      )}
     </section>
   );
 }
@@ -593,11 +605,11 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
 
   if (state.phase === 'lobby') {
     const loaded = Boolean(state.playlist) && !state.playlist!.pending && state.playlist!.total > 0;
-    const ready = loaded && state.players.some((p) => p.connected);
+    const ready = loaded && state.counts.connected > 0;
     const why = !state.playlist
       ? 'Choisis une liste de morceaux'
       : !loaded ? 'Playlist en cours de chargement…'
-      : !state.players.some((p) => p.connected) ? 'Attends au moins un joueur'
+      : state.counts.connected === 0 ? 'Attends au moins un joueur'
       : null;
     content = (
       <>
@@ -634,7 +646,7 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
     content = (
       <>
         <div className="grow muted" style={{ fontSize: 13.5 }}>
-          Partie terminee — {state.players[0]?.name ?? '—'} gagne avec {state.players[0]?.score ?? 0} points
+          Partie terminee — {state.leaderboard[0]?.name ?? '—'} gagne avec {state.leaderboard[0]?.score ?? 0} points
         </div>
         <button className="btn primary lg" data-testid="primary-action" onClick={() => send('host:lobby')}>↩ Nouvelle partie</button>
       </>

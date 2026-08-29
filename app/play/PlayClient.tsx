@@ -1,16 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Socket } from 'socket.io-client';
 
+import { Brand } from '@/components/Brand';
+import { SupportNote } from '@/components/SupportNote';
 import { confetti } from '@/lib/confetti';
-import { answerMarks, asksArtist, findPlayer, hasFoundAll, hasFoundSome, ordinal } from '@/lib/game';
+import { answerMarks, asksArtist, boardWithSelf, hasFoundAll, hasFoundSome, ordinal } from '@/lib/game';
 import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
-import type { GameState, PlayerRow } from '@/lib/types';
+import type { GameState, PlayerRow, You } from '@/lib/types';
 import { useAudioPlayer } from '@/lib/useAudioPlayer';
 import { useGameSocket } from '@/lib/useGameSocket';
 import { useRoundClock } from '@/lib/useRoundClock';
@@ -19,6 +21,14 @@ import styles from './play.module.css';
 
 interface Session { playerId: string; token: string }
 interface Me { playerId: string; name: string; avatar: string }
+
+interface SoundControls {
+  muted: boolean;
+  volume: number;
+  locked: boolean;
+  toggleMute: () => void;
+  setVolume: (value: number) => void;
+}
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -31,32 +41,32 @@ export function PlayClient() {
   const [pseudo, setPseudo] = useState('');
   const [joining, setJoining] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [volume, setVolumeState] = useState(80);
+  const [volumeLocked, setVolumeLocked] = useState(false);
+
   const player = useAudioPlayer();
   const meRef = useRef<Me | null>(null);
   meRef.current = me;
 
-  useEffect(() => {
-    if (!code) router.replace('/');
-  }, [code, router]);
-
   const sessionKey = `refrain.player.${code}`;
 
-  const adopt = useCallback((res: { playerId: string; token?: string; name: string; avatar: string; state: GameState }) => {
+  const adopt = useCallback((res: { playerId: string; token?: string; name: string; avatar: string }) => {
     const token = res.token ?? store.get<Session | null>(sessionKey, null)?.token ?? '';
     store.set(sessionKey, { playerId: res.playerId, token });
     setMe({ playerId: res.playerId, name: res.name, avatar: res.avatar });
   }, [sessionKey]);
 
-  const { socket, state, setState, connected } = useGameSocket({
+  const { socket, state, setState, you, setYou, connected } = useGameSocket({
     onReady: async (s) => {
       const saved = store.get<Session | null>(sessionKey, null);
       if (saved?.token) {
-        const res = await call<{ playerId: string; name: string; avatar: string; state: GameState }>(
+        const res = await call<{ playerId: string; name: string; avatar: string; state: GameState; you: You }>(
           s, 'player:resume', { code, ...saved },
         );
         if (res.ok) {
           adopt(res);
           setState(res.state);
+          if (res.you) setYou(res.you);
           return;
         }
         store.del(sessionKey);
@@ -74,8 +84,38 @@ export function PlayClient() {
     },
   });
 
-  const mine = findPlayer(state, me?.playerId ?? null);
-  const rank = state && me ? state.players.findIndex((p) => p.id === me.playerId) + 1 : 0;
+  useEffect(() => {
+    if (!code) router.replace('/');
+  }, [code, router]);
+
+  // iOS ignore silencieusement toute ecriture sur `volume` : on le detecte pour
+  // guider vers les boutons physiques plutot qu'offrir un curseur inerte.
+  const audioOn = Boolean(state?.settings.playerAudio);
+  useEffect(() => {
+    if (!audioOn) return;
+    setVolumeLocked(!player.canSetVolume());
+  }, [audioOn, player]);
+
+  useEffect(() => {
+    player.setVolume(muted ? 0 : volume / 100);
+  }, [muted, volume, player]);
+
+  const sound: SoundControls = {
+    muted,
+    volume,
+    locked: volumeLocked,
+    toggleMute() {
+      const next = !muted;
+      setMuted(next);
+      store.set('refrain.player.muted', next);
+      if (!next) player.unlock();
+    },
+    setVolume(value) {
+      setVolumeState(value);
+      store.set('refrain.player.volume', value);
+      if (value > 0 && muted) { setMuted(false); store.set('refrain.player.muted', false); }
+    },
+  };
 
   async function join(event: FormEvent) {
     event.preventDefault();
@@ -86,70 +126,87 @@ export function PlayClient() {
     player.unlock();
     const name = pseudo.trim();
     if (!name) return;
+
     setJoining(true);
-    const res = await call<{ playerId: string; token: string; name: string; avatar: string; state: GameState }>(
+    const res = await call<{ playerId: string; token: string; name: string; avatar: string; state: GameState; you: You }>(
       socket, 'player:join', { code, name },
     );
     setJoining(false);
     if (!res.ok) return toast(res.error, 'err');
+
     store.set('refrain.lastName', name);
     setMuted(store.get('refrain.player.muted', false));
+    setVolumeState(store.get('refrain.player.volume', 80));
     adopt(res);
     setState(res.state);
+    if (res.you) setYou(res.you);
   }
 
-  /* ---------------- Ecran de connexion ---------------- */
-
-  if (!me || !state) {
-    return (
-      <div className={styles.app}>
-        <audio ref={player.audio} preload="auto" />
-        <main className={styles.main}>
-          <form className={styles.hello} onSubmit={join}>
-            <div className={styles.logo}>🎧</div>
-            <div style={{ textAlign: 'center' }}>
-              <h1 className={styles.big}>Rejoindre la partie</h1>
-              <p className="muted" style={{ fontSize: 14, marginTop: 6 }}>
-                Partie <b className="code-chip">{code || '····'}</b>
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="pseudo">Ton pseudo</label>
-              <input
-                className="input" id="pseudo" data-testid="pseudo" maxLength={18} placeholder="Ex. Camille"
-                autoComplete="nickname" enterKeyHint="go"
-                value={pseudo} onChange={(e) => setPseudo(e.target.value)}
-              />
-            </div>
-            <button className="btn primary lg block" type="submit" data-testid="join" disabled={!connected || joining}>
-              {connected ? 'Entrer dans la partie' : 'Connexion…'}
-            </button>
-            <p className={styles.hint} style={{ textAlign: 'center' }}>
-              Le son sort sur l&apos;ecran de l&apos;animateur — garde ton telephone pour repondre.
-            </p>
-          </form>
-        </main>
-      </div>
-    );
-  }
-
-  function toggleSound() {
-    const next = !muted;
-    setMuted(next);
-    store.set('refrain.player.muted', next);
-    player.setVolume(next ? 0 : 0.9);
-    if (!next) player.unlock();
-  }
+  // Le classement diffuse est borne : la ligne du joueur vient de son canal
+  // personnel, ou il figure toujours — meme 1500e sur 2000.
+  const self: PlayerRow | null = you
+    ? {
+        id: you.id, name: you.name, avatar: you.avatar, score: you.score,
+        connected: true, lastGain: you.lastGain, answered: you.answered,
+      }
+    : null;
 
   return (
     <>
       <audio ref={player.audio} preload="auto" />
-      <PlayScreen
-        code={code} me={me} mine={mine} rank={rank}
-        state={state} socket={socket} connected={connected}
-        muted={muted} onToggleSound={toggleSound}
-      />
+      {!me || !state ? (
+        <JoinScreen
+          code={code} pseudo={pseudo} setPseudo={setPseudo}
+          connected={connected} joining={joining} onSubmit={join}
+        />
+      ) : (
+        <PlayScreen
+          code={code} me={me} self={self} you={you}
+          state={state} socket={socket} connected={connected} sound={sound}
+        />
+      )}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Connexion                                                          */
+/* ------------------------------------------------------------------ */
+
+function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit }: {
+  code: string; pseudo: string; setPseudo: (v: string) => void;
+  connected: boolean; joining: boolean; onSubmit: (e: FormEvent) => void;
+}) {
+  return (
+    <div className={styles.app}>
+      <div className={styles.brandBar}><Brand /></div>
+      <main className={styles.main}>
+        <form className={styles.hello} onSubmit={onSubmit}>
+          <div className={styles.logo}>🎧</div>
+          <div style={{ textAlign: 'center' }}>
+            <h1 className={styles.big}>Rejoindre la partie</h1>
+            <p className="muted" style={{ fontSize: 14, marginTop: 6 }}>
+              Partie <b className="code-chip">{code || '····'}</b>
+            </p>
+          </div>
+          <div className="field">
+            <label htmlFor="pseudo">Ton pseudo</label>
+            <input
+              className="input" id="pseudo" data-testid="pseudo" maxLength={18} placeholder="Ex. Camille"
+              autoComplete="nickname" enterKeyHint="go"
+              value={pseudo} onChange={(e) => setPseudo(e.target.value)}
+            />
+          </div>
+          <button className="btn primary lg block" type="submit" data-testid="join" disabled={!connected || joining}>
+            {connected ? 'Entrer dans la partie' : 'Connexion…'}
+          </button>
+          <p className={styles.hint} style={{ textAlign: 'center' }}>
+            Telephone ou ordinateur, peu importe. Le son sort sur l&apos;ecran de l&apos;animateur.
+          </p>
+          <SupportNote />
+        </form>
+      </main>
+    </div>
   );
 }
 
@@ -157,41 +214,76 @@ export function PlayClient() {
 /* Partie en cours                                                    */
 /* ------------------------------------------------------------------ */
 
-function PlayScreen({ code, me, mine, rank, state, socket, connected, muted, onToggleSound }: {
-  code: string; me: Me; mine: PlayerRow | null; rank: number;
-  state: GameState; socket: Socket | null; connected: boolean;
-  muted: boolean; onToggleSound: () => void;
+function PlayScreen({ code, me, self, you, state, socket, connected, sound }: {
+  code: string; me: Me; self: PlayerRow | null; you: You | null;
+  state: GameState; socket: Socket | null; connected: boolean; sound: SoundControls;
 }) {
   const { ratio, countdown, buzzLock, answerLeft } = useRoundClock(state);
+  const [soundOpen, setSoundOpen] = useState(false);
   const showTimer = state.phase === 'playing';
+  const inGame = state.phase !== 'lobby' && state.phase !== 'ended';
 
   return (
     <div className={styles.app}>
+      <div className={styles.brandBar}><Brand /></div>
+
       <header className={styles.topbar}>
         <div className={styles.line}>
           <div className={styles.me}>
-            <span className="avatar">{mine?.avatar ?? me.avatar}</span>
+            <span className="avatar">{self?.avatar ?? me.avatar}</span>
             <div>
-              <div className={styles.name}>{mine?.name ?? me.name}</div>
+              <div className={styles.name}>{self?.name ?? me.name}</div>
               <div className={`${styles.rank} faint`}>
-                {state.phase === 'lobby' ? 'Pret' : `${ordinal(rank)} sur ${state.players.length}`}
+                {state.phase === 'lobby'
+                  ? 'Pret'
+                  : `${ordinal(you?.rank ?? 0)} sur ${state.counts.players}`}
               </div>
             </div>
           </div>
+
+          {inGame && state.round && (
+            <span className={styles.roundChip}>{state.round.index + 1}/{state.round.total}</span>
+          )}
+
           {state.settings.playerAudio && (
             <button
-              type="button" className={`${styles.soundToggle} ${muted ? styles.off : ''}`}
-              onClick={onToggleSound} aria-label={muted ? 'Reactiver le son' : 'Couper le son'}
-              title={muted ? 'Reactiver le son' : 'Couper le son'}
+              type="button"
+              className={`${styles.soundToggle} ${sound.muted ? styles.off : ''} ${soundOpen ? styles.open : ''}`}
+              onClick={() => setSoundOpen((v) => !v)}
+              aria-expanded={soundOpen} aria-label="Reglage du son" title="Reglage du son"
             >
-              {muted ? '🔇' : '🔊'}
+              {sound.muted || sound.volume === 0 ? '🔇' : '🔊'}
             </button>
           )}
+
           <div className={styles.scoreChip}>
-            <span className={`${styles.val} tnum`}>{mine?.score ?? 0}</span>
+            <span className={`${styles.val} tnum`}>{self?.score ?? 0}</span>
             <span className={styles.unit}>pts</span>
           </div>
         </div>
+
+        {soundOpen && state.settings.playerAudio && (
+          <>
+            <div className={styles.soundPanel}>
+              <button type="button" onClick={sound.toggleMute} aria-label={sound.muted ? 'Reactiver' : 'Couper'}>
+                {sound.muted ? '🔇' : '🔊'}
+              </button>
+              <input
+                type="range" min={0} max={100} step={5} value={sound.muted ? 0 : sound.volume}
+                aria-label="Volume" disabled={sound.locked}
+                onChange={(e) => sound.setVolume(Number(e.target.value))}
+              />
+              <span className={styles.lvl}>{sound.muted ? 0 : sound.volume}%</span>
+            </div>
+            {sound.locked && (
+              <p className={styles.soundNote}>
+                Ton navigateur ne laisse pas regler le volume depuis la page — utilise les boutons
+                de volume de ton appareil. Couper / remettre fonctionne, lui.
+              </p>
+            )}
+          </>
+        )}
+
         {showTimer && (
           <div className={`${styles.timer} ${ratio < 0.28 ? styles.warn : ''}`}>
             <i style={{ transform: `scaleX(${ratio})` }} />
@@ -200,17 +292,17 @@ function PlayScreen({ code, me, mine, rank, state, socket, connected, muted, onT
       </header>
 
       <main className={styles.main}>
-        {state.phase === 'lobby' && <Lobby state={state} me={me} />}
+        {state.phase === 'lobby' && <Lobby state={state} me={me} code={code} />}
         {state.phase === 'countdown' && <Countdown round={state.round!.index + 1} value={countdown} />}
         {state.phase === 'playing' && state.settings.mode === 'input' && (
-          <AnswerForm key={state.round!.index} state={state} me={me} mine={mine} socket={socket} />
+          <AnswerForm key={state.round!.index} state={state} me={me} self={self} socket={socket} />
         )}
         {(state.phase === 'playing' || state.phase === 'buzzed') && state.settings.mode === 'buzzer' && (
-          <Buzzer state={state} me={me} socket={socket} buzzLock={buzzLock} answerLeft={answerLeft} />
+          <Buzzer state={state} me={me} you={you} socket={socket} buzzLock={buzzLock} answerLeft={answerLeft} />
         )}
-        {state.phase === 'reveal' && <Reveal state={state} me={me} />}
-        {state.phase === 'scores' && <Scores state={state} me={me} />}
-        {state.phase === 'ended' && <Ending state={state} me={me} code={code} />}
+        {state.phase === 'reveal' && <Reveal state={state} me={me} self={self} />}
+        {state.phase === 'scores' && <Scores state={state} me={me} self={self} />}
+        {state.phase === 'ended' && <Ending state={state} me={me} self={self} you={you} code={code} />}
       </main>
 
       {!connected && (
@@ -228,25 +320,34 @@ function PlayScreen({ code, me, mine, rank, state, socket, connected, muted, onT
 
 /* ---------------- Salon ---------------- */
 
-function Lobby({ state, me }: { state: GameState; me: Me }) {
+function Lobby({ state, me, code }: { state: GameState; me: Me; code: string }) {
+  const hidden = Math.max(0, state.counts.players - state.leaderboard.length);
   return (
     <section className={styles.panel} data-testid="scene-lobby">
       <div className={styles.waiting}>
         <div className={styles.pulseRing}>🎶</div>
         <div>
           <h2 className={styles.big}>Tu es dans la place</h2>
-          <p className="muted" style={{ marginTop: 6 }}>L&apos;animateur lance la partie quand tout le monde est la.</p>
+          <p className="muted" style={{ marginTop: 6 }}>
+            L&apos;animateur lance la partie quand tout le monde est la.
+          </p>
         </div>
+
         <div className={styles.roster}>
-          {state.players.map((p) => (
+          {state.leaderboard.map((p) => (
             <span key={p.id} className={`${styles.who} ${p.connected ? '' : styles.off} ${p.id === me.playerId ? styles.self : ''}`}>
               {p.avatar} {p.name}
             </span>
           ))}
+          {hidden > 0 && <span className={styles.who}>+ {hidden}</span>}
         </div>
+
         <p className={styles.hint}>
-          {state.playlist ? `Liste choisie : ${state.playlist.emoji} ${state.playlist.title}` : 'L\'animateur choisit la liste…'}
+          {state.counts.players} joueur{state.counts.players > 1 ? 's' : ''} •{' '}
+          {state.playlist ? `${state.playlist.emoji} ${state.playlist.title}` : 'liste en cours de choix…'}
         </p>
+        <p className={styles.hint}>Salon <b className="code-chip">{code}</b></p>
+        <SupportNote />
       </div>
     </section>
   );
@@ -275,15 +376,15 @@ function Countdown({ round, value }: { round: number; value: number | null }) {
 
 /* ---------------- Reponse libre ---------------- */
 
-function AnswerForm({ state, me, mine, socket }: {
-  state: GameState; me: Me; mine: PlayerRow | null; socket: Socket | null;
+function AnswerForm({ state, me, self, socket }: {
+  state: GameState; me: Me; self: PlayerRow | null; socket: Socket | null;
 }) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [sending, setSending] = useState(false);
   const [hint, setHint] = useState('Tu peux corriger et revalider autant que tu veux : plus tu trouves tot, plus tu marques.');
 
-  const badge = mine?.answered ?? null;
+  const badge = self?.answered ?? null;
   const titleOk = Boolean(badge?.titleOk);
   const artistOk = Boolean(badge?.artistOk);
   const askArtist = asksArtist(state);
@@ -297,11 +398,12 @@ function AnswerForm({ state, me, mine, socket }: {
 
     const before = { title: titleOk, artist: artistOk };
     setSending(true);
-    const res = await call<{ titleOk: boolean; artistOk: boolean }>(socket, 'player:answer', {
+    const res = await call<{ titleOk: boolean; artistOk: boolean; throttled?: boolean }>(socket, 'player:answer', {
       title: title.trim(), artist: artist.trim(),
     });
     setSending(false);
     if (!res.ok) return toast(res.error, 'err');
+    if (res.throttled) return setHint('Doucement — laisse une seconde entre deux essais.');
 
     const gotTitle = res.titleOk && !before.title;
     const gotArtist = res.artistOk && !before.artist;
@@ -312,43 +414,45 @@ function AnswerForm({ state, me, mine, socket }: {
   }
 
   return (
-    <section className={styles.panel}>
-      <div className={styles.answerHead}>
-        <div className={styles.wave}><i /><i /><i /><i /><i /></div>
-        <div className="grow">
-          <div className={styles.stageTitle}>Manche {state.round!.index + 1}</div>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 17 }}>C&apos;est quoi ce morceau ?</div>
-        </div>
-      </div>
-
-      <form className="col" onSubmit={submit} style={{ gap: 12 }}>
-        <div className={`field ${styles.guess} ${titleOk ? styles.found : ''}`}>
-          <label htmlFor="fTitle">Titre</label>
-          <input
-            className="input" id="fTitle" data-testid="answer-title" placeholder="Le titre du morceau" readOnly={titleOk}
-            autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="send"
-            value={title} onChange={(e) => setTitle(e.target.value)}
-          />
-          <span className={styles.flag}>✅</span>
+    <section className={`${styles.panel} ${styles.split}`}>
+      <div className={styles.answerCol}>
+        <div className={styles.answerHead}>
+          <div className={styles.wave}><i /><i /><i /><i /><i /></div>
+          <div className="grow">
+            <div className={styles.stageTitle}>Manche {state.round!.index + 1}</div>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 17 }}>C&apos;est quoi ce morceau ?</div>
+          </div>
         </div>
 
-        {askArtist && (
-          <div className={`field ${styles.guess} ${artistOk ? styles.found : ''}`}>
-            <label htmlFor="fArtist">Artiste</label>
+        <form className="col" onSubmit={submit} style={{ gap: 12 }}>
+          <div className={`field ${styles.guess} ${titleOk ? styles.found : ''}`}>
+            <label htmlFor="fTitle">Titre</label>
             <input
-              className="input" id="fArtist" data-testid="answer-artist" placeholder="Qui chante ?" readOnly={artistOk}
-              autoComplete="off" autoCapitalize="words" spellCheck={false} enterKeyHint="send"
-              value={artist} onChange={(e) => setArtist(e.target.value)}
+              className="input" id="fTitle" data-testid="answer-title" placeholder="Le titre du morceau" readOnly={titleOk}
+              autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="send"
+              value={title} onChange={(e) => setTitle(e.target.value)}
             />
             <span className={styles.flag}>✅</span>
           </div>
-        )}
 
-        <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={allFound || sending}>
-          Valider ma reponse
-        </button>
-        <p className={styles.hint}>{allFound ? '🎯 Tout trouve ! Repose-toi une seconde.' : hint}</p>
-      </form>
+          {askArtist && (
+            <div className={`field ${styles.guess} ${artistOk ? styles.found : ''}`}>
+              <label htmlFor="fArtist">Artiste</label>
+              <input
+                className="input" id="fArtist" data-testid="answer-artist" placeholder="Qui chante ?" readOnly={artistOk}
+                autoComplete="off" autoCapitalize="words" spellCheck={false} enterKeyHint="send"
+                value={artist} onChange={(e) => setArtist(e.target.value)}
+              />
+              <span className={styles.flag}>✅</span>
+            </div>
+          )}
+
+          <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={allFound || sending}>
+            Valider ma reponse
+          </button>
+          <p className={styles.hint}>{allFound ? '🎯 Tout trouve ! Repose-toi une seconde.' : hint}</p>
+        </form>
+      </div>
 
       <LiveMini state={state} me={me} />
     </section>
@@ -356,11 +460,15 @@ function AnswerForm({ state, me, mine, socket }: {
 }
 
 function LiveMini({ state, me }: { state: GameState; me: Me }) {
-  const rows = state.players.filter((p) => p.connected).slice(0, 6);
+  const rows = state.leaderboard.slice(0, 6);
   const ask = asksArtist(state);
+  const { counts } = state;
+
   return (
     <div className={styles.liveMini}>
-      <div className={styles.head}>Qui a deja trouve ?</div>
+      <div className={styles.head}>
+        Qui a deja trouve ? <span className={styles.headCount}>{counts.done}/{counts.connected}</span>
+      </div>
       {rows.map((p) => {
         const done = hasFoundAll(p.answered, ask);
         const part = hasFoundSome(p.answered);
@@ -379,12 +487,14 @@ function LiveMini({ state, me }: { state: GameState; me: Me }) {
 
 /* ---------------- Buzzer ---------------- */
 
-function Buzzer({ state, me, socket, buzzLock, answerLeft }: {
-  state: GameState; me: Me; socket: Socket | null; buzzLock: number; answerLeft: number;
+function Buzzer({ state, me, you, socket, buzzLock, answerLeft }: {
+  state: GameState; me: Me; you: You | null; socket: Socket | null; buzzLock: number; answerLeft: number;
 }) {
   const [pressed, setPressed] = useState(false);
   const buzz = state.round?.buzz ?? null;
-  const lockedOut = state.round?.lockedOut.includes(me.playerId) ?? false;
+  // La liste publique fait foi : elle arrive avec le changement de phase,
+  // alors que la ligne personnelle n'est rafraichie qu'aux bornes de manche.
+  const lockedOut = Boolean(you?.lockedOut) || Boolean(state.round?.lockedOut.includes(me.playerId));
   const isMine = buzz?.playerId === me.playerId;
   const buzzed = state.phase === 'buzzed';
 
@@ -435,7 +545,9 @@ function Buzzer({ state, me, socket, buzzLock, answerLeft }: {
       <div className={styles.buzzState}>
         {buzzed ? (
           <>
-            <span className={styles.who}>{isMine ? '🔔 A toi de repondre !' : `${buzz?.avatar ?? ''} ${buzz?.name ?? 'Quelqu\'un'} a buzze`}</span>
+            <span className={styles.who}>
+              {isMine ? '🔔 A toi de repondre !' : `${buzz?.avatar ?? ''} ${buzz?.name ?? 'Quelqu\'un'} a buzze`}
+            </span>
             <p className="muted" style={{ marginTop: 6 }}>
               {isMine ? 'Annonce le titre et l\'artiste a voix haute.' : 'L\'animateur valide ou non sa reponse.'}
             </p>
@@ -461,11 +573,11 @@ function Buzzer({ state, me, socket, buzzLock, answerLeft }: {
 
 /* ---------------- Revelation ---------------- */
 
-function Reveal({ state, me }: { state: GameState; me: Me }) {
+function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow | null }) {
   const round = state.round!;
   const track = round.track!;
-  const result = round.results?.find((r) => r.playerId === me.playerId);
-  const gained = result?.gained ?? 0;
+  const badge = self?.answered ?? null;
+  const gained = self?.lastGain ?? 0;
 
   useEffect(() => {
     sfx.unlock();
@@ -486,12 +598,12 @@ function Reveal({ state, me }: { state: GameState; me: Me }) {
       </div>
 
       <div className={styles.verdict}>
-        <div className={`${styles.v} ${result?.titleOk ? styles.yes : styles.no}`}>
-          <b>Titre</b><span>{result?.titleOk ? '✅' : '❌'}</span>
+        <div className={`${styles.v} ${badge?.titleOk ? styles.yes : styles.no}`}>
+          <b>Titre</b><span>{badge?.titleOk ? '✅' : '❌'}</span>
         </div>
         {asksArtist(state) ? (
-          <div className={`${styles.v} ${result?.artistOk ? styles.yes : styles.no}`}>
-            <b>Artiste</b><span>{result?.artistOk ? '✅' : '❌'}</span>
+          <div className={`${styles.v} ${badge?.artistOk ? styles.yes : styles.no}`}>
+            <b>Artiste</b><span>{badge?.artistOk ? '✅' : '❌'}</span>
           </div>
         ) : (
           <div className={styles.v}><b>Artiste</b><span className="faint">—</span></div>
@@ -499,33 +611,47 @@ function Reveal({ state, me }: { state: GameState; me: Me }) {
       </div>
 
       <div className={`${styles.gain} ${gained > 0 ? styles.plus : styles.zero} pop-in`}>+{gained}</div>
-      <Board rows={state.players.slice(0, 5)} me={me} />
+
+      {track.link && (
+        <a className={styles.listenLink} href={track.link} target="_blank" rel="noopener noreferrer">
+          🎧 Ecouter le morceau en entier
+        </a>
+      )}
+
+      <Board rows={boardWithSelf(state, self, 5)} me={me} />
       <p className={styles.hint} style={{ textAlign: 'center' }}>Manche {round.index + 1} / {round.total}</p>
     </section>
   );
 }
 
-function Scores({ state, me }: { state: GameState; me: Me }) {
+function Scores({ state, me, self }: { state: GameState; me: Me; self: PlayerRow | null }) {
   return (
     <section className={styles.panel}>
       <div className={styles.stageTitle}>Classement</div>
-      <Board rows={state.players} me={me} />
+      <Board rows={boardWithSelf(state, self)} me={me} />
+      {state.counts.players > state.leaderboard.length && (
+        <p className={styles.hint} style={{ textAlign: 'center' }}>
+          Sur {state.counts.players} joueurs
+        </p>
+      )}
     </section>
   );
 }
 
 /* ---------------- Fin de partie ---------------- */
 
-function Ending({ state, me, code }: { state: GameState; me: Me; code: string }) {
-  const board = state.podium ?? state.players;
-  const position = board.findIndex((p) => p.id === me.playerId) + 1;
-  const score = board.find((p) => p.id === me.playerId)?.score ?? 0;
+function Ending({ state, me, self, you, code }: {
+  state: GameState; me: Me; self: PlayerRow | null; you: You | null; code: string;
+}) {
+  const board = state.podium ?? state.leaderboard;
+  const position = you?.rank ?? 0;
+  const score = self?.score ?? 0;
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     sfx.unlock();
     sfx.win();
-    if (position > 3 || !canvas.current) return;
+    if (position > 3 || position === 0 || !canvas.current) return;
     return confetti(canvas.current);
   }, [position]);
 
@@ -536,9 +662,11 @@ function Ending({ state, me, code }: { state: GameState; me: Me; code: string })
         <div className={styles.medal}>{MEDALS[position - 1] ?? '🎉'}</div>
         <div>
           <div className={styles.pos}>{position ? `${ordinal(position)} place` : 'Partie terminee'}</div>
-          <p className="muted">{position === 1 ? 'Personne ne t\'arrete.' : `${score} points au compteur.`}</p>
+          <p className="muted">
+            {position === 1 ? 'Personne ne t\'arrete.' : `${score} points sur ${state.counts.players} joueurs.`}
+          </p>
         </div>
-        <Board rows={board} me={me} />
+        <Board rows={boardWithSelf({ ...state, leaderboard: board }, self)} me={me} />
         <button
           className="btn block"
           onClick={() => copyToClipboard(`${location.origin}/j/${code}`).then(() => toast('Lien copie', 'ok'))}
