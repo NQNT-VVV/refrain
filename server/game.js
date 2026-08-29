@@ -216,32 +216,34 @@ class GameServer {
       const id = spotify.parsePlaylistId(spec.id);
       if (!id) throw new Error('Lien de playlist Spotify invalide.');
 
-      // Retrouver chaque morceau chez Deezer prend une vingtaine de secondes :
-      // l'animateur voit l'avancement plutot qu'un ecran fige.
+      // Le nom d'abord : l'animateur voit tout de suite ce qu'il charge.
+      const info = await spotify.playlistInfo(id);
+      const key = `sp-${id}`;
       room.playlist = {
-        id: `sp-${id}`, title: 'Playlist Spotify', emoji: '🟢',
+        id: key, title: info.name, emoji: '🟢',
         subtitle: 'Lecture de la playlist…', accent: '#1DB954',
         source: 'spotify', tracks: [], pending: true,
       };
-      this.broadcast(room);
+      this.broadcastNow(room);
 
-      const { info, requested, tracks } = await spotify.playableTracks(id, {
-        onProgress: (done, total, found) => {
-          if (room.playlist?.id !== `sp-${id}`) return;   // l'animateur a change d'avis
-          room.playlist.title = info?.name || 'Playlist Spotify';
-          room.playlist.subtitle = `${done}/${total} morceaux verifies • ${found} jouables`;
-          this.broadcast(room);
-        },
+      // Retrouver chaque morceau chez Deezer prend une vingtaine de secondes :
+      // on montre l'avancement plutot qu'un ecran fige.
+      const entries = await spotify.playlistItems(id, spotify.MAX_TRACKS);
+      const tracks = await spotify.resolvePlayable(entries, (done, total, found) => {
+        if (room.playlist?.id !== key) return;   // l'animateur a change d'avis entre-temps
+        room.playlist.subtitle = `${done}/${total} morceaux verifies • ${found} jouables`;
+        this.broadcast(room);
       });
 
       const usable = catalog.diversify(catalog.shuffle(tracks), 4);
       if (usable.length < 5) {
         room.playlist = null;
-        throw new Error(`Seulement ${usable.length} morceaux jouables sur ${requested} : trop peu pour une partie.`);
+        this.broadcastNow(room);
+        throw new Error(`Seulement ${usable.length} morceaux jouables sur ${entries.length} : trop peu pour une partie.`);
       }
       room.playlist = {
-        id: `sp-${id}`, title: info.name, emoji: '🟢',
-        subtitle: `${usable.length} titres jouables sur ${requested}`,
+        id: key, title: info.name, emoji: '🟢',
+        subtitle: `${usable.length} titres jouables sur ${entries.length}`,
         accent: '#1DB954', source: 'spotify', tracks: usable, pending: false,
       };
       metrics.playlistSelections.inc({ source: 'spotify', id: 'import' });

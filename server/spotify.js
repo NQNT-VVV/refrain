@@ -134,13 +134,10 @@ async function toPlayable(entry) {
 }
 
 /**
- * Liste jouable a partir d'une playlist Spotify.
+ * Retrouve les extraits jouables d'une liste de morceaux Spotify.
  * `onProgress` permet a l'animateur de voir la resolution avancer.
  */
-async function playableTracks(playlistId, { max = MAX_TRACKS, onProgress } = {}) {
-  const info = await playlistInfo(playlistId);
-  const entries = await playlistItems(playlistId, max);
-
+async function resolvePlayable(entries, onProgress) {
   const tracks = [];
   const BATCH = 8;
   for (let i = 0; i < entries.length; i += BATCH) {
@@ -148,8 +145,18 @@ async function playableTracks(playlistId, { max = MAX_TRACKS, onProgress } = {})
     for (const track of found) if (track?.preview) tracks.push(track);
     onProgress?.(Math.min(i + BATCH, entries.length), entries.length, tracks.length);
   }
+  return tracks;
+}
 
+/** Enchainement complet, pour les appels qui n'ont pas besoin de progression. */
+async function playableTracks(playlistId, { max = MAX_TRACKS, onProgress } = {}) {
+  const info = await playlistInfo(playlistId);
+  const entries = await playlistItems(playlistId, max);
+  const tracks = await resolvePlayable(entries, onProgress);
   return { info, requested: entries.length, tracks };
 }
 
-module.exports = { enabled, parsePlaylistId, playlistInfo, playlistItems, playableTracks, toPlayable };
+module.exports = {
+  enabled, parsePlaylistId, playlistInfo, playlistItems,
+  resolvePlayable, playableTracks, toPlayable, MAX_TRACKS,
+};
