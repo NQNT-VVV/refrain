@@ -3,6 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const metrics = require('./metrics');
+// Meme normalisation que la correction des reponses : les cles doivent coincider
+// avec celles utilisees a la construction des listes.
+const { normalize: titleKey } = require('./match');
 
 const API = 'https://api.deezer.com';
 const CACHE_DIR = path.join(__dirname, '..', '.cache');
@@ -315,6 +318,75 @@ async function artistDiscography(artistId, { maxReleases = 45 } = {}) {
   return tracks;
 }
 
+/**
+ * Collaborations d'un artiste, en deux familles.
+ *
+ *   - `sharedIds` : sous son nom, mais avec un autre artiste en tete d'affiche ;
+ *   - `guests`    : il est invite, l'affiche est a quelqu'un d'autre.
+ *
+ * Trois pieges evites ici. Les pistes d'album ne portent ni contributeurs ni
+ * mention « feat » : l'information vient du top de l'artiste, qui les liste avec
+ * leur role. Le role compte : « Bohemian Rhapsody » ne credite que Queen en
+ * Main, alors qu'« Under Pressure » credite Queen et David Bowie. Et l'exclusion
+ * se fait par identifiant de piste, jamais par titre : le top de Queen contient
+ * quatre « Bohemian Rhapsody » — l'album, un live, un medley et une version avec
+ * les Muppets — et seules les deux dernieres sont des collaborations.
+ */
+async function artistCollaborations(artistId, artistName) {
+  const key = `collabs_${artistId}_v5`;
+  const cached = readCache(key, 24 * 60 * 60 * 1000);
+  if (cached) return cached;
+
+  const wanted = norm(artistName);
+  const [top, found] = await Promise.all([
+    dz(`/artist/${artistId}/top?limit=100`).catch(() => ({ data: [] })),
+    dz(`/search/track?q=${encodeURIComponent(artistName)}&limit=50`).catch(() => ({ data: [] })),
+  ]);
+
+  // Le meme enregistrement porte des identifiants differents selon qu'il vienne
+  // du top ou d'un album : on releve donc aussi les titres dont *toutes* les
+  // versions sont des collaborations. « Under Pressure » l'est toujours ;
+  // « Bohemian Rhapsody » ne l'est que dans ses versions Muppets et live, ce qui
+  // laisse la version d'album tranquille.
+  const sharedIds = [];
+  const stats = new Map();
+  for (const raw of top.data || []) {
+    const mains = (raw.contributors || []).filter((c) => String(c.role || '').toLowerCase() === 'main');
+    const collab = mains.some((c) => norm(c.name) !== wanted);
+    if (collab) sharedIds.push(String(raw.id));
+    const key2 = titleKey(raw.title_short || raw.title);
+    const entry = stats.get(key2) || { total: 0, collab: 0 };
+    entry.total += 1;
+    if (collab) entry.collab += 1;
+    stats.set(key2, entry);
+  }
+  const sharedTitles = [...stats.entries()]
+    .filter(([, v]) => v.total > 0 && v.collab === v.total)
+    .map(([title]) => title);
+
+  // La recherche ne renvoie pas les contributeurs : on verifie piste par piste,
+  // sinon « Dancing Queen » d'ABBA passerait pour une collaboration de Queen.
+  const candidates = (found.data || [])
+    .filter((raw) => norm(raw.artist?.name || '') !== wanted)
+    .slice(0, 12);
+
+  const guests = [];
+  const checked = await Promise.all(candidates.map(async (raw) => {
+    try {
+      const full = await dz(`/track/${raw.id}`);
+      const credited = (full.contributors || []).map((c) => norm(c.name));
+      return credited.includes(wanted) ? toTrack(full) : null;
+    } catch {
+      return null;
+    }
+  }));
+  for (const track of checked) if (track?.preview) guests.push(track);
+
+  const result = { sharedIds, sharedTitles, guests };
+  writeCache(key, result);
+  return result;
+}
+
 async function trackByIsrc(isrc) {
   const key = `isrc_${isrc}`;
   const cached = readCache(key, 7 * 24 * 60 * 60 * 1000);
@@ -342,4 +414,4 @@ async function playlistTracks(playlistId, limit = 200) {
 }
 
 module.exports = { dz, toTrack, searchTracks, artistTopTracks, resolveArtistId, freshPreview, trackByIsrc,
-  searchArtists, artistInfo, artistDiscography, chartTracks, playlistTracks, readCache, writeCache };
+  searchArtists, artistInfo, artistDiscography, artistCollaborations, chartTracks, playlistTracks, readCache, writeCache };

@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "load": "node test/load.mjs",
     "test:rounds": "node test/rounds.mjs",
-    "test:norepeat": "node test/norepeat.mjs"
+    "test:norepeat": "node test/norepeat.mjs",
+    "test:artist": "node test/artist.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

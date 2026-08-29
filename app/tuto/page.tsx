@@ -146,7 +146,8 @@ export default function TutoPage() {
               public ignore — le mode <b>«&nbsp;t&apos;es un vrai fan&nbsp;?&nbsp;»</b>.
             </p>
             <ul>
-              <li>La discographie est reconstituee album par album, singles compris.</li>
+              <li>L&apos;artiste n&apos;est pas demande — toute la partie porte sur lui, seul le titre compte.</li>
+              <li>Une case decide d&apos;inclure ou non ses featurings et ses passages invite.</li>
               <li>Intros et interludes sont ecartes, les doublons fusionnes.</li>
               <li>La frontiere tube / rarete suit la popularite reelle des morceaux.</li>
             </ul>

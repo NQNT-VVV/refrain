@@ -253,7 +253,10 @@ export function HostClient() {
                   {tab === 'import' && <ImportTab send={send} state={state} sources={sources} />}
                 </section>
 
-                <SettingsPanel settings={state.settings} send={send} />
+                <SettingsPanel
+                  settings={state.settings} send={send}
+                  askArtist={state.playlist?.askArtist !== false}
+                />
               </>
             )}
           </div>
@@ -410,6 +413,8 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
   const [results, setResults] = useState<ArtistHit[] | null>(null);
   const [picked, setPicked] = useState<ArtistHit | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [featurings, setFeaturings] = useState(true);
+  const [lastMode, setLastMode] = useState<ArtistMode | null>(null);
 
   useEffect(() => {
     if (query.trim().length < 2) { setResults(null); return; }
@@ -425,12 +430,23 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
     return () => clearTimeout(timer);
   }, [query]);
 
-  async function choose(mode: ArtistMode) {
+  const choose = useCallback(async (mode: ArtistMode, withFeaturings: boolean) => {
     if (!picked) return;
     setBusy(mode.id);
-    const res = await send('host:playlist', { type: 'artist', artistId: picked.id, mode: mode.id }, 90000);
+    setLastMode(mode);
+    const res = await send(
+      'host:playlist',
+      { type: 'artist', artistId: picked.id, mode: mode.id, featurings: withFeaturings },
+      90000,
+    );
     setBusy(null);
     if (res?.ok) toast(`${mode.emoji} ${picked.name} — ${mode.title}`, 'ok');
+  }, [picked, send]);
+
+  /** Changer d'avis sur les featurings reconstruit la liste deja choisie. */
+  function toggleFeaturings(next: boolean) {
+    setFeaturings(next);
+    if (lastMode) void choose(lastMode, next);
   }
 
   const active = state.playlist?.source === 'artist' ? state.playlist : null;
@@ -482,13 +498,27 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
             </button>
           </div>
 
+          <label className="switch" style={{ marginTop: 14 }}>
+            <input
+              type="checkbox" checked={featurings}
+              onChange={(e) => toggleFeaturings(e.target.checked)}
+              disabled={busy !== null}
+            />
+            <span className="track" />
+            <span style={{ fontSize: 13.5 }}>Inclure les featurings</span>
+          </label>
+          <p className={styles.note} style={{ marginTop: 6 }}>
+            Ses collaborations et ses passages invite chez d&apos;autres. Decoche pour ne garder
+            que ce qu&apos;il a sorti seul.
+          </p>
+
           <div className={styles.modes}>
             {modes.map((mode) => (
               <button
                 key={mode.id} type="button" className={styles.modeCard}
                 disabled={busy !== null}
-                aria-pressed={active?.id === `artist-${picked.id}-${mode.id}`}
-                onClick={() => choose(mode)}
+                aria-pressed={active?.id === `artist-${picked.id}-${mode.id}-${featurings ? 'f' : 'n'}`}
+                onClick={() => choose(mode, featurings)}
               >
                 <span className={styles.em}>{mode.emoji}</span>
                 <span className={styles.t}>{busy === mode.id ? 'Construction…' : mode.title}</span>
@@ -689,7 +719,7 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
 /* Reglages                                                           */
 /* ------------------------------------------------------------------ */
 
-function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
+function SettingsPanel({ settings, send, askArtist }: { settings: Settings; send: Send; askArtist: boolean }) {
   const patch = (p: Partial<Settings>) => send('host:settings', p);
 
   const sliders: { key: keyof Settings; label: string; min: number; max: number; format: (v: number) => string }[] = [
@@ -742,9 +772,17 @@ function SettingsPanel({ settings, send }: { settings: Settings; send: Send }) {
         <div className={styles.setting}>
           <div className={styles.lab}><b>Options</b></div>
           <label className="switch">
-            <input type="checkbox" checked={settings.guessArtist} onChange={(e) => patch({ guessArtist: e.target.checked })} />
+            <input
+              type="checkbox" checked={settings.guessArtist && askArtist} disabled={!askArtist}
+              onChange={(e) => patch({ guessArtist: e.target.checked })}
+            />
             <span className="track" /><span style={{ fontSize: 13.5 }}>Demander aussi l&apos;artiste</span>
           </label>
+          {!askArtist && (
+            <p className={styles.note}>
+              Sans objet ici : toute la partie porte sur le meme artiste, seul le titre compte.
+            </p>
+          )}
           <label className="switch">
             <input type="checkbox" checked={settings.autoNext} onChange={(e) => patch({ autoNext: e.target.checked })} />
             <span className="track" /><span style={{ fontSize: 13.5 }}>Enchainer les manches tout seul</span>

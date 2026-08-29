@@ -135,6 +135,8 @@ export interface PlaylistMeta {
   source: string;
   /** Vrai tant que le lecteur YouTube n'a pas remonte la liste des videos. */
   pending: boolean;
+  /** Faux pour une partie sur un artiste : son nom n'est pas a deviner. */
+  askArtist: boolean;
 }
 
 export interface GameState {

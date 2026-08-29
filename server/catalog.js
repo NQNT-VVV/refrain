@@ -493,6 +493,10 @@ const ARTIST_MODES = {
 /** Intros, interludes et pistes trop courtes ne font pas de bonnes manches. */
 const FILLER = /^\s*(intro|outro|interlude|skit|prologue|epilogue|transition)\b/i;
 
+/** Mention explicite d'invite dans le titre. Le « & » est volontairement exclu :
+ *  « Strass & paillettes » n'est pas un featuring. */
+const FEAT_IN_TITLE = /\b(feat\.?|ft\.?|featuring)\b/i;
+
 function playableForGame(track) {
   if (!track?.preview) return false;
   if (track.duration && track.duration < 60) return false;
@@ -503,17 +507,31 @@ function playableForGame(track) {
  * Compose une liste a partir d'un artiste.
  * Le rang de popularite Deezer separe les tubes du reste.
  */
-async function buildArtist(artistId, mode = 'hits') {
+async function buildArtist(artistId, mode = 'hits', { featurings = true } = {}) {
   const config = ARTIST_MODES[mode] || ARTIST_MODES.hits;
-  const [info, discography] = await Promise.all([
-    dz.artistInfo(artistId),
+  const info = await dz.artistInfo(artistId);
+  const [discography, collaborations] = await Promise.all([
     dz.artistDiscography(artistId),
+    dz.artistCollaborations(artistId, info.name),
   ]);
+
+  // Les collaborations s'ajoutent ou se retirent selon le choix de l'animateur.
+  // L'exclusion se fait par identifiant de piste : le meme titre peut exister
+  // en version solo et en version invitee, seule la seconde doit sauter.
+  const sharedIds = new Set(collaborations.sharedIds);
+  const sharedTitles = new Set(collaborations.sharedTitles || []);
+  const source = featurings
+    ? [...discography, ...collaborations.guests]
+    : discography.filter((t) => (
+        !sharedIds.has(t.id)
+        && !sharedTitles.has(normalize(t.title))
+        && !FEAT_IN_TITLE.test(t.fullTitle || t.title)
+      ));
 
   // Un meme morceau revient en single, en reedition, en version « reloaded » :
   // on ne garde que la version la mieux classee de chaque titre.
   const byTitle = new Map();
-  for (const track of discography) {
+  for (const track of source) {
     if (!playableForGame(track)) continue;
     const key = normalize(track.title);
     if (!key) continue;
@@ -539,14 +557,17 @@ async function buildArtist(artistId, mode = 'hits') {
   if (tracks.length < 8) tracks = ranked;   // repertoire trop mince pour trancher
 
   return {
-    id: `artist-${artistId}-${mode}`,
+    id: `artist-${artistId}-${mode}-${featurings ? 'f' : 'n'}`,
     title: `${info.name} — ${config.title}`,
     emoji: config.emoji,
-    subtitle: `${tracks.length} titres sur ${ranked.length} au repertoire`,
+    subtitle: `${tracks.length} titres${featurings ? '' : ', sans featuring'} sur ${ranked.length} au repertoire`,
     accent: '#F472B6',
     source: 'artist',
     artist: info,
     mode,
+    featurings,
+    // Toute la partie porte sur cet artiste : le demander n'aurait aucun sens.
+    askArtist: false,
     tracks: shuffle(tracks),
   };
 }

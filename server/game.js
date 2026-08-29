@@ -225,7 +225,7 @@ class GameServer {
     } else if (spec.type === 'artist') {
       const artistId = String(spec.artistId || '').replace(/[^0-9]/g, '');
       if (!artistId) throw new Error('Artiste inconnu.');
-      const built = await catalog.buildArtist(artistId, spec.mode);
+      const built = await catalog.buildArtist(artistId, spec.mode, { featurings: spec.featurings !== false });
       room.playlist = { ...built, pending: false };
       metrics.playlistSelections.inc({ source: 'artist', id: spec.mode || 'hits' });
       room.settings.rounds = clamp(room.settings.rounds, 3, built.tracks.length);
@@ -531,6 +531,8 @@ class GameServer {
    */
   asksArtist(room) {
     if (!room.settings.guessArtist) return false;
+    // Une partie construite sur un artiste ne demande pas son nom a chaque manche.
+    if (room.playlist?.askArtist === false) return false;
     return Boolean(room.round?.track?.artist);
   }
 
@@ -847,6 +849,7 @@ class GameServer {
         subtitle: room.playlist.subtitle, accent: room.playlist.accent,
         total: room.playlist.tracks.length,
         source: room.playlist.source, pending: !!room.playlist.pending,
+        askArtist: room.playlist.askArtist !== false,
       },
       counts: this.counts(room),
       round: room.round && {

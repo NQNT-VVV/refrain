@@ -165,6 +165,25 @@ attribue a chaque piste :
 | 🎲 **Au hasard** | Pioches dans toute la discographie, tubes et faces B melanges. |
 | 🕵️ **T'es un vrai fan ?** | Uniquement ce que le grand public ne connait pas. |
 
+**L'artiste n'est pas demande** : toute la partie porte sur lui, la question
+n'aurait aucun sens. Seul le titre compte, et le reglage « demander aussi
+l'artiste » se desactive tout seul.
+
+Une case **« Inclure les featurings »** decide du sort de ses collaborations et
+de ses passages invite chez d'autres. Trois pieges ont demande du soin :
+
+- les pistes d'album ne portent ni contributeurs ni mention « feat » : la
+  detection vient du top de l'artiste, qui les liste avec leur **role** ;
+- se fier au nombre de contributeurs ne suffit pas — « Bohemian Rhapsody » ne
+  credite que Queen en Main, « Under Pressure » credite Queen et Bowie ;
+- l'exclusion se fait par identifiant de piste, et par titre uniquement quand
+  *toutes* ses versions sont des collaborations. Le top de Queen contient quatre
+  « Bohemian Rhapsody » — l'album, un live, un medley et une version avec les
+  Muppets — et seule la version d'album doit survivre.
+
+Resultat mesure : Vald passe de 230 a 198 titres, Queen de 208 a 202 —
+« Under Pressure » sort, « Bohemian Rhapsody » et « Killer Queen » restent.
+
 La discographie complete est reconstituee album par album, EP et singles
 compris, puis dedoublonnee : un morceau sorti en single, en reedition et en
 version « reloaded » ne compte qu'une fois, dans sa version la mieux classee.
@@ -344,6 +363,7 @@ npm run typecheck    # TypeScript
 npm run dev          # dans un terminal
 npm test             # dans un autre
 npm run test:rounds  # on peut repondre a chaque manche, pas qu'a la premiere
+npm run test:artist  # mode artiste : featurings et absence de question artiste
 PLAYERS=2000 npm run load
 ```
 
