@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const crypto = require('crypto');
 const os = require('os');
 const express = require('express');
 const http = require('http');
@@ -13,6 +14,8 @@ const deezer = require('./deezer');
 const { GameServer, cleanName } = require('./game');
 const spotify = require('./spotify');
 const metrics = require('./metrics');
+const podium = require('./integrations/podium');
+const daily = require('./daily');
 
 const PORT = Number(process.env.PORT) || 3000;
 const METRICS_PORT = Number(process.env.METRICS_PORT) || 9464;
@@ -86,6 +89,54 @@ app.get('/api/sources', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, rooms: game.rooms.size, uptime: Math.round(process.uptime()) });
 });
+
+/* ------------------------------------------------------------------ */
+/* Podium : identite et musique du jour                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Qui est connecte a Podium, d'apres le cookie signe pose par le hub. Le
+ * client s'en sert pour pre-remplir le pseudo ; le rattachement des scores,
+ * lui, se fait cote serveur au moment du join.
+ */
+app.get('/api/podium/me', (req, res) => {
+  const identity = podium.readIdentity(req.headers.cookie);
+  res.set('Cache-Control', 'no-store');
+  res.json({ ...(identity || {}), hubUrl: podium.URL_BASE || null });
+});
+
+/**
+ * Qui joue la musique du jour : le compte Podium s'il y en a un, sinon un
+ * identifiant anonyme pose en cookie — il ne sert qu'a retenir la partie en
+ * cours, rien n'est envoye au hub sans compte.
+ */
+function dailyWho(req, res) {
+  const identity = podium.readIdentity(req.headers.cookie);
+  if (identity) return { who: `p:${identity.pid}`, identity };
+  const cookies = podium.parseCookies(req.headers.cookie);
+  let anon = String(cookies.refrain_daily || '');
+  if (!/^[a-f0-9]{32}$/.test(anon)) {
+    anon = crypto.randomBytes(16).toString('hex');
+    const secure = req.secure || req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+    res.append('Set-Cookie', `refrain_daily=${anon}; Path=/; Max-Age=${30 * 24 * 3600}; HttpOnly; SameSite=Lax${secure}`);
+  }
+  return { who: `a:${anon}`, identity: null };
+}
+
+const dailyRoute = (handler) => async (req, res) => {
+  const { who, identity } = dailyWho(req, res);
+  res.set('Cache-Control', 'no-store');
+  try {
+    res.json(await handler(who, identity, req.body || {}));
+  } catch (err) {
+    console.warn(`[daily] ${err.message}`);
+    res.status(503).json({ error: 'La musique du jour n\'est pas disponible pour le moment.' });
+  }
+};
+
+app.get('/api/daily', dailyRoute((who, identity) => daily.state(who, identity)));
+app.post('/api/daily/guess', dailyRoute((who, identity, body) => daily.guess(who, identity, body.title)));
+app.post('/api/daily/skip', dailyRoute((who, identity) => daily.skip(who, identity)));
 
 // Lien court d'invitation : /j/ABCD
 app.get('/j/:code', (req, res) => {
@@ -327,7 +378,10 @@ io.on('connection', (socket) => {
     const room = game.get(code);
     if (!room) return fail(cb, 'Code de partie inconnu.');
     try {
-      const player = game.addPlayer(room, cleanName(name));
+      // Le compte Podium se lit dans le cookie du handshake, jamais dans la
+      // charge utile : un client ne peut pas se faire passer pour un autre.
+      const identity = podium.readIdentity(socket.handshake.headers.cookie);
+      const player = game.addPlayer(room, cleanName(name), identity);
       socket.data.role = 'player';
       socket.data.code = room.code;
       socket.data.playerId = player.id;
@@ -351,6 +405,12 @@ io.on('connection', (socket) => {
     if (!player.connected) {
       player.connected = true;
       room.connectedCount += 1;
+    }
+    // Connecte a Podium entre-temps ? On rattache, sans jamais ecraser un
+    // rattachement existant.
+    if (!player.podiumPid) {
+      const identity = podium.readIdentity(socket.handshake.headers.cookie);
+      if (identity) player.podiumPid = identity.pid;
     }
     metrics.playersResumed.inc();
     socket.data.role = 'player';

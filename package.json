@@ -18,7 +18,8 @@
     "test:rounds": "node test/rounds.mjs",
     "test:norepeat": "node test/norepeat.mjs",
     "test:artist": "node test/artist.mjs",
-    "test:pause": "node test/pause.mjs"
+    "test:pause": "node test/pause.mjs",
+    "test:podium": "node test/podium.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

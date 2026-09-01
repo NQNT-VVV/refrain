@@ -63,6 +63,26 @@ spec:
                   name: refrain-spotify
                   key: SPOTIFY_CLIENT_SECRET
                   optional: true
+            # Podium : facultatif. Sans ce Secret, aucun compte n'est reconnu,
+            # rien n'est envoye au hub, et le jeu tourne exactement comme avant.
+            - name: PODIUM_URL
+              valueFrom:
+                secretKeyRef:
+                  name: podium-integration
+                  key: PODIUM_URL
+                  optional: true
+            - name: PODIUM_GAME_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: podium-integration
+                  key: PODIUM_GAME_KEY
+                  optional: true
+            - name: PODIUM_SSO_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: podium-integration
+                  key: PODIUM_SSO_SECRET
+                  optional: true
           readinessProbe:
             httpGet:
               path: /api/health

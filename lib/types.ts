@@ -218,3 +218,52 @@ export interface AudioCue {
 
 /** Reponse d'un `socket.emit` avec accuse de reception. */
 export type Ack<T = Record<string, never>> = ({ ok: true } & T) | { ok: false; error: string };
+
+/* ------------------------------------------------------------------ */
+/* Podium (hub : comptes, ranked, defis)                               */
+/* ------------------------------------------------------------------ */
+
+/** Compte Podium reconnu par le serveur d'apres le cookie signe du hub. */
+export interface PodiumIdentity {
+  pid: string;
+  pseudo: string;
+  avatar: string;
+}
+
+/** Reponse de `/api/podium/me` : identite si connecte, et l'adresse du hub si branche. */
+export type PodiumMe = Partial<PodiumIdentity> & { hubUrl: string | null };
+
+/** Variation d'Elo renvoyee par Podium apres une partie, relayee sur `podium:ratings`. */
+export interface PodiumRating {
+  pid: string;
+  before: number;
+  after: number;
+  tier: string;
+}
+
+export interface DailyAttempt {
+  text: string;
+  ok: boolean;
+  skipped: boolean;
+}
+
+/** Etat de la musique du jour pour ce joueur — la reponse n'arrive qu'une fois fini. */
+export interface DailyState {
+  dateKey: string;
+  challengeId: string | null;
+  stage: number;
+  maxStages: number;
+  unlockSeconds: number[];
+  /** Secondes d'ecoute actuellement debloquees. */
+  unlocked: number;
+  preview: string;
+  attempts: DailyAttempt[];
+  solved: boolean;
+  failed: boolean;
+  finished: boolean;
+  score: number;
+  identity: PodiumIdentity | null;
+  hubUrl: string | null;
+  track: TrackCard | null;
+  result?: 'ok' | 'miss' | 'skipped' | 'finished' | 'empty';
+}

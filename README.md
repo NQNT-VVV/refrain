@@ -44,6 +44,7 @@ Pour changer de port : `PORT=8080 npm start`.
 | **Ecran** | `/screen` | La projection / le stream. Joue le son, affiche le QR code, les compte a rebours et les reponses. |
 | **Joueur** | `/j/CODE` | Telephone **ou ordinateur** — la page s'adapte : une colonne au pouce, deux colonnes a la souris. |
 | **Tuto** | `/tuto` | Comment ca marche, pour ceux qui decouvrent. |
+| **Musique du jour** | `/daily` | Mode solo : un morceau par jour, six ecoutes pour le retrouver. |
 
 ### Deroule type
 
@@ -271,6 +272,68 @@ Trois consequences a connaitre :
 
 ---
 
+## Podium
+
+[Podium](https://github.com/NQNT-VVV/podium) est le hub des jeux : comptes,
+classement Elo, defis hebdo et quotidiens. Refrain s'y branche **en option** :
+sans configuration, le module est inerte et le jeu tourne exactement comme
+avant.
+
+Ce que le raccordement apporte :
+
+- **Identite** : un joueur connecte sur Podium est reconnu par Refrain (cookie
+  signe pose par le hub sur `.danwalex.com`). Son pseudo est pre-rempli, et son
+  score est rattache a son compte. Le rattachement se fait cote serveur, a partir
+  du cookie du handshake Socket.IO : un client ne peut pas se faire passer pour
+  un autre.
+- **Resultats** : a la fin de chaque partie, le classement complet part vers
+  Podium (`POST /api/v1/games/refrain/results`), qui met a jour l'Elo et les
+  defis. Si le hub renvoie des variations d'Elo, les joueurs les voient sur leur
+  ecran de fin (« Podium +18 · Argent »). Un hub injoignable ne retarde jamais
+  une fin de partie : une tentative, une relance apres 5 s, puis on abandonne
+  en loguant.
+- **Musique du jour** (`/daily`) : le morceau du jour est tire d'apres la
+  graine du defi `daily` publie par Podium, donc identique pour tout le monde.
+  Sans hub, la graine est la date du jour (Europe/Paris). Un joueur connecte
+  voit son score remonter au defi ; un anonyme peut jouer, rien n'est envoye.
+
+| Variable | Role |
+|---|---|
+| `PODIUM_URL` | Origine publique du hub. Vide = module desactive. |
+| `PODIUM_GAME_KEY` | Cle d'ingestion du jeu, generee dans l'admin Podium. |
+| `PODIUM_SSO_SECRET` | Secret partage avec le hub, pour verifier le cookie d'identite. |
+| `PODIUM_SSO_COOKIE` | Nom du cookie. Defaut `nqnt_id`. |
+
+En k8s, les trois premieres viennent du Secret `podium-integration`
+(`deploy/podium-secret.example.yaml`), lu en `optional: true`.
+
+Recette locale, hub et jeu cote a cote :
+
+```bash
+cd ~/podium && SSO_SECRET=devsecret npm run dev          # http://localhost:3000
+cd ~/blindtest && PORT=3001 PODIUM_URL=http://localhost:3000 \
+  PODIUM_SSO_SECRET=devsecret PODIUM_GAME_KEY=<cle admin> npm run dev
+```
+
+Sur `localhost`, les cookies ignorent le port : le cookie pose par le hub est lu
+par le jeu tel quel. Le contrat complet est decrit dans `docs/integration.md`
+du depot Podium.
+
+### Musique du jour, en detail
+
+Six etapes debloquent 1, 2, 4, 7, 11 puis 16 secondes d'extrait. Une mauvaise
+reponse ou un « passer » ouvre l'etape suivante. Trouver a l'etape 1 vaut 60
+points, puis 50, 40, 30, 20, 10 ; echouer vaut 0. Le titre suffit ; la saisie
+« Titre — Artiste » proposee par l'autocompletion est acceptee aussi, avec la
+meme correction indulgente que les parties classiques.
+
+Le vivier est l'union de neuf listes du catalogue, triee par identifiant pour
+etre stable ; le tirage est memorise sur disque pour la journee, afin qu'un
+rafraichissement du cache Deezer ne change pas le morceau en cours de route.
+Le titre et l'artiste ne sont envoyes au navigateur qu'une fois la partie finie.
+
+---
+
 ## Diffusion / OBS
 
 La page `/screen?code=XXXX` est concue pour du 16/9 et se met a l'echelle en
@@ -360,6 +423,8 @@ server/                 CommonJS, sans build
   catalog.js            les 17 listes et leur construction
   deezer.js             client API Deezer (cache, limiteur de debit, extraits)
   match.js              normalisation et comparaison floue des reponses
+  daily.js              musique du jour : tirage, etapes, score
+  integrations/podium.js  identite, resultats et defis du hub Podium
   metrics.js            registre Prometheus
 
 app/                    Next.js App Router
@@ -369,6 +434,7 @@ app/                    Next.js App Router
   host/                 regie animateur
   screen/               ecran de diffusion
   play/                 telephone joueur
+  daily/                musique du jour (mode solo)
 
 lib/                    logique client partagee
   types.ts              types des charges utiles Socket.IO
@@ -391,6 +457,7 @@ npm test             # dans un autre
 npm run test:rounds  # on peut repondre a chaque manche, pas qu'a la premiere
 npm run test:artist  # mode artiste : featurings et absence de question artiste
 npm run test:pause   # la pause fige chrono et son, la reprise repart de la
+npm run test:podium  # cookie Podium, rattachement au join, musique du jour (serveur avec PODIUM_SSO_SECRET=devsecret)
 PLAYERS=2000 npm run load
 ```
 

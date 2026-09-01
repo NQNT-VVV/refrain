@@ -7,6 +7,7 @@ const deezer = require('./deezer');
 const youtube = require('./youtube');
 const spotify = require('./spotify');
 const metrics = require('./metrics');
+const podium = require('./integrations/podium');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
 
@@ -161,7 +162,11 @@ class GameServer {
   /* Joueurs                                                          */
   /* ---------------------------------------------------------------- */
 
-  addPlayer(room, rawName) {
+  /**
+   * @param identity  compte Podium lu par le serveur dans le cookie du handshake,
+   *                  ou null. Jamais fourni par le client lui-meme.
+   */
+  addPlayer(room, rawName, identity = null) {
     if (room.players.size >= MAX_PLAYERS) throw new Error('La partie est complete.');
     let name = cleanName(rawName);
     const used = new Set([...room.players.values()].map((p) => p.name.toLowerCase()));
@@ -179,6 +184,8 @@ class GameServer {
       connected: true,
       lastGain: 0,
       joinedAt: Date.now(),
+      // Identifiant Podium : c'est lui qui rattache le score au compte du hub.
+      podiumPid: identity?.pid ?? null,
     };
     room.players.set(player.id, player);
     room.connectedCount += 1;
@@ -392,6 +399,8 @@ class GameServer {
     room.queue = this.pickQueue(room);
     room.index = -1;
     room.history = [];
+    // Sert de cle d'idempotence pour l'envoi du classement a Podium.
+    room.startedAt = Date.now();
     for (const p of room.players.values()) { p.score = 0; p.lastGain = 0; }
     metrics.gamesStarted.inc({ mode: room.settings.mode });
     this.nextRound(room);
@@ -803,6 +812,61 @@ class GameServer {
     this.sendAudio(room, { action: 'stop' });
     this.broadcastNow(room);
     this.sendPersonal(room);
+    this.reportToPodium(room);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Podium                                                           */
+  /* ---------------------------------------------------------------- */
+
+  /**
+   * Le classement final, au format attendu par le hub.
+   *
+   * Tous les joueurs, rang partage a egalite. Les joueurs sans compte Podium
+   * partent avec `pid: null` : ils figurent dans l'historique de la partie mais
+   * n'entrent pas au ranked.
+   */
+  podiumPayload(room) {
+    const players = [...room.players.values()].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+    const rows = players.map((p) => ({
+      pid: p.podiumPid ?? null,
+      nickname: p.name,
+      avatar: p.avatar,
+      score: p.score,
+      rank: 1 + players.filter((o) => o.score > p.score).length,
+    }));
+    const startedAt = room.startedAt || room.createdAt;
+    const pl = room.playlist;
+    return {
+      matchId: `${room.code}-${startedAt}`,
+      mode: pl?.source === 'artist' ? 'artist' : room.settings.mode,
+      challengeId: null,
+      playedAt: Date.now(),
+      durationS: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+      meta: {
+        playlist: pl?.title || '',
+        source: pl?.source || '',
+        rounds: room.queue.length,
+        answerMode: room.settings.mode,
+      },
+      players: rows,
+    };
+  }
+
+  /**
+   * Envoie le classement a Podium, sans jamais retenir la fin de partie.
+   * Si le hub repond avec des variations d'Elo, les joueurs les recoivent
+   * sur `podium:ratings` pour les afficher a l'ecran de fin.
+   */
+  reportToPodium(room) {
+    if (!podium.enabled() || room.players.size === 0) return;
+    const payload = this.podiumPayload(room);
+    podium.postResults('refrain', payload)
+      .then((res) => {
+        if (!res || !Array.isArray(res.ratings) || !res.ratings.length) return;
+        this.io.to(`${room.code}:public`).emit('podium:ratings', { matchId: payload.matchId, ratings: res.ratings });
+      })
+      .catch((err) => console.warn(`[podium] envoi du classement : ${err.message}`));
   }
 
   backToLobby(room) {

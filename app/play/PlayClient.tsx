@@ -13,9 +13,10 @@ import { sfx } from '@/lib/sfx';
 import { call } from '@/lib/socket';
 import { copyToClipboard, store } from '@/lib/storage';
 import { toast } from '@/lib/toast';
-import type { AnswerBadge, GameState, PlayerRow, You } from '@/lib/types';
+import type { AnswerBadge, GameState, PlayerRow, PodiumRating, You } from '@/lib/types';
 import { useAudioPlayer } from '@/lib/useAudioPlayer';
 import { useGameSocket } from '@/lib/useGameSocket';
+import { usePodiumIdentity } from '@/lib/usePodiumIdentity';
 import { useRoundClock } from '@/lib/useRoundClock';
 
 import styles from './play.module.css';
@@ -46,6 +47,15 @@ export function PlayClient() {
   const [muted, setMuted] = useState(false);
   const [volume, setVolumeState] = useState(80);
   const [volumeLocked, setVolumeLocked] = useState(false);
+  const [ratings, setRatings] = useState<PodiumRating[] | null>(null);
+
+  // Compte Podium : pre-remplit le pseudo, et permet de retrouver sa propre
+  // variation d'Elo a la fin. Le rattachement du score, lui, est fait par le
+  // serveur d'apres le cookie — rien ne transite par ici.
+  const podium = usePodiumIdentity();
+  useEffect(() => {
+    if (podium?.pseudo && !meRef.current) setPseudo((current) => current || podium.pseudo || '');
+  }, [podium]);
 
   const player = useAudioPlayer();
   const meRef = useRef<Me | null>(null);
@@ -85,6 +95,7 @@ export function PlayClient() {
       toast('Tu as ete retire de la partie.', 'err');
       setTimeout(() => router.replace('/'), 1600);
     },
+    onPodiumRatings: ({ ratings: next }) => setRatings(next),
   });
 
   useEffect(() => {
@@ -175,11 +186,14 @@ export function PlayClient() {
         <JoinScreen
           code={code} pseudo={pseudo} setPseudo={setPseudo}
           connected={connected} joining={joining} onSubmit={join}
+          podiumPseudo={podium?.pid ? podium.pseudo ?? null : null}
         />
       ) : (
         <PlayScreen
           code={code} me={me} self={self} you={you}
           state={state} socket={socket} connected={connected} sound={sound} onLeave={leave}
+          podiumRating={ratings?.find((r) => r.pid === podium?.pid) ?? null}
+          hubUrl={podium?.hubUrl ?? null}
         />
       )}
     </>
@@ -190,9 +204,11 @@ export function PlayClient() {
 /* Connexion                                                          */
 /* ------------------------------------------------------------------ */
 
-function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit }: {
+function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, podiumPseudo }: {
   code: string; pseudo: string; setPseudo: (v: string) => void;
   connected: boolean; joining: boolean; onSubmit: (e: FormEvent) => void;
+  /** Pseudo du compte Podium reconnu, pour dire d'ou vient le pre-remplissage. */
+  podiumPseudo: string | null;
 }) {
   return (
     <div className={styles.app}>
@@ -213,6 +229,11 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit }: {
               autoComplete="nickname" enterKeyHint="go"
               value={pseudo} onChange={(e) => setPseudo(e.target.value)}
             />
+            {podiumPseudo && (
+              <span className="pill ok" style={{ alignSelf: 'flex-start' }}>
+                🏆 Connecte via Podium — ton score comptera pour le classement
+              </span>
+            )}
           </div>
           <button className="btn primary lg block" type="submit" data-testid="join" disabled={!connected || joining}>
             {connected ? 'Entrer dans la partie' : 'Connexion…'}
@@ -231,10 +252,13 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit }: {
 /* Partie en cours                                                    */
 /* ------------------------------------------------------------------ */
 
-function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLeave }: {
+function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLeave, podiumRating, hubUrl }: {
   code: string; me: Me; self: PlayerRow | null; you: You | null;
   state: GameState; socket: Socket | null; connected: boolean; sound: SoundControls;
   onLeave: () => void;
+  /** Variation d'Elo du joueur renvoyee par Podium, une fois la partie finie. */
+  podiumRating: PodiumRating | null;
+  hubUrl: string | null;
 }) {
   const { ratio, countdown, buzzLock, answerLeft } = useRoundClock(state);
   const [soundOpen, setSoundOpen] = useState(false);
@@ -339,7 +363,13 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
         )}
         {state.phase === 'reveal' && <Reveal state={state} me={me} self={self} />}
         {state.phase === 'scores' && <Scores state={state} me={me} self={self} />}
-        {state.phase === 'ended' && <Ending state={state} me={me} self={self} you={you} code={code} />}
+        {state.phase === 'ended' && (
+          <Ending
+            state={state} me={me} self={self} you={you} code={code}
+            rating={podiumRating}
+            hubUrl={hubUrl}
+          />
+        )}
       </main>
 
       {!connected && (
@@ -733,8 +763,11 @@ function Scores({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
 /* ---------------- Fin de partie ---------------- */
 
-function Ending({ state, me, self, you, code }: {
+function Ending({ state, me, self, you, code, rating, hubUrl }: {
   state: GameState; me: Me; self: PlayerRow | null; you: You | null; code: string;
+  /** Variation d'Elo Podium du joueur, quand le hub a repondu. */
+  rating: PodiumRating | null;
+  hubUrl: string | null;
 }) {
   const board = state.podium ?? state.leaderboard;
   const position = you?.rank ?? 0;
@@ -758,6 +791,16 @@ function Ending({ state, me, self, you, code }: {
           <p className="muted">
             {position === 1 ? 'Personne ne t\'arrete.' : `${score} points sur ${state.counts.players} joueurs.`}
           </p>
+          {rating && (
+            <a
+              className={`pill ${rating.after >= rating.before ? 'ok' : ''}`}
+              href={hubUrl ? `${hubUrl}/classement` : undefined}
+              style={{ marginTop: 10, fontSize: 13.5 }}
+              title="Ton classement sur Podium"
+            >
+              🏆 Podium {rating.after >= rating.before ? '+' : ''}{Math.round(rating.after - rating.before)} · {rating.tier}
+            </a>
+          )}
         </div>
         <Board rows={boardWithSelf({ ...state, leaderboard: board }, self)} me={me} />
         <button

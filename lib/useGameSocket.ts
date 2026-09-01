@@ -5,13 +5,15 @@ import type { Socket } from 'socket.io-client';
 
 import { clock } from './clock';
 import { connect } from './socket';
-import type { AudioCue, GameState, You } from './types';
+import type { AudioCue, GameState, PodiumRating, You } from './types';
 
 interface Options {
   /** Appele une fois l'horloge synchronisee : c'est la qu'on rejoint le salon. */
   onReady: (socket: Socket) => void | Promise<void>;
   onAudio?: (cue: AudioCue) => void;
   onKicked?: () => void;
+  /** Variations d'Elo renvoyees par Podium a la fin d'une partie. */
+  onPodiumRatings?: (payload: { matchId: string; ratings: PodiumRating[] }) => void;
 }
 
 /**
@@ -21,14 +23,14 @@ interface Options {
  * fois, meme si la page se re-rend, et les gestionnaires voient toujours l'etat
  * le plus recent sans relancer la socket.
  */
-export function useGameSocket({ onReady, onAudio, onKicked }: Options) {
+export function useGameSocket({ onReady, onAudio, onKicked, onPodiumRatings }: Options) {
   const [state, setState] = useState<GameState | null>(null);
   const [you, setYou] = useState<You | null>(null);
   const [connected, setConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  const handlers = useRef({ onReady, onAudio, onKicked });
-  handlers.current = { onReady, onAudio, onKicked };
+  const handlers = useRef({ onReady, onAudio, onKicked, onPodiumRatings });
+  handlers.current = { onReady, onAudio, onKicked, onPodiumRatings };
 
   useEffect(() => {
     const s = connect();
@@ -46,6 +48,7 @@ export function useGameSocket({ onReady, onAudio, onKicked }: Options) {
     s.on('you', (next: You) => setYou(next));
     s.on('audio', (cue: AudioCue) => handlers.current.onAudio?.(cue));
     s.on('kicked', () => handlers.current.onKicked?.());
+    s.on('podium:ratings', (payload: { matchId: string; ratings: PodiumRating[] }) => handlers.current.onPodiumRatings?.(payload));
 
     return () => {
       s.removeAllListeners();

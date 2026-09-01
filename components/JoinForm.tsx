@@ -3,12 +3,15 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { usePodiumIdentity } from '@/lib/usePodiumIdentity';
+
 const clean = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
 
 export function JoinForm({ className, inputClassName }: { className?: string; inputClassName?: string }) {
   const router = useRouter();
   const [code, setCode] = useState('');
   const [invalid, setInvalid] = useState(false);
+  const podium = usePodiumIdentity();
 
   // Un lien d'invitation peut deja porter le code : /?code=ABCD
   useEffect(() => {
@@ -42,6 +45,11 @@ export function JoinForm({ className, inputClassName }: { className?: string; in
         spellCheck={false}
       />
       <button className="btn lg block" type="submit">Rejoindre la partie</button>
+      {podium?.pid && (
+        <span className="pill ok" style={{ alignSelf: 'center' }}>
+          <span aria-hidden="true">{podium.avatar}</span> Connecte via Podium — {podium.pseudo}
+        </span>
+      )}
     </form>
   );
 }

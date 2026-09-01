@@ -54,6 +54,18 @@ export default function HomePage() {
         </section>
       </main>
 
+      <section className={`card ${styles.daily}`}>
+        <div className={styles.dailyIcon}>🎵</div>
+        <div className={styles.dailyText}>
+          <h2>Musique du jour</h2>
+          <p className={styles.lead}>
+            Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le
+            retrouver. Solo, une partie par jour — parfait pour patienter entre deux soirees.
+          </p>
+        </div>
+        <Link className="btn lg" href="/daily">Jouer aujourd&apos;hui</Link>
+      </section>
+
       <section className={styles.feats}>
         {FEATURES.map((f) => (
           <div key={f.title} className={styles.feat}>
