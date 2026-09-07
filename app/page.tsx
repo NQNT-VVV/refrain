@@ -54,16 +54,29 @@ export default function HomePage() {
         </section>
       </main>
 
-      <section className={`card ${styles.daily}`}>
-        <div className={styles.dailyIcon}>🎵</div>
-        <div className={styles.dailyText}>
-          <h2>Musique du jour</h2>
-          <p className={styles.lead}>
-            Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le
-            retrouver. Solo, une partie par jour — parfait pour patienter entre deux soirees.
-          </p>
+      <section className={styles.solo} aria-label="Modes solo">
+        <div className={`card ${styles.daily}`}>
+          <div className={styles.dailyIcon}>🎵</div>
+          <div className={styles.dailyText}>
+            <h2>Musique du jour</h2>
+            <p className={styles.lead}>
+              Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le
+              retrouver. Une partie par jour.
+            </p>
+          </div>
+          <Link className="btn lg" href="/daily">Jouer aujourd&apos;hui</Link>
         </div>
-        <Link className="btn lg" href="/daily">Jouer aujourd&apos;hui</Link>
+        <div className={`card ${styles.daily} ${styles.weekly}`}>
+          <div className={styles.dailyIcon}>📀</div>
+          <div className={styles.dailyText}>
+            <h2>Playlist de la semaine</h2>
+            <p className={styles.lead}>
+              Cinq morceaux a la suite, six ecoutes chacun, le score s&apos;additionne. Une seule
+              tentative par semaine : la meme playlist pour tout le monde jusqu&apos;a dimanche.
+            </p>
+          </div>
+          <Link className="btn lg" href="/weekly">Jouer cette semaine</Link>
+        </div>
       </section>
 
       <section className={styles.feats}>

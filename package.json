@@ -19,7 +19,8 @@
     "test:norepeat": "node test/norepeat.mjs",
     "test:artist": "node test/artist.mjs",
     "test:pause": "node test/pause.mjs",
-    "test:podium": "node test/podium.mjs"
+    "test:podium": "node test/podium.mjs",
+    "test:weekly": "node test/weekly.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

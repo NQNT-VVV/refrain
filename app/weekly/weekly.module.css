@@ -1,0 +1,39 @@
+/* Playlist de la semaine : ce qui s'ajoute a la manche solo partagee. */
+
+.progress {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 14px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--stroke);
+  font-size: 13px; color: var(--muted);
+}
+.dots { display: flex; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.12); border: 1px solid var(--stroke); display: block; }
+.dotNow { background: linear-gradient(135deg, var(--violet), var(--cyan)); border-color: transparent; box-shadow: 0 0 12px -2px var(--violet); }
+.dotSolved { background: var(--green); border-color: transparent; }
+.dotMissed { background: rgba(251,93,93,.6); border-color: transparent; }
+.counter { font-weight: 600; color: var(--text); }
+.total { margin-left: auto; font-variant-numeric: tabular-nums; }
+.total b { font-family: var(--display); font-size: 17px; color: var(--text); }
+
+.justPlayed { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; animation: popIn .4s var(--ease); }
+.justLabel { font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+.listTitle { font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+
+.revealed {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; text-align: left;
+  background: var(--surface); border: 1px solid var(--stroke);
+}
+.revealed.solved { border-color: rgba(52,211,153,.35); }
+.revealed.missed { border-color: rgba(251,93,93,.3); }
+.revealed.fresh { background: var(--surface-2); }
+.revealed img, .noCover { width: 46px; height: 46px; border-radius: 10px; flex: none; display: grid; place-items: center; font-size: 22px; background: var(--surface-2); }
+.idx { width: 18px; text-align: center; color: var(--faint); font-family: var(--display); font-weight: 700; flex: none; }
+.meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.meta b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta span { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pts { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+.pts b { font-family: var(--display); font-size: 18px; font-variant-numeric: tabular-nums; }
+.solved .pts b { color: var(--green); }
+.missed .pts b { color: var(--faint); }
+.pts small { font-size: 11px; color: var(--faint); }

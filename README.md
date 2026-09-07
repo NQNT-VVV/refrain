@@ -45,6 +45,7 @@ Pour changer de port : `PORT=8080 npm start`.
 | **Joueur** | `/j/CODE` | Telephone **ou ordinateur** — la page s'adapte : une colonne au pouce, deux colonnes a la souris. |
 | **Tuto** | `/tuto` | Comment ca marche, pour ceux qui decouvrent. |
 | **Musique du jour** | `/daily` | Mode solo : un morceau par jour, six ecoutes pour le retrouver. |
+| **Playlist de la semaine** | `/weekly` | Mode solo : cinq morceaux a la suite, une tentative par semaine, score cumule. |
 
 ### Deroule type
 
@@ -296,6 +297,12 @@ Ce que le raccordement apporte :
   graine du defi `daily` publie par Podium, donc identique pour tout le monde.
   Sans hub, la graine est la date du jour (Europe/Paris). Un joueur connecte
   voit son score remonter au defi ; un anonyme peut jouer, rien n'est envoye.
+- **Playlist de la semaine** (`/weekly`) : meme principe avec cinq morceaux
+  a la suite, tires de la graine du defi `weekly` (sinon la semaine ISO,
+  `AAAA-Wss`). Une seule tentative par compte et par semaine, du lundi 00:00 au
+  dimanche 23:59 (Paris) ; le total (300 au mieux) part au hub une fois les cinq
+  morceaux joues. Cote Podium, la fiche du jeu declare le mode
+  `{ "id": "weekly", "period": "weekly", "metric": "best_score" }`.
 
 | Variable | Role |
 |---|---|
@@ -319,18 +326,22 @@ Sur `localhost`, les cookies ignorent le port : le cookie pose par le hub est lu
 par le jeu tel quel. Le contrat complet est decrit dans `docs/integration.md`
 du depot Podium.
 
-### Musique du jour, en detail
+### Les modes solo, en detail
 
-Six etapes debloquent 1, 2, 4, 7, 11 puis 16 secondes d'extrait. Une mauvaise
-reponse ou un « passer » ouvre l'etape suivante. Trouver a l'etape 1 vaut 60
-points, puis 50, 40, 30, 20, 10 ; echouer vaut 0. Le titre suffit ; la saisie
-« Titre — Artiste » proposee par l'autocompletion est acceptee aussi, avec la
-meme correction indulgente que les parties classiques.
+Un morceau se joue en six etapes qui debloquent 1, 2, 4, 7, 11 puis 16 secondes
+d'extrait. Une mauvaise reponse ou un « passer » ouvre l'etape suivante.
+Trouver a l'etape 1 vaut 60 points, puis 50, 40, 30, 20, 10 ; echouer vaut 0.
+Le titre suffit ; la saisie « Titre — Artiste » proposee par l'autocompletion
+est acceptee aussi, avec la meme correction indulgente que les parties
+classiques. La playlist de la semaine enchaine cinq morceaux sur ce modele et
+additionne les points.
 
-Le vivier est l'union de neuf listes du catalogue, triee par identifiant pour
-etre stable ; le tirage est memorise sur disque pour la journee, afin qu'un
-rafraichissement du cache Deezer ne change pas le morceau en cours de route.
-Le titre et l'artiste ne sont envoyes au navigateur qu'une fois la partie finie.
+Le moteur (`server/solo.js`) est commun aux deux modes : le vivier est l'union
+de neuf listes du catalogue, triee par identifiant pour etre stable ; le tirage
+de chaque periode est memorise sur disque (36 h pour le jour, 8 jours pour la
+semaine), afin qu'un rafraichissement du cache Deezer ne change pas les morceaux
+en cours de route. Le titre et l'artiste d'un morceau ne sont envoyes au
+navigateur qu'une fois ce morceau termine.
 
 ---
 
@@ -423,7 +434,9 @@ server/                 CommonJS, sans build
   catalog.js            les 17 listes et leur construction
   deezer.js             client API Deezer (cache, limiteur de debit, extraits)
   match.js              normalisation et comparaison floue des reponses
-  daily.js              musique du jour : tirage, etapes, score
+  solo.js               moteur des modes solo : tirage, etapes, score, envoi au hub
+  daily.js              musique du jour (un morceau par jour)
+  weekly.js             playlist de la semaine (cinq morceaux, une tentative)
   integrations/podium.js  identite, resultats et defis du hub Podium
   metrics.js            registre Prometheus
 
@@ -435,6 +448,7 @@ app/                    Next.js App Router
   screen/               ecran de diffusion
   play/                 telephone joueur
   daily/                musique du jour (mode solo)
+  weekly/               playlist de la semaine (mode solo)
 
 lib/                    logique client partagee
   types.ts              types des charges utiles Socket.IO
@@ -443,7 +457,7 @@ lib/                    logique client partagee
   useAudioPlayer.ts     lecture des extraits et deblocage autoplay
   sfx.ts, confetti.ts, clock.ts, toast.ts, storage.ts, game.ts
 
-components/             Aurora, Toaster, QrCode
+components/             Aurora, Toaster, QrCode, SoloRound (manche solo partagee)
 deploy/                 manifestes Kubernetes et supervision
 test/e2e.mjs            partie complete simulee, dans les deux modes
 ```
@@ -458,6 +472,7 @@ npm run test:rounds  # on peut repondre a chaque manche, pas qu'a la premiere
 npm run test:artist  # mode artiste : featurings et absence de question artiste
 npm run test:pause   # la pause fige chrono et son, la reprise repart de la
 npm run test:podium  # cookie Podium, rattachement au join, musique du jour (serveur avec PODIUM_SSO_SECRET=devsecret)
+npm run test:weekly  # playlist de la semaine : cinq morceaux, score cumule, une tentative (meme serveur)
 PLAYERS=2000 npm run load
 ```
 

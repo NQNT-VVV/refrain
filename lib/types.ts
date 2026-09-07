@@ -267,3 +267,39 @@ export interface DailyState {
   track: TrackCard | null;
   result?: 'ok' | 'miss' | 'skipped' | 'finished' | 'empty';
 }
+
+/** Un morceau de la playlist de la semaine, une fois joue. */
+export interface RevealedTrack {
+  index: number;
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  cover: string;
+  link: string;
+  solved: boolean;
+  points: number;
+  attempts: number;
+}
+
+/** Etat de la playlist de la semaine pour ce joueur : le morceau en cours, ceux deja joues, le total. */
+export interface WeeklyState {
+  weekKey: string;
+  challengeId: string | null;
+  trackIndex: number;
+  tracksTotal: number;
+  stage: number;
+  maxStages: number;
+  unlockSeconds: number[];
+  unlocked: number;
+  preview: string;
+  attempts: DailyAttempt[];
+  revealed: RevealedTrack[];
+  totalScore: number;
+  finished: boolean;
+  identity: PodiumIdentity | null;
+  hubUrl: string | null;
+  result?: 'ok' | 'miss' | 'skipped' | 'finished' | 'empty';
+  /** Vrai quand la derniere action a clos un morceau (trouve ou six echecs). */
+  roundEnded?: boolean;
+}

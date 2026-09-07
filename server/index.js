@@ -16,6 +16,7 @@ const spotify = require('./spotify');
 const metrics = require('./metrics');
 const podium = require('./integrations/podium');
 const daily = require('./daily');
+const weekly = require('./weekly');
 
 const PORT = Number(process.env.PORT) || 3000;
 const METRICS_PORT = Number(process.env.METRICS_PORT) || 9464;
@@ -106,11 +107,11 @@ app.get('/api/podium/me', (req, res) => {
 });
 
 /**
- * Qui joue la musique du jour : le compte Podium s'il y en a un, sinon un
- * identifiant anonyme pose en cookie — il ne sert qu'a retenir la partie en
- * cours, rien n'est envoye au hub sans compte.
+ * Qui joue en solo (musique du jour, playlist de la semaine) : le compte
+ * Podium s'il y en a un, sinon un identifiant anonyme pose en cookie — il ne
+ * sert qu'a retenir la partie en cours, rien n'est envoye au hub sans compte.
  */
-function dailyWho(req, res) {
+function soloWho(req, res) {
   const identity = podium.readIdentity(req.headers.cookie);
   if (identity) return { who: `p:${identity.pid}`, identity };
   const cookies = podium.parseCookies(req.headers.cookie);
@@ -123,20 +124,26 @@ function dailyWho(req, res) {
   return { who: `a:${anon}`, identity: null };
 }
 
-const dailyRoute = (handler) => async (req, res) => {
-  const { who, identity } = dailyWho(req, res);
+const soloRoute = (label, unavailable) => (handler) => async (req, res) => {
+  const { who, identity } = soloWho(req, res);
   res.set('Cache-Control', 'no-store');
   try {
     res.json(await handler(who, identity, req.body || {}));
   } catch (err) {
-    console.warn(`[daily] ${err.message}`);
-    res.status(503).json({ error: 'La musique du jour n\'est pas disponible pour le moment.' });
+    console.warn(`[${label}] ${err.message}`);
+    res.status(503).json({ error: unavailable });
   }
 };
 
+const dailyRoute = soloRoute('daily', 'La musique du jour n\'est pas disponible pour le moment.');
 app.get('/api/daily', dailyRoute((who, identity) => daily.state(who, identity)));
 app.post('/api/daily/guess', dailyRoute((who, identity, body) => daily.guess(who, identity, body.title)));
 app.post('/api/daily/skip', dailyRoute((who, identity) => daily.skip(who, identity)));
+
+const weeklyRoute = soloRoute('weekly', 'La playlist de la semaine n\'est pas disponible pour le moment.');
+app.get('/api/weekly', weeklyRoute((who, identity) => weekly.state(who, identity)));
+app.post('/api/weekly/guess', weeklyRoute((who, identity, body) => weekly.guess(who, identity, body.title)));
+app.post('/api/weekly/skip', weeklyRoute((who, identity) => weekly.skip(who, identity)));
 
 // Lien court d'invitation : /j/ABCD
 app.get('/j/:code', (req, res) => {

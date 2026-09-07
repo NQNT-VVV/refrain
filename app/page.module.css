@@ -39,11 +39,13 @@
 .footer a { color: var(--muted); border-bottom: 1px dotted var(--stroke-strong); }
 .support { margin-top: 14px; }
 
-/* --- Musique du jour : le mode solo, en bandeau sous les deux choix -------- */
+/* --- Modes solo : musique du jour et playlist de la semaine, sous les deux choix --- */
+.solo { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .daily {
-  margin-top: 20px; padding: 22px 26px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 22px 26px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
   position: relative; overflow: hidden;
 }
+.weekly::before { background: linear-gradient(90deg, var(--amber), var(--pink)); }
 .daily::before {
   content: ''; position: absolute; inset: -1px -1px auto -1px; height: 3px;
   background: linear-gradient(90deg, var(--lime), var(--cyan)); opacity: .8;
