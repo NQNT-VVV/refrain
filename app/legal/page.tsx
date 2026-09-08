@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 };
 
 const RESUME = [
-  { mark: '🚫', title: 'Aucun compte', text: 'Ni email, ni mot de passe, ni inscription. Un pseudo suffit, et il disparait avec la partie.' },
-  { mark: '🍪', title: 'Aucun cookie', text: 'L\'application n\'en depose aucun. Pas de traceur, pas de mesure d\'audience, pas de publicite.' },
-  { mark: '🗄️', title: 'Aucune base de donnees', text: 'Tout vit dans la memoire du serveur et s\'efface a la fin de la partie.' },
+  { mark: '🚫', title: 'Aucun compte obligatoire', text: 'Ni email, ni mot de passe, ni inscription. Un pseudo suffit. Si vous etes connecte a Podium, le hub des jeux, il vous reconnait — c\'est facultatif.' },
+  { mark: '🍪', title: 'Presque aucun cookie', text: 'Un seul, anonyme, pour les modes solo (musique du jour, playlist de la semaine). Pas de traceur, pas de mesure d\'audience, pas de publicite.' },
+  { mark: '🗄️', title: 'Aucune base de donnees', text: 'Les parties vivent dans la memoire du serveur. Seul le classement de fin de partie est envoye a Podium, quand le serveur y est relie.' },
 ];
 
 export default function LegalPage() {
@@ -58,6 +58,43 @@ export default function LegalPage() {
           Quitter la partie vous retire sur-le-champ.
         </p>
 
+        <h3>Les modes solo</h3>
+        <p>
+          La musique du jour et la playlist de la semaine gardent votre progression en memoire le temps de la
+          journee ou de la semaine : etape en cours, tentatives, score. Pour retrouver votre partie sans compte,
+          un cookie anonyme <code>refrain_daily</code> — un identifiant aleatoire, rien d&apos;autre — est depose
+          pour huit jours. Le tirage des morceaux est mis en cache sur le serveur, sans lien avec les joueurs.
+        </p>
+
+        <h3>Podium, le hub des jeux</h3>
+        <p>
+          Refrain peut etre relie a <b>Podium</b> (<code>podium.danwalex.com</code>), qui tient un classement commun
+          a plusieurs jeux. C&apos;est un projet personnel, <b>sans aucun but commercial</b>, a finalite purement
+          technique : reconnaitre un joueur d&apos;un jeu a l&apos;autre et classer les parties.
+        </p>
+        <ul>
+          <li>
+            <b>Ce que Refrain lit</b> — le cookie <code>nqnt_id</code> pose par Podium sur <code>.danwalex.com</code>,
+            s&apos;il existe : il contient votre identifiant Podium, votre pseudo et votre avatar, signes par le hub.
+            Refrain s&apos;en sert pour pre-remplir votre pseudo et rattacher vos resultats a votre compte. Il ne
+            peut ni le creer ni le modifier.
+          </li>
+          <li>
+            <b>Ce que Refrain envoie</b> — a la fin de chaque partie, le classement : jeu, mode, date, et pour chaque
+            joueur le pseudo tape en jeu, l&apos;avatar, le score et le rang. Pour les joueurs connectes a Podium,
+            leur identifiant Podium y est joint ; pour les autres, rien de plus que le pseudo. Les modes solo
+            envoient votre score au defi du jour ou de la semaine, uniquement si vous etes connecte.
+          </li>
+          <li>
+            <b>Pour ne pas etre concerne</b> — ne vous connectez pas a Podium. Vos parties y apparaissent alors
+            sous le pseudo tape en jeu, sans identifiant, et n&apos;entrent dans aucun classement.
+          </li>
+        </ul>
+        <p>
+          Ce que Podium fait ensuite de ces donnees, combien de temps il les garde et comment supprimer son compte
+          est decrit sur <a href="https://podium.danwalex.com/confidentialite">sa propre page de confidentialite</a>.
+        </p>
+
         <h3>Ce qui reste sur votre appareil</h3>
         <p>
           Quelques reglages, stockes dans le navigateur et <b>jamais envoyes ailleurs</b> : votre
@@ -67,9 +104,9 @@ export default function LegalPage() {
 
         <h3>Cookies et traceurs</h3>
         <p>
-          L&apos;application ne depose <b>aucun cookie</b>. Pas de Google Analytics, pas de pixel,
-          pas de regie publicitaire. Les polices de caracteres sont servies depuis notre propre
-          serveur : meme afficher la page ne previent personne.
+          En dehors du cookie anonyme des modes solo decrit plus haut, l&apos;application ne depose
+          <b>aucun cookie</b>. Pas de Google Analytics, pas de pixel, pas de regie publicitaire. Les polices
+          de caracteres sont servies depuis notre propre serveur : meme afficher la page ne previent personne.
         </p>
 
         <h3>Ce que votre navigateur contacte quand meme</h3>
