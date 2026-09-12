@@ -350,9 +350,18 @@ class GameServer {
   /* Deroulement de la partie                                         */
   /* ---------------------------------------------------------------- */
 
-  /** Salle Socket.IO du terminal charge du son. */
+  /**
+   * Salle Socket.IO du terminal charge du son. Elle ne contient qu'un seul
+   * onglet a la fois : plusieurs ecrans peuvent afficher la meme partie — la
+   * scene et la source OBS, par exemple — mais un seul la joue.
+   */
   audioRoom(room) {
-    return room.audioTarget === 'host' ? `${room.code}:host` : `${room.code}:screen`;
+    return room.audioTarget === 'host' ? `${room.code}:host:audio` : `${room.code}:screen:audio`;
+  }
+
+  /** Salle audio du terminal qui n'a pas la main : c'est lui qu'on coupe. */
+  idleAudioRoom(room) {
+    return room.audioTarget === 'host' ? `${room.code}:screen:audio` : `${room.code}:host:audio`;
   }
 
   audioTargetLabel(room) {
@@ -1074,8 +1083,7 @@ class GameServer {
    * horodatage absolu, donc les lectures restent alignees.
    */
   sendAudio(room, payload) {
-    const target = room.audioTarget === 'host' ? `${room.code}:host` : `${room.code}:screen`;
-    this.io.to(target).emit('audio', payload);
+    this.io.to(this.audioRoom(room)).emit('audio', payload);
 
     // Les extraits Deezer peuvent etre diffuses sur les telephones ; une video
     // YouTube ne peut pas etre repliquee proprement sur vingt appareils.
@@ -1084,8 +1092,7 @@ class GameServer {
     }
 
     // L'autre terminal doit couper le son s'il en jouait
-    const other = room.audioTarget === 'host' ? `${room.code}:screen` : `${room.code}:host`;
-    if (payload.action === 'play') this.io.to(other).emit('audio', { action: 'stop' });
+    if (payload.action === 'play') this.io.to(this.idleAudioRoom(room)).emit('audio', { action: 'stop' });
   }
 }
 

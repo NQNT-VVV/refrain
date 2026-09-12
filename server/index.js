@@ -177,19 +177,56 @@ function asPlayer(socket) {
 
 /**
  * Seul le terminal charge du son pilote le lecteur YouTube : c'est lui qui
- * remonte la liste des videos et le titre de celle en cours.
+ * remonte la liste des videos et le titre de celle en cours. Deux ecrans
+ * peuvent afficher la partie ; un seul tient la salle audio, donc un seul
+ * parle au serveur du lecteur.
  */
 function asAudioDevice(socket) {
   const room = roomOf(socket);
   if (!room) return null;
   const expected = room.audioTarget === 'host' ? 'host' : 'screen';
-  return socket.data.role === expected ? room : null;
+  if (socket.data.role !== expected) return null;
+  return socket.rooms.has(game.audioRoom(room)) ? room : null;
+}
+
+/**
+ * Un seul onglet joue le son pour un role donne. Deux regies ouvertes sur la
+ * meme partie, ou un ecran de scene double d'une source OBS, recevaient le
+ * meme ordre et lisaient le meme extrait a quelques centaines de millisecondes
+ * d'ecart. Le dernier arrive prend la main ; les autres sont coupes, mais
+ * continuent d'afficher la partie.
+ */
+function takeAudio(socket, room, role) {
+  const audio = `${room.code}:${role}:audio`;
+  for (const sid of [...(io.sockets.adapter.rooms.get(audio) || [])]) {
+    if (sid === socket.id) continue;
+    const other = io.sockets.sockets.get(sid);
+    if (!other) continue;
+    other.emit('audio', { action: 'stop' });
+    other.leave(audio);
+  }
+  socket.join(audio);
+}
+
+/**
+ * Le terminal qui tenait le son s'en va : un autre onglet du meme role reprend
+ * la main. Sans cette reprise, le salon se croit equipe — l'ecran restant est
+ * toujours compte — alors que plus personne ne recoit les ordres de lecture.
+ */
+function passAudio(room, role) {
+  const audio = `${room.code}:${role}:audio`;
+  if (io.sockets.adapter.rooms.get(audio)?.size) return;
+  for (const sid of io.sockets.adapter.rooms.get(`${room.code}:${role}`) || []) {
+    io.sockets.sockets.get(sid)?.join(audio);
+    return;
+  }
 }
 
 function bindHost(socket, room) {
   socket.data.role = 'host';
   socket.data.code = room.code;
   socket.join([`${room.code}:host`]);
+  takeAudio(socket, room, 'host');
   room.hostOnline = true;
 }
 
@@ -351,6 +388,7 @@ io.on('connection', (socket) => {
     socket.data.role = 'screen';
     socket.data.code = room.code;
     socket.join([`${room.code}:screen`, `${room.code}:public`]);
+    takeAudio(socket, room, 'screen');
     if (!counted) room.screenOnline += 1;
     ok(cb, { state: game.publicState(room) });
     game.broadcast(room);
@@ -489,8 +527,10 @@ io.on('connection', (socket) => {
     if (!room) return;
     if (socket.data.role === 'host') {
       room.hostOnline = io.sockets.adapter.rooms.get(`${room.code}:host`)?.size > 0;
+      passAudio(room, 'host');
     } else if (socket.data.role === 'screen') {
       room.screenOnline = Math.max(0, room.screenOnline - 1);
+      passAudio(room, 'screen');
     } else if (socket.data.role === 'player') {
       if (!socket.data.playerId) return game.broadcast(room);
       const player = room.players.get(socket.data.playerId);
