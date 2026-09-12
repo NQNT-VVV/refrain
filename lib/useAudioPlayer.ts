@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { clock } from './clock';
 import type { AudioCue } from './types';
@@ -28,6 +28,11 @@ export function useAudioPlayer() {
   const fadeTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const volume = useRef(0.8);
   const unlocked = useRef(false);
+  /**
+   * Dernier element reellement pilote. Au demontage, React a deja detache la
+   * ref : sans cette copie, il n'y aurait plus rien a mettre en pause.
+   */
+  const driven = useRef<HTMLAudioElement | null>(null);
 
   const clearTimers = useCallback(() => {
     if (startTimer.current) { clearTimeout(startTimer.current); startTimer.current = null; }
@@ -110,6 +115,7 @@ export function useAudioPlayer() {
   const handleCue = useCallback((cue: AudioCue, onFailure?: (reason: AudioFailure) => void) => {
     const el = audio.current;
     if (!el || !cue) return;
+    driven.current = el;
 
     if (cue.action === 'play' && cue.preview && cue.startAt) {
       clearTimers();
@@ -134,6 +140,17 @@ export function useAudioPlayer() {
       fadeTo(0, 420, () => { el.pause(); el.currentTime = 0; });
     }
   }, [clearTimers, fadeTo]);
+
+  /**
+   * La musique ne survit pas a la page qui la pilote. Quitter une partie en
+   * plein compte a rebours laissait un `play()` arme jusqu'a trois secondes :
+   * il partait sur un element detache, et le morceau se jouait sur l'accueil
+   * sans plus aucune commande pour l'arreter.
+   */
+  useEffect(() => () => {
+    clearTimers();
+    driven.current?.pause();
+  }, [clearTimers]);
 
   // Identite stable : sans ca, les effets qui dependent du lecteur se
   // relancent a chaque rendu.
