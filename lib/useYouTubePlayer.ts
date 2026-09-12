@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { clock } from './clock';
 import type { AudioCue } from './types';
@@ -36,7 +36,7 @@ let apiPromise: Promise<YTNamespace> | null = null;
 
 function loadApi(): Promise<YTNamespace> {
   if (apiPromise) return apiPromise;
-  apiPromise = new Promise((resolve, reject) => {
+  const pending = new Promise<YTNamespace>((resolve, reject) => {
     if (window.YT?.Player) {
       resolve(window.YT);
       return;
@@ -53,7 +53,12 @@ function loadApi(): Promise<YTNamespace> {
     tag.onerror = () => reject(new Error('Impossible de charger le lecteur YouTube.'));
     document.head.append(tag);
   });
-  return apiPromise;
+  apiPromise = pending;
+  // Un bloqueur de contenu ou une coupure reseau ne doit pas condamner la page :
+  // une promesse rejetee gardee en cache ferait echouer tous les essais suivants
+  // sans jamais retenter le chargement.
+  pending.catch(() => { if (apiPromise === pending) apiPromise = null; });
+  return pending;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -96,13 +101,17 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
   const player = useRef<YTPlayer | null>(null);
   const ready = useRef<Promise<YTPlayer> | null>(null);
   const startTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Video demandee par le dernier ordre de lecture, pour la remontee d'erreur. */
+  const cued = useRef('');
+  /** Numero de l'ordre en cours : un ordre plus recent annule ceux d'avant. */
+  const cueId = useRef(0);
   const volume = useRef(80);
   const handlers = useRef({ onVideos, onMeta, onFailed });
   handlers.current = { onVideos, onMeta, onFailed };
 
   const ensure = useCallback((): Promise<YTPlayer> => {
     if (ready.current) return ready.current;
-    ready.current = loadApi().then(
+    const pending = loadApi().then(
       (YT) => new Promise<YTPlayer>((resolve) => {
         const host = document.createElement('div');
         container.current?.append(host);
@@ -121,8 +130,11 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
             },
             onError: (event: { data: number }) => {
               const data = instance.getVideoData?.();
+              // Le serveur ne passe la manche que si l'identifiant correspond a
+              // celui qu'il a demande : quand le lecteur ne le connait plus, on
+              // renvoie celui de l'ordre en cours plutot que rien.
               handlers.current.onFailed({
-                videoId: data?.video_id ?? '',
+                videoId: data?.video_id || cued.current,
                 reason: `code ${event?.data ?? '?'}`,
               });
             },
@@ -130,7 +142,11 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
         });
       }),
     );
-    return ready.current;
+    ready.current = pending;
+    // Meme raison que pour l'API : un lecteur qui n'a pas pu naitre ne doit pas
+    // interdire toute nouvelle tentative.
+    pending.catch(() => { if (ready.current === pending) ready.current = null; });
+    return pending;
   }, []);
 
   /** Charge une playlist et remonte ses identifiants de video au serveur. */
@@ -148,10 +164,17 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
 
   const handleCue = useCallback(async (cue: AudioCue) => {
     if (cue.kind !== 'youtube') return;
+    // Les attentes ci-dessous — naissance du lecteur, duree de la video — durent
+    // plusieurs secondes. Un arret qui tombe pendant ce temps ne trouve aucun
+    // minuteur a annuler : sans ce jeton, la lecture s'armait quand meme et la
+    // video partait par-dessus la revelation.
+    const mine = (cueId.current += 1);
     const p = await ensure();
+    if (mine !== cueId.current) return;
 
     if (cue.action === 'play' && cue.videoId && cue.startAt) {
       if (startTimer.current) clearTimeout(startTimer.current);
+      cued.current = cue.videoId;
       p.cueVideoById({ videoId: cue.videoId, startSeconds: 0 });
 
       // Le titre part des que le lecteur le connait : le serveur en a besoin
@@ -167,6 +190,7 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
       });
 
       const duration = await poll(() => p.getDuration(), (d) => d > 0, 3000);
+      if (mine !== cueId.current) return;
       const offset = pickOffset(duration ?? 0);
       const wait = Math.max(0, cue.startAt - clock.now());
       startTimer.current = setTimeout(() => {
@@ -191,5 +215,11 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
     ready.current = null;
   }, []);
 
-  return { container, loadPlaylist, handleCue, setVolume };
+  // Identite stable, comme pour le lecteur d'extraits : cet objet remonte
+  // jusqu'aux effets du terminal audio, qui ne doivent pas se rebrancher a
+  // chaque rendu.
+  return useMemo(
+    () => ({ container, loadPlaylist, handleCue, setVolume }),
+    [loadPlaylist, handleCue, setVolume],
+  );
 }
