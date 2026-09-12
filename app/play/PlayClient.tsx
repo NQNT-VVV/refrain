@@ -64,6 +64,16 @@ export function PlayClient() {
 
   const sessionKey = `refrain.player.${code}`;
 
+  /**
+   * Le reglage du son appartient a l'appareil, pas a la session : il doit etre
+   * retrouve aussi bien en entrant dans la partie qu'en la reprenant apres un
+   * rafraichissement, ou il etait jusqu'ici oublie.
+   */
+  const restoreSound = useCallback(() => {
+    setMuted(store.get('refrain.player.muted', false));
+    setVolumeState(store.get('refrain.player.volume', 80));
+  }, []);
+
   const adopt = useCallback((res: { playerId: string; token?: string; name: string; avatar: string }) => {
     const token = res.token ?? store.get<Session | null>(sessionKey, null)?.token ?? '';
     store.set(sessionKey, { playerId: res.playerId, token });
@@ -81,6 +91,7 @@ export function PlayClient() {
           adopt(res);
           setState(res.state);
           if (res.you) setYou(res.you);
+          restoreSound();
           return;
         }
         store.del(sessionKey);
@@ -164,8 +175,7 @@ export function PlayClient() {
     if (!res.ok) return toast(res.error, 'err');
 
     store.set('refrain.lastName', name);
-    setMuted(store.get('refrain.player.muted', false));
-    setVolumeState(store.get('refrain.player.volume', 80));
+    restoreSound();
     adopt(res);
     setState(res.state);
     if (res.you) setYou(res.you);
@@ -806,16 +816,7 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
           <p className="muted">
             {position === 1 ? 'Personne ne t\'arrete.' : `${score} points sur ${state.counts.players} joueurs.`}
           </p>
-          {rating && (
-            <a
-              className={`pill ${rating.after >= rating.before ? 'ok' : ''}`}
-              href={hubUrl ? `${hubUrl}/classement` : undefined}
-              style={{ marginTop: 10, fontSize: 13.5 }}
-              title="Ton classement sur Podium"
-            >
-              PODIUM {rating.after >= rating.before ? '+' : ''}{Math.round(rating.after - rating.before)} · {rating.tier}
-            </a>
-          )}
+          {rating && <PodiumPill rating={rating} hubUrl={hubUrl} />}
         </div>
         <Board rows={boardWithSelf({ ...state, leaderboard: board }, self)} me={me} />
         <button
@@ -826,6 +827,24 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
         </button>
       </div>
     </section>
+  );
+}
+
+/**
+ * Variation d'Elo renvoyee par le hub. Sans hub configure, le badge n'a nulle
+ * part ou mener : il reste une pastille plutot qu'un lien sans destination,
+ * qui se serait quand meme presente comme cliquable.
+ */
+function PodiumPill({ rating, hubUrl }: { rating: PodiumRating; hubUrl: string | null }) {
+  const className = `pill ${rating.after >= rating.before ? 'ok' : ''}`;
+  const style = { marginTop: 10, fontSize: 13.5 };
+  const label = `PODIUM ${rating.after >= rating.before ? '+' : ''}${Math.round(rating.after - rating.before)} · ${rating.tier}`;
+
+  if (!hubUrl) return <span className={className} style={style}>{label}</span>;
+  return (
+    <a className={className} href={`${hubUrl}/classement`} style={style} title="Ton classement sur Podium">
+      {label}
+    </a>
   );
 }
 
