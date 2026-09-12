@@ -169,9 +169,9 @@ export function HostClient() {
               <div className={styles.linkRow}>
                 <code>{joinUrl.replace(/^https?:\/\//, '') || '—'}</code>
                 <button
-                  className="btn icon" title="Copier le lien joueur"
+                  className="btn icon" title="Copier le lien joueur" aria-label="Copier le lien joueur"
                   onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copie !', 'ok'))}
-                >LIEN</button>
+                ><Icon name="copier" /></button>
               </div>
 
               <div className="col" style={{ gap: 8 }}>
@@ -192,9 +192,9 @@ export function HostClient() {
                 <div className={styles.obsUrl}>
                   <code title={obsUrl}>{obsUrl.replace(/^https?:\/\//, '') || '—'}</code>
                   <button
-                    className="btn icon" title="Copier le lien OBS" data-testid="copy-obs"
+                    className="btn icon" title="Copier le lien OBS" aria-label="Copier le lien OBS" data-testid="copy-obs"
                     onClick={() => copyToClipboard(obsUrl).then(() => toast('Lien OBS copie !', 'ok'))}
-                  >ECRAN</button>
+                  ><Icon name="copier" /></button>
                 </div>
                 <p className="faint" style={{ fontSize: 11.5 }}>
                   Source navigateur 1920×1080, « controler l&apos;audio via OBS » coche. Le code de la
