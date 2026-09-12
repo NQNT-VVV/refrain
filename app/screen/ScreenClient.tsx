@@ -40,6 +40,7 @@ export function ScreenClient() {
   const [code, setCode] = useState('');
   const [draft, setDraft] = useState('');
   const [joined, setJoined] = useState(false);
+  const [entering, setEntering] = useState(false);
   const [volume, setVolumeState] = useState(80);
   const [muted, setMuted] = useState(false);
   const codeRef = useRef('');
@@ -93,13 +94,18 @@ export function ScreenClient() {
   async function enter(event: FormEvent) {
     event.preventDefault();
     const value = clean(draft);
-    if (value.length !== 4 || !socket) return;
+    // Le serveur met parfois une seconde a repondre : sans ce verrou, deux
+    // pressions de suite envoyaient deux demandes et le salon comptait deux
+    // ecrans pour un seul.
+    if (value.length !== 4 || !socket || entering) return;
 
     // Un seul geste utilisateur debloque WebAudio et l'element <audio>.
     sfx.unlock();
     player.unlock();
 
+    setEntering(true);
     const res = await call<{ state: GameState }>(socket, 'screen:join', { code: value });
+    setEntering(false);
     if (!res.ok) return toast(res.error, 'err');
 
     store.set('refrain.screen.code', value);
@@ -198,7 +204,10 @@ export function ScreenClient() {
                 autoComplete="off" autoCapitalize="characters" spellCheck={false}
                 onChange={(e) => setDraft(clean(e.target.value))}
               />
-              <button className="btn primary lg" type="submit" data-testid="gate-submit" disabled={!socket}>
+              <button
+                className="btn primary lg" type="submit" data-testid="gate-submit"
+                disabled={!socket || entering} aria-busy={entering}
+              >
                 {code ? 'ACTIVER LE SON ET DEMARRER' : 'CONNECTER L\'ECRAN'}
               </button>
             </form>

@@ -343,10 +343,15 @@ io.on('connection', (socket) => {
   socket.on('screen:join', ({ code } = {}, cb) => {
     const room = game.get(code);
     if (!room) return fail(cb, 'Code de partie inconnu.');
+    // Une meme socket peut rejoindre deux fois — formulaire soumis deux fois,
+    // reconnexion — sans qu'il y ait deux ecrans pour autant. La deconnexion ne
+    // decompte qu'une unite, et ce compteur autorise le depart d'une partie
+    // YouTube : gonfle, il laisse demarrer une partie que personne ne joue.
+    const counted = socket.data.role === 'screen' && socket.data.code === room.code;
     socket.data.role = 'screen';
     socket.data.code = room.code;
     socket.join([`${room.code}:screen`, `${room.code}:public`]);
-    room.screenOnline += 1;
+    if (!counted) room.screenOnline += 1;
     ok(cb, { state: game.publicState(room) });
     game.broadcast(room);
   });
