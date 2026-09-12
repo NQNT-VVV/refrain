@@ -18,7 +18,7 @@ export default function HomePage() {
       <div className="bar">
         <Brand href={null} />
         <span className="spacer" />
-        <span>EXTRAITS DE 30 S · AUCUN COMPTE REQUIS</span>
+        <span>Extraits de 30 s · aucun compte requis</span>
         <Link className="btn sm" href="/tuto">COMMENT CA MARCHE</Link>
       </div>
 
@@ -29,7 +29,7 @@ export default function HomePage() {
           <span>ETAT : PRET</span>
         </div>
         <h1>REFRAIN</h1>
-        <p>LE BLIND TEST OU TOUT LE MONDE REPREND EN CHOEUR. UN ANIMATEUR, UN ECRAN, ET LA SALLE QUI REPOND DEPUIS SON TELEPHONE.</p>
+        <p>Le blind test ou tout le monde reprend en choeur. Un animateur, un ecran, et la salle qui repond depuis son telephone.</p>
       </header>
 
       <main className={styles.choices}>
@@ -54,7 +54,7 @@ export default function HomePage() {
       <section className={styles.solo} aria-label="Modes solo">
         <div className={`card ${styles.daily}`}>
           <div className={styles.dailyText}>
-            <span className="meta">OFFICE DU JOUR</span>
+            <span className="meta">DEFI DU JOUR</span>
             <h2>MUSIQUE DU JOUR</h2>
             <p className={styles.lead}>
               Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le retrouver.
@@ -65,7 +65,7 @@ export default function HomePage() {
         </div>
         <div className={`card ${styles.daily}`}>
           <div className={styles.dailyText}>
-            <span className="meta">OFFICE DE LA SEMAINE</span>
+            <span className="meta">DEFI DE LA SEMAINE</span>
             <h2>PLAYLIST DE LA SEMAINE</h2>
             <p className={styles.lead}>
               Cinq morceaux a la suite, six ecoutes chacun, le score s’additionne. Une seule tentative

@@ -724,7 +724,7 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
 
       {source === 'spotify' && !sources.spotify && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          SPOTIFY N&apos;EST PAS CONFIGURE SUR CE NODE : IL MANQUE
+          Spotify n&apos;est pas configure sur ce serveur : il manque
           <code> SPOTIFY_CLIENT_ID</code> et <code>SPOTIFY_CLIENT_SECRET</code>.
         </p>
       )}
@@ -741,7 +741,7 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
       {isYoutube && (
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist?.pending
-            ? 'LE LECTEUR PARCOURT LA PLAYLIST'
+            ? 'Le lecteur parcourt la playlist'
             : `${playlist?.total} VIDEOS PRETES. Les titres viennent de YouTube : ils sont moins
                propres que ceux de Deezer, le mode buzzer est souvent plus confortable. Le son ne
                peut pas etre diffuse sur les telephones dans ce mode.`}
@@ -875,8 +875,8 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
           Reponse attendue : {state.round?.track?.title} — {state.round?.track?.artist}
         </div>
         {state.round?.answerDeadline && (
-          <span className="pill" style={answerLeft <= 3 ? { color: '#ffc0c0', borderColor: 'rgba(251,93,93,.5)' } : undefined}>
-            {answerLeft} S · SANS ARBITRAGE, LA MANCHE REPART
+          <span className="pill" style={answerLeft <= 3 ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>
+            {answerLeft} s · sans arbitrage, la manche repart
           </span>
         )}
         <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>MAUVAISE REPONSE</button>

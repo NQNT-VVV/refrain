@@ -67,3 +67,9 @@
 .attempt.hit { border-color: var(--ink); }
 .attempt.hit .txt { color: var(--ink); }
 .attempt.empty { background-image: var(--dither-12); background-size: var(--dither-size); color: var(--ink-60); }
+
+@media (max-width: 640px) {
+  .stages { gap: 2px; }
+  .guessRow { flex-wrap: wrap; }
+  .guessRow .btn { flex: 1 1 auto; }
+}

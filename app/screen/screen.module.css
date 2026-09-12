@@ -34,7 +34,7 @@
 .codeBig {
   font-family: var(--font-display); font-weight: 900; font-stretch: expanded;
   font-size: 18vmin; line-height: .9; letter-spacing: var(--ls-display); color: var(--ink);
-  padding: 1.4vmin 0; background-image: var(--rule); background-size: 4px 4px;
+  padding: 1.4vmin 0; border-bottom: var(--border);
 }
 .url { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); font-size: 2vmin; }
 .url b { color: var(--ink); font-weight: 400; }

@@ -232,7 +232,7 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, pod
             />
             {podiumPseudo && (
               <span className="pill ok" style={{ alignSelf: 'flex-start' }}>
-                CONNECTE VIA PODIUM · TON SCORE COMPTERA POUR LE CLASSEMENT
+                Connecte via PODIUM · ton score comptera pour le classement
               </span>
             )}
           </div>

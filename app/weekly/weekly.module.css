@@ -31,3 +31,8 @@
 .solved .pts b { color: var(--ink); }
 .missed .pts b { color: var(--ink-60); }
 .pts small { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+
+@media (max-width: 640px) {
+  .wrap { padding: var(--sp-4) var(--sp-3) var(--sp-12); }
+  .head { flex-wrap: wrap; gap: var(--sp-2); }
+}

@@ -110,10 +110,10 @@ export function ScreenClient() {
     return () => { window.removeEventListener('mousemove', onMove); clearTimeout(timer); document.body.style.cursor = ''; };
   }, []);
 
-  const accent = state?.playlist?.accent;
-  useEffect(() => {
-    document.documentElement.style.setProperty('--accent', accent || '#8b5cf6');
-  }, [accent]);
+  /*
+   * Les listes portent chacune une couleur d'accent, heritee de l'ancien theme. Le systeme
+   * n'a qu'un accent, et il signale ce qui vit : on ne le laisse pas devenir decoratif.
+   */
 
   // Fond transparent : OBS compose alors le jeu par-dessus la scene du streamer.
   useEffect(() => {
@@ -355,12 +355,6 @@ function Playing({ state, ratio, seconds, buzzLock, side }: {
       <div className={styles.playMain}>
         <div className={styles.ringWrap}>
           <svg viewBox="0 0 100 100" aria-hidden="true">
-            <defs>
-              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#22d3ee" />
-                <stop offset="100%" stopColor="#8b5cf6" />
-              </linearGradient>
-            </defs>
             <circle className={styles.ringBg} cx="50" cy="50" r="47" />
             <circle
               className={styles.ringFg} cx="50" cy="50" r="47"

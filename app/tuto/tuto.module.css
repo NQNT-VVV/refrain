@@ -47,3 +47,7 @@
 
 .cta { margin: var(--sp-16) var(--margin) 0; display: flex; gap: var(--sp-3); flex-wrap: wrap; }
 .footer { margin: var(--sp-12) var(--margin) 0; padding-top: var(--sp-6); border-top: var(--border); }
+
+@media (max-width: 640px) {
+  .wrap { padding: var(--sp-6) var(--sp-3) var(--sp-12); }
+}

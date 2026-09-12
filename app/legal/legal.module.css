@@ -33,3 +33,7 @@
 .note b { color: var(--ink); }
 
 .updated { margin: var(--sp-12) var(--margin) 0; padding-top: var(--sp-6); border-top: var(--border); font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+
+@media (max-width: 640px) {
+  .wrap { padding: var(--sp-6) var(--sp-3) var(--sp-12); }
+}
