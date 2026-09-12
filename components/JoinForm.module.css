@@ -1,0 +1,18 @@
+/* Code de partie : quatre cases, un champ reel invisible au-dessus. */
+.code { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); max-width: 264px; }
+
+.real {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; border: 0; background: transparent; cursor: pointer; z-index: 1;
+  font: var(--t-ui-l); letter-spacing: var(--ls-mono); color: transparent;
+}
+.real:focus { outline: none; }
+
+.cell {
+  height: 56px; border: 1px solid var(--ink-25); display: flex; align-items: center; justify-content: center;
+  font: var(--t-ui-l); letter-spacing: var(--ls-mono); color: var(--ink);
+}
+.active { border-color: var(--accent); }
+.ko { border-color: var(--ink); }
+
+.caret { width: 12px; height: 24px; background: var(--accent); animation: blink var(--dur-blink) var(--ease-hold) infinite; }

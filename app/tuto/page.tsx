@@ -58,7 +58,6 @@ export default function TutoPage() {
           ))}
         </div>
         <div className={styles.tip}>
-          <span className={styles.mark}>💡</span>
           <span>
             La regie garde ton salon meme si tu rafraichis la page. Un joueur qui perd le reseau
             retrouve son score en revenant : rien n&apos;est perdu.
@@ -70,7 +69,6 @@ export default function TutoPage() {
         <h2>Les deux modes</h2>
         <div className={styles.cards}>
           <div className={styles.card2}>
-            <span className={styles.icon}>⌨️</span>
             <h3>Reponse libre</h3>
             <p>
               Tout le monde tape le titre et l&apos;artiste. La correction est automatique et
@@ -86,7 +84,6 @@ export default function TutoPage() {
           </div>
 
           <div className={styles.card2}>
-            <span className={styles.icon}>🔔</span>
             <h3>Buzzer</h3>
             <p>
               Le premier qui appuie coupe la musique, son nom s&apos;affiche en grand, il repond
@@ -117,7 +114,6 @@ export default function TutoPage() {
           </table>
         </div>
         <div className={styles.tip}>
-          <span className={styles.mark}>⏱️</span>
           <span>
             Le bonus fond pendant l&apos;extrait : trouver a la deuxieme seconde rapporte plus qu&apos;a
             la vingtieme. Au buzzer, une bonne reponse vaut un forfait fixe, reglable en regie.
@@ -129,7 +125,6 @@ export default function TutoPage() {
         <h2>Ou trouver les morceaux</h2>
         <div className={styles.cards}>
           <div className={styles.card2}>
-            <span className={styles.icon}>🎧</span>
             <h3>23 listes pretes</h3>
             <p>
               Top du moment, annees 80 a 2010, rap FR, chanson francaise, rock, disco, dancefloor,
@@ -138,7 +133,6 @@ export default function TutoPage() {
             </p>
           </div>
           <div className={styles.card2}>
-            <span className={styles.icon}>🎤</span>
             <h3>Un seul artiste</h3>
             <p>
               Toute la partie sur un artiste, avec trois profondeurs : ses
@@ -154,7 +148,6 @@ export default function TutoPage() {
           </div>
 
           <div className={styles.card2}>
-            <span className={styles.icon}>📥</span>
             <h3>Tes propres listes</h3>
             <p>
               Cherche des titres un par un pour composer ta selection, ou colle une playlist
@@ -178,7 +171,6 @@ export default function TutoPage() {
           cote va le classement pour laisser la place a ta webcam.
         </p>
         <div className={styles.tip}>
-          <span className={styles.mark}>⏸</span>
           <span>
             Coupure pub, souci technique&nbsp;? La <b>pause</b> fige le chrono et le son la ou ils
             en sont, et la reprise repart exactement de la.
@@ -194,7 +186,6 @@ export default function TutoPage() {
           meme moment.
         </p>
         <div className={styles.tip}>
-          <span className={styles.mark}>📱</span>
           <span>
             Pour jouer <b>a distance</b> (visio, joueurs eparpilles), active «&nbsp;Son aussi sur les
             telephones&nbsp;» dans les reglages : chaque appareil joue l&apos;extrait, cale sur la meme
@@ -202,7 +193,6 @@ export default function TutoPage() {
           </span>
         </div>
         <div className={`${styles.tip} ${styles.warn}`}>
-          <span className={styles.mark}>⚠️</span>
           <span>
             Dans une <b>meme piece</b>, laisse cette option fermee : une dizaine d&apos;appareils a
             quelques dizaines de millisecondes d&apos;ecart font de la bouillie.
@@ -220,7 +210,6 @@ export default function TutoPage() {
           <span><kbd>N</kbd> ou <kbd>Echap</kbd> refuser un buzz</span>
         </div>
         <div className={styles.tip}>
-          <span className={styles.mark}>🙈</span>
           <span>
             Le bouton <b>Masquer</b> floute le morceau en cours et les manches a venir, si des
             joueurs peuvent voir ton ecran de regie.

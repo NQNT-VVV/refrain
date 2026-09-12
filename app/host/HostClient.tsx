@@ -118,7 +118,7 @@ export function HostClient() {
   if (!state) {
     return (
       <div className={styles.shell}>
-        <div className={styles.bar}><Brand /><span className="pill">🎛️ Regie</span></div>
+        <div className={styles.bar}><Brand /><span className="pill">REGIE</span></div>
         <p className="muted">Ouverture du salon…</p>
       </div>
     );
@@ -134,13 +134,13 @@ export function HostClient() {
       <div className={styles.shell}>
         <div className={styles.bar}>
           <Brand />
-          <span className="pill">🎛️ Regie</span>
+          <span className="pill">REGIE</span>
           <span className="pill" data-testid="phase">{PHASE_LABEL[state.phase]}</span>
           <div className="grow" />
           <span className={`pill ${state.screenOnline > 0 ? 'ok' : ''}`}>
             {state.screenOnline > 0
-              ? `📺 ${state.screenOnline} ecran${state.screenOnline > 1 ? 's' : ''} connecte${state.screenOnline > 1 ? 's' : ''}`
-              : '📺 aucun ecran'}
+              ? `${state.screenOnline} ECRAN${state.screenOnline > 1 ? 'S' : ''} CONNECTE${state.screenOnline > 1 ? 'S' : ''}`
+              : 'AUCUN ECRAN'}
           </span>
           <a className="btn sm" href={`/screen?code=${code}`} target="_blank" rel="noopener">Ouvrir l&apos;ecran ↗</a>
         </div>
@@ -163,7 +163,7 @@ export function HostClient() {
                 <button
                   className="btn icon" title="Copier le lien joueur"
                   onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copie !', 'ok'))}
-                >🔗</button>
+                >LIEN</button>
               </div>
 
               <div className="col" style={{ gap: 8 }}>
@@ -186,7 +186,7 @@ export function HostClient() {
                   <button
                     className="btn icon" title="Copier le lien OBS" data-testid="copy-obs"
                     onClick={() => copyToClipboard(obsUrl).then(() => toast('Lien OBS copie !', 'ok'))}
-                  >📺</button>
+                  >ECRAN</button>
                 </div>
                 <p className="faint" style={{ fontSize: 11.5 }}>
                   Source navigateur 1920×1080, « controler l&apos;audio via OBS » coche. Le code de la
@@ -206,7 +206,7 @@ export function HostClient() {
                         void send('host:audioTarget', { target });
                       }}
                     >
-                      {target === 'screen' ? '📺 Ecran' : '💻 Ici'}
+                      {target === 'screen' ? 'ECRAN' : 'ICI'}
                     </button>
                   ))}
                 </div>
@@ -235,10 +235,10 @@ export function HostClient() {
                 <section className="card pad col" style={{ gap: 16 }}>
                   <div className={styles.tabs} role="tablist">
                     {([
-                      ['catalog', '🎧 Listes pretes'],
-                      ['artist', '🎤 Un artiste'],
-                      ['search', '🔎 Ma selection'],
-                      ['import', '📥 Importer'],
+                      ['catalog', 'LISTES PRETES'],
+                      ['artist', 'UN ARTISTE'],
+                      ['search', 'MA SELECTION'],
+                      ['import', 'IMPORTER'],
                     ] as const).map(([id, label]) => (
                       <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
                     ))}
@@ -261,7 +261,7 @@ export function HostClient() {
                             if (res?.ok) toast(`Liste actualisee — ${res.total} titres`, 'ok');
                           }}
                         >
-                          {refreshing ? '⏳ Actualisation…' : '🔄 Actualiser'}
+                          {refreshing ? 'ACTUALISATION' : 'ACTUALISER'}
                         </button>
                       </div>
                     )}
@@ -274,7 +274,7 @@ export function HostClient() {
                           style={{ ['--c' as string]: c.accent }}
                           onClick={() => pickCategory(c)}
                         >
-                          <span className={styles.check}>✅</span>
+                          <span className={styles.check}>×</span>
                           <span className={styles.em}>{c.emoji}</span>
                           <span className={styles.t}>{c.title}</span>
                           <span className={styles.s}>{loadingCat === c.id ? 'Chargement des extraits…' : c.subtitle}</span>
@@ -335,7 +335,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
                 <div className={`${styles.nm} ellipsis`}>{p.name}</div>
                 {guess && (
                   <div className={`${styles.guess} ellipsis`}>
-                    {p.answered?.titleOk ? '🎵' : ''}{p.answered?.artistOk ? '🎤' : ''} {guess}
+                    {p.answered?.titleOk ? 'T' : ''}{p.answered?.artistOk ? 'A' : ''} {guess}
                   </div>
                 )}
               </div>
@@ -347,7 +347,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
                   onClick={() => { if (confirm(`Retirer ${p.name} de la partie ?`)) void send('host:kick', { playerId: p.id }); }}
                 >✕</button>
               </div>
-              {p.lastGain > 0 && <span className={styles.sc} style={{ color: 'var(--green)' }}>+{p.lastGain}</span>}
+              {p.lastGain > 0 && <span className={styles.sc} style={{ color: 'var(--accent)' }}>+{p.lastGain}</span>}
               <span className={styles.sc}>{p.score}</span>
             </div>
           );
@@ -388,7 +388,7 @@ function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
         <label className="switch" title="Masquer la reponse pour ne pas spoiler ton entourage">
           <input type="checkbox" checked={blurred} onChange={(e) => onBlur(e.target.checked)} />
           <span className="track" />
-          <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>Masquer</span>
+          <span className="meta">MASQUER</span>
         </label>
       </div>
 
@@ -409,7 +409,7 @@ function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
         <div className={styles.nowPlaying}>
           {track?.cover
             ? <img className={styles.hideable} src={track.cover} alt="" />
-            : <div className={`${styles.hideable} avatar lg`}>🎵</div>}
+            : <div className={`${styles.hideable} avatar lg`} aria-hidden="true" />}
           <div className="grow">
             <div className={`${styles.t} ${styles.hideable}`} data-testid="np-title">{track?.title ?? '—'}</div>
             <div className={`${styles.a} ${styles.hideable}`} data-testid="np-artist">{track?.artist ?? '—'}</div>
@@ -507,7 +507,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
               <button key={a.id} type="button" className={styles.artistCard} onClick={() => setPicked(a)}>
                 {a.picture
                   ? <img src={a.picture} alt="" loading="lazy" />
-                  : <span className="avatar">🎤</span>}
+                  : <span className="avatar" aria-hidden="true" />}
                 <span className="grow" style={{ minWidth: 0 }}>
                   <span className={`${styles.n} ellipsis`} style={{ display: 'block' }}>{a.name}</span>
                   <span className={styles.f}>{a.fans.toLocaleString('fr-FR')} fans</span>
@@ -565,7 +565,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
 
           {active && (
             <p className={styles.note} style={{ marginTop: 12 }}>
-              ✅ {active.title} — {active.subtitle}
+              {active.title} · {active.subtitle}
             </p>
           )}
         </>
@@ -619,7 +619,7 @@ function SearchTab({ send, count }: { send: Send; count: number }) {
         {!busy && results?.length === 0 && <p className="faint" style={{ padding: 10 }}>Aucun extrait jouable pour cette recherche.</p>}
         {!busy && results?.map((t) => (
           <div key={t.id} className={styles.tres}>
-            {t.cover ? <img src={t.cover} alt="" loading="lazy" /> : <div className="avatar">🎵</div>}
+            {t.cover ? <img src={t.cover} alt="" loading="lazy" /> : <div className="avatar" aria-hidden="true" />}
             <div className="grow">
               <div className={`${styles.t} ellipsis`}>{t.title}</div>
               <div className={`${styles.a} ellipsis`}>{t.artist}</div>
@@ -663,7 +663,7 @@ function detectSource(raw: string): 'youtube' | 'deezer' | 'spotify' | null {
   return null;
 }
 
-const SOURCE_LABEL = { spotify: '🟢 Charger', youtube: '▶️ Charger', deezer: 'Importer' } as const;
+const SOURCE_LABEL = { spotify: 'CHARGER', youtube: 'CHARGER', deezer: 'IMPORTER' } as const;
 
 function ImportTab({ send, state, sources }: { send: Send; state: GameState; sources: { spotify?: boolean } }) {
   const [url, setUrl] = useState('');
@@ -717,14 +717,14 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
 
       {!audioDeviceReady && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          ⚠️ {state.audioTarget === 'host' ? 'La regie' : "L'ecran de diffusion"} doit etre connecte :
+          {state.audioTarget === 'host' ? 'LA REGIE' : "L'ECRAN DE DIFFUSION"} DOIT ETRE CONNECTE :
           c&apos;est lui qui lit la playlist YouTube.
         </p>
       )}
 
       {source === 'spotify' && !sources.spotify && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          ⚠️ Spotify n&apos;est pas configure sur ce serveur : il manque
+          SPOTIFY N&apos;EST PAS CONFIGURE SUR CE NODE : IL MANQUE
           <code> SPOTIFY_CLIENT_ID</code> et <code>SPOTIFY_CLIENT_SECRET</code>.
         </p>
       )}
@@ -732,8 +732,8 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
       {playlist?.source === 'spotify' && (
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist.pending
-            ? `⏳ ${playlist.subtitle}`
-            : `🟢 ${playlist.subtitle}. Spotify ne fournit plus d'extraits : chaque morceau est
+            ? playlist.subtitle
+            : `${playlist.subtitle}. Spotify ne fournit plus d'extraits : chaque morceau est
                retrouve chez Deezer par son identifiant international, ce qui explique l'ecart.`}
         </p>
       )}
@@ -741,8 +741,8 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
       {isYoutube && (
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist?.pending
-            ? '⏳ Le lecteur parcourt la playlist…'
-            : `▶️ ${playlist?.total} videos pretes. Les titres viennent de YouTube : ils sont moins
+            ? 'LE LECTEUR PARCOURT LA PLAYLIST'
+            : `${playlist?.total} VIDEOS PRETES. Les titres viennent de YouTube : ils sont moins
                propres que ceux de Deezer, le mode buzzer est souvent plus confortable. Le son ne
                peut pas etre diffuse sur les telephones dans ce mode.`}
         </p>
@@ -876,12 +876,12 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
         </div>
         {state.round?.answerDeadline && (
           <span className="pill" style={answerLeft <= 3 ? { color: '#ffc0c0', borderColor: 'rgba(251,93,93,.5)' } : undefined}>
-            ⏳ {answerLeft} s — sans arbitrage, la manche repart
+            {answerLeft} S · SANS ARBITRAGE, LA MANCHE REPART
           </span>
         )}
-        <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>❌ Mauvaise reponse</button>
+        <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>MAUVAISE REPONSE</button>
         <button className="btn good lg" data-testid="judge-good" onClick={() => send('host:judge', { ok: true })}>
-          ✅ Bonne reponse (+{state.settings.buzzerPoints})
+          BONNE REPONSE (+{state.settings.buzzerPoints})
         </button>
       </>
     );

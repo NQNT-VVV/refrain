@@ -34,7 +34,8 @@ interface SoundControls {
   probe: () => void;
 }
 
-const MEDALS = ['🥇', '🥈', '🥉'];
+/** Rangs en hexadecimal : 0x00 est le systeme, les humains commencent a 0x01. */
+const MEDALS = ['0x01', '0x02', '0x03'];
 
 export function PlayClient() {
   const router = useRouter();
@@ -215,7 +216,7 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, pod
       <div className={styles.brandBar}><Brand /></div>
       <main className={styles.main}>
         <form className={styles.hello} onSubmit={onSubmit}>
-          <div className={styles.logo}>🎧</div>
+          <div className={styles.logo} aria-hidden="true" />
           <div style={{ textAlign: 'center' }}>
             <h1 className={styles.big}>Rejoindre la partie</h1>
             <p className="muted" style={{ fontSize: 14, marginTop: 6 }}>
@@ -231,7 +232,7 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, pod
             />
             {podiumPseudo && (
               <span className="pill ok" style={{ alignSelf: 'flex-start' }}>
-                🏆 Connecte via Podium — ton score comptera pour le classement
+                CONNECTE VIA PODIUM · TON SCORE COMPTERA POUR LE CLASSEMENT
               </span>
             )}
           </div>
@@ -301,7 +302,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
               onClick={() => { if (!soundOpen) sound.probe(); setSoundOpen((v) => !v); }}
               aria-expanded={soundOpen} aria-label="Reglage du son" title="Reglage du son"
             >
-              {sound.muted || sound.volume === 0 ? '🔇' : '🔊'}
+              {sound.muted || sound.volume === 0 ? 'OFF' : 'ON'}
             </button>
           )}
 
@@ -314,7 +315,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
               type="button" onClick={sound.toggleMute}
               aria-label={sound.muted ? 'Reactiver le son' : 'Couper le son'}
             >
-              {sound.muted ? '🔇' : '🔊'}
+              {sound.muted ? 'OFF' : 'ON'}
             </button>
 
             {sound.locked ? (
@@ -375,7 +376,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
       {!connected && (
         <div className={styles.connLost}>
           <div>
-            <div style={{ fontSize: 44 }}>📡</div>
+            <div className="loading-dots" aria-hidden="true"><span /><span /><span /></div>
             <h2 className={styles.big} style={{ margin: '10px 0 6px' }}>Connexion perdue</h2>
             <p className="muted">On tente de te reconnecter…</p>
           </div>
@@ -415,7 +416,7 @@ function Lobby({ state, me, code }: { state: GameState; me: Me; code: string }) 
   return (
     <section className={styles.panel} data-testid="scene-lobby">
       <div className={styles.waiting}>
-        <div className={styles.pulseRing}>🎶</div>
+        <div className={styles.pulseRing} aria-hidden="true" />
         <div>
           <h2 className={styles.big}>Tu es dans la place</h2>
           <p className="muted" style={{ marginTop: 6 }}>
@@ -517,9 +518,9 @@ function AnswerForm({ state, me, self, socket }: {
 
     const gotTitle = res.titleOk && !before.title;
     const gotArtist = res.artistOk && !before.artist;
-    if (gotTitle && gotArtist) { sfx.great(); toast('🎯 Titre + artiste !', 'ok'); navigator.vibrate?.([20, 50, 20, 50, 30]); }
-    else if (gotTitle) { sfx.good(); toast('✅ Titre trouve !', 'ok'); navigator.vibrate?.(45); }
-    else if (gotArtist) { sfx.good(); toast('✅ Artiste trouve !', 'ok'); navigator.vibrate?.(45); }
+    if (gotTitle && gotArtist) { sfx.great(); toast('TITRE ET ARTISTE · ACCEPTES', 'ok'); navigator.vibrate?.([20, 50, 20, 50, 30]); }
+    else if (gotTitle) { sfx.good(); toast('TITRE ACCEPTE', 'ok'); navigator.vibrate?.(45); }
+    else if (gotArtist) { sfx.good(); toast('ARTISTE ACCEPTE', 'ok'); navigator.vibrate?.(45); }
     else { sfx.bad(); setHint('Pas encore… reessaie, le chrono tourne.'); navigator.vibrate?.(90); }
   }
 
@@ -530,7 +531,7 @@ function AnswerForm({ state, me, self, socket }: {
           <div className={styles.wave}><i /><i /><i /><i /><i /></div>
           <div className="grow">
             <div className={styles.stageTitle}>Manche {state.round!.index + 1}</div>
-            <div style={{ fontFamily: 'var(--display)', fontSize: 17 }}>C&apos;est quoi ce morceau ?</div>
+            <div className={styles.big}>C&apos;EST QUOI CE MORCEAU ?</div>
           </div>
         </div>
 
@@ -543,7 +544,7 @@ function AnswerForm({ state, me, self, socket }: {
               autoComplete="off" autoCapitalize="off" spellCheck={false} enterKeyHint="send"
               value={title} onChange={(e) => setTitle(e.target.value)}
             />
-            <span className={styles.flag}>✅</span>
+            <span className={styles.flag}>OK</span>
           </div>
 
           {askArtist && (
@@ -554,13 +555,13 @@ function AnswerForm({ state, me, self, socket }: {
                 autoComplete="off" autoCapitalize="words" spellCheck={false} enterKeyHint="send"
                 value={artist} onChange={(e) => setArtist(e.target.value)}
               />
-              <span className={styles.flag}>✅</span>
+              <span className={styles.flag}>OK</span>
             </div>
           )}
 
           {allFound ? (
             <div className={styles.allFound}>
-              <span className={styles.mark}>🎯</span>
+              <span className={styles.mark} aria-hidden="true" />
               <span className={styles.t}>Tout trouve !</span>
               <span className={styles.s}>
                 {elapsed ? `En ${elapsed} s — les points arrivent a la revelation.` : 'Les points arrivent a la revelation.'}
@@ -669,7 +670,7 @@ function Buzzer({ state, me, you, socket, buzzLock, answerLeft }: {
         {buzzed ? (
           <>
             <span className={styles.who}>
-              {isMine ? '🔔 A toi de repondre !' : `${buzz?.avatar ?? ''} ${buzz?.name ?? 'Quelqu\'un'} a buzze`}
+              {isMine ? 'A TOI DE REPONDRE' : `${buzz?.name ?? 'UN SUJET'} A BUZZE`}
             </span>
             <p className="muted" style={{ marginTop: 6 }}>
               {isMine ? 'Annonce le titre et l\'artiste a voix haute.' : 'L\'animateur valide ou non sa reponse.'}
@@ -712,7 +713,7 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
     <section className={styles.panel}>
       <div className={styles.stageTitle}>La reponse</div>
       <div className={`card ${styles.trackCard}`}>
-        {track.cover ? <img src={track.cover} alt="" /> : <div className="avatar lg">🎵</div>}
+        {track.cover ? <img src={track.cover} alt="" /> : <div className="avatar lg" aria-hidden="true" />}
         <div className="grow">
           <div className={styles.t}>{track.title}</div>
           {track.artist && <div className={styles.a}>{track.artist}</div>}
@@ -722,11 +723,11 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
       <div className={styles.verdict}>
         <div className={`${styles.v} ${badge?.titleOk ? styles.yes : styles.no}`}>
-          <b>Titre</b><span>{badge?.titleOk ? '✅' : '❌'}</span>
+          <b>TITRE</b><span>{badge?.titleOk ? 'OK' : 'NON'}</span>
         </div>
         {asksArtist(state) ? (
           <div className={`${styles.v} ${badge?.artistOk ? styles.yes : styles.no}`}>
-            <b>Artiste</b><span>{badge?.artistOk ? '✅' : '❌'}</span>
+            <b>ARTISTE</b><span>{badge?.artistOk ? 'OK' : 'NON'}</span>
           </div>
         ) : (
           <div className={styles.v}><b>Artiste</b><span className="faint">—</span></div>
@@ -737,7 +738,7 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
       {track.link && (
         <a className={styles.listenLink} href={track.link} target="_blank" rel="noopener noreferrer">
-          🎧 Ecouter le morceau en entier
+          ECOUTER LE MORCEAU EN ENTIER
         </a>
       )}
 
@@ -785,7 +786,7 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
     <section className={styles.panel}>
       <canvas ref={canvas} className={styles.confetti} />
       <div className={styles.final}>
-        <div className={styles.medal}>{MEDALS[position - 1] ?? '🎉'}</div>
+        <div className={styles.medal} aria-hidden="true" />
         <div>
           <div className={styles.pos}>{position ? `${ordinal(position)} place` : 'Partie terminee'}</div>
           <p className="muted">
@@ -798,7 +799,7 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
               style={{ marginTop: 10, fontSize: 13.5 }}
               title="Ton classement sur Podium"
             >
-              🏆 Podium {rating.after >= rating.before ? '+' : ''}{Math.round(rating.after - rating.before)} · {rating.tier}
+              PODIUM {rating.after >= rating.before ? '+' : ''}{Math.round(rating.after - rating.before)} · {rating.tier}
             </a>
           )}
         </div>
@@ -807,7 +808,7 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
           className="btn block"
           onClick={() => copyToClipboard(`${location.origin}/j/${code}`).then(() => toast('Lien copie', 'ok'))}
         >
-          🔗 Copier le lien de la partie
+          COPIER LE LIEN DE LA PARTIE
         </button>
       </div>
     </section>

@@ -142,7 +142,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             disabled={!state.preview}
             aria-label={playing ? 'Arreter' : 'Ecouter'}
           >
-            {playing ? '■' : '▶'}
+            {playing ? 'STOP' : 'PLAY'}
           </button>
           <div className={styles.playInfo}>
             <b>{state.finished ? 'Extrait complet' : `${state.unlocked} seconde${state.unlocked > 1 ? 's' : ''} debloquee${state.unlocked > 1 ? 's' : ''}`}</b>
@@ -195,7 +195,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { setText(`${h.title} — ${h.artist}`); setOpen(false); }}
                 >
-                  {h.cover ? <img src={h.cover} alt="" /> : <span className="avatar">🎵</span>}
+                  {h.cover ? <img src={h.cover} alt="" /> : <span className="avatar" aria-hidden="true" />}
                   <span className={styles.st}><b>{h.title}</b><span>{h.artist}</span></span>
                 </button>
               ))}
@@ -203,7 +203,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
           )}
           <div className={styles.actions}>
             <button className="btn" type="button" onClick={() => { if (!busy) void onSkip(); }} disabled={busy}>
-              ⏭ Passer (+{nextUnlock} s)
+              PASSER (+{nextUnlock} S)
             </button>
             <button className="btn primary" type="submit" disabled={busy || text.trim().length < 2}>
               Valider
@@ -220,7 +220,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             <div key={i} className={`${styles.attempt} ${cls}`}>
               <span className={styles.n}>{i + 1}</span>
               <span className={styles.txt}>{!a ? '' : a.skipped ? 'Passe' : a.text}</span>
-              <span aria-hidden="true">{!a ? '' : a.ok ? '✓' : a.skipped ? '⏭' : '✕'}</span>
+              <span aria-hidden="true">{!a ? '' : a.ok ? 'OK' : a.skipped ? 'PASSE' : 'NON'}</span>
             </div>
           );
         })}

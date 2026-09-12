@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 };
 
 const RESUME = [
-  { mark: '🚫', title: 'Aucun compte obligatoire', text: 'Ni email, ni mot de passe, ni inscription. Un pseudo suffit. Si vous etes connecte a Podium, le hub des jeux, il vous reconnait — c\'est facultatif.' },
-  { mark: '🍪', title: 'Presque aucun cookie', text: 'Un seul, anonyme, pour les modes solo (musique du jour, playlist de la semaine). Pas de traceur, pas de mesure d\'audience, pas de publicite.' },
-  { mark: '🗄️', title: 'Aucune base de donnees', text: 'Les parties vivent dans la memoire du serveur. Seul le classement de fin de partie est envoye a Podium, quand le serveur y est relie.' },
+  { mark: '', title: 'AUCUN COMPTE OBLIGATOIRE', text: 'Ni email, ni mot de passe, ni inscription. Un pseudo suffit. Si vous etes connecte a Podium, le hub des jeux, il vous reconnait — c\'est facultatif.' },
+  { mark: '', title: 'PRESQUE AUCUN COOKIE', text: 'Un seul, anonyme, pour les modes solo (musique du jour, playlist de la semaine). Pas de traceur, pas de mesure d\'audience, pas de publicite.' },
+  { mark: '', title: 'AUCUNE BASE DE DONNEES', text: 'Les parties vivent dans la memoire du serveur. Seul le classement de fin de partie est envoye a Podium, quand le serveur y est relie.' },
 ];
 
 export default function LegalPage() {
@@ -193,7 +193,6 @@ export default function LegalPage() {
         </p>
 
         <div className={styles.note}>
-          <span className={styles.mark}>ℹ️</span>
           <span>
             <b>Un usage public ou commercial n&apos;est pas le meme qu&apos;une soiree entre
             amis.</b> Diffuser une partie devant une audience, en direct ou non, releve de regles

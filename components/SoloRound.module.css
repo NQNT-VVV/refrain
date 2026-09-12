@@ -2,73 +2,68 @@
    musique du jour et la playlist de la semaine. */
 
 /* --- Lecteur ------------------------------------------------------- */
-.player { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-.playRow { display: flex; align-items: center; gap: 14px; }
+.player { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
+.playRow { display: flex; align-items: center; gap: var(--sp-4); }
+/* Lecture : un bouton primaire, carre, en inversion. */
 .playBtn {
-  width: 64px; height: 64px; flex: none; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; color: #fff;
-  background: linear-gradient(135deg, var(--violet), var(--indigo) 55%, var(--cyan));
-  box-shadow: 0 12px 30px -10px rgba(139, 92, 246, .9);
-  transition: transform .15s var(--ease), box-shadow .25s, opacity .2s;
-  display: grid; place-items: center; padding-left: 3px;
+  width: 56px; height: 56px; flex: none; cursor: pointer;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
+  font: var(--t-ui-l); letter-spacing: var(--ls-mono); display: grid; place-items: center; transition: none;
 }
-.playBtn.playing { padding-left: 0; }
-.playBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 16px 40px -10px rgba(139, 92, 246, 1); }
-.playBtn:active:not(:disabled) { transform: scale(.96); }
-.playBtn:disabled { opacity: .4; cursor: not-allowed; }
-.playInfo { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.playInfo b { font-family: var(--display); font-size: 17px; }
-.playInfo span { font-size: 12.5px; color: var(--muted); }
+.playBtn:hover:not(:disabled) { background: var(--bg); color: var(--ink); animation: flash var(--dur-flash) var(--ease-hold); }
+.playBtn:active:not(:disabled) { border-color: var(--accent); background: var(--accent-deep); color: var(--ink); }
+.playBtn:disabled { background-color: transparent; background-image: var(--dither-25); background-size: var(--dither-size); border-color: var(--ink-12); color: var(--ink-60); cursor: not-allowed; }
+.playInfo { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
+.playInfo b { font: var(--t-ui); letter-spacing: var(--ls-mono); font-weight: 400; }
+.playInfo span { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
 
-/* Barre de 16 s : la zone debloquee en clair, le reste en pointilles. */
-.track { position: relative; height: 12px; border-radius: 99px; background: rgba(255,255,255,.07); overflow: hidden; border: 1px solid var(--stroke); }
-.track .unlocked { position: absolute; inset: 0 auto 0 0; background: rgba(139,92,246,.35); transition: width .4s var(--ease); }
-.track .cursor { position: absolute; inset: 0 auto 0 0; width: 2px; background: #fff; box-shadow: 0 0 8px #fff; transition: none; }
-.track .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.22); }
-.ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; padding: 0 2px; }
+/* Barre de 16 s : la zone debloquee en dither, la tete de lecture en sang. */
+.track { position: relative; height: 12px; border: 1px solid var(--ink-25); box-sizing: border-box; }
+.track .unlocked { position: absolute; inset: 0 auto 0 0; background-image: var(--dither-50); background-size: var(--dither-size); transition: none; }
+.track .cursor { position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--accent); transition: none; }
+.track .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-25); }
+.ticks { display: flex; justify-content: space-between; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); font-variant-numeric: tabular-nums; }
 
-/* --- Etapes -------------------------------------------------------- */
-.stages { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.stage {
-  height: 6px; border-radius: 99px; background: rgba(255,255,255,.1); border: 1px solid transparent;
-  transition: background .3s, box-shadow .3s;
-}
-.stage.done { background: rgba(251,93,93,.55); }
-.stage.skipped { background: rgba(156,150,189,.45); }
-.stage.now { background: linear-gradient(90deg, var(--violet), var(--cyan)); box-shadow: 0 0 14px -2px var(--violet); }
-.stage.won { background: var(--green); box-shadow: 0 0 14px -2px var(--green); }
+/* --- Etapes — progression 0x09 ------------------------------------ */
+.stages { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-1); height: 8px; }
+.stage { box-sizing: border-box; border: 1px solid var(--ink-25); transition: none; }
+.stage.done { background: var(--ink); border-color: var(--ink); }
+.stage.skipped { background-image: var(--dither-25); background-size: var(--dither-size); }
+.stage.now { background: var(--accent); border-color: var(--accent); animation: blink var(--dur-blink) var(--ease-hold) infinite; }
+.stage.won { background: var(--ink); border-color: var(--ink); }
 
 /* --- Saisie -------------------------------------------------------- */
-.form { display: flex; flex-direction: column; gap: 10px; position: relative; }
-.inputRow { display: flex; gap: 8px; }
+.form { display: flex; flex-direction: column; gap: var(--sp-3); position: relative; }
+.inputRow { display: flex; gap: var(--sp-2); }
 .inputRow :global(.input) { flex: 1; min-width: 0; }
 .suggest {
-  position: absolute; left: 0; right: 0; top: calc(100% - 6px); z-index: 30;
-  background: rgba(20, 18, 42, .98); border: 1px solid var(--stroke-strong); border-radius: 14px;
-  box-shadow: var(--shadow-2); overflow: hidden; max-height: 280px; overflow-y: auto;
+  position: absolute; left: 0; right: 0; top: calc(100% - 4px); z-index: 30;
+  background: var(--bg); border: 1px solid var(--ink); max-height: 280px; overflow-y: auto;
 }
 .suggest button {
-  width: 100%; text-align: left; display: flex; align-items: center; gap: 10px;
-  padding: 10px 13px; border: 0; background: transparent; cursor: pointer; font-size: 14px;
+  width: 100%; text-align: left; display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3); border: 0; border-bottom: var(--border); background: transparent; cursor: pointer;
+  font: var(--t-ui); letter-spacing: var(--ls-mono); color: var(--ink);
 }
-.suggest button:hover, .suggest button[aria-selected="true"] { background: var(--surface-2); }
-.suggest img { width: 34px; height: 34px; border-radius: 8px; flex: none; }
+.suggest button:last-child { border-bottom: 0; }
+.suggest button:hover, .suggest button[aria-selected="true"] { background-image: var(--dither-12); background-size: var(--dither-size); }
+.suggest img { width: 32px; height: 32px; flex: none; border: 1px solid var(--ink-25); }
 .suggest .st { display: flex; flex-direction: column; min-width: 0; }
-.suggest .st b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.suggest .st span { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actions { display: flex; gap: 8px; }
+.suggest .st b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest .st span { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: flex; gap: var(--sp-2); }
 .actions :global(.btn) { flex: 1; }
 
 /* --- Tentatives ---------------------------------------------------- */
-.attempts { display: flex; flex-direction: column; gap: 6px; }
-.attempt {
-  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; font-size: 13.5px;
-  background: var(--surface); border: 1px solid var(--stroke);
-}
-.attempt .n { width: 18px; color: var(--faint); font-family: var(--display); font-weight: 700; text-align: center; }
+.attempts { display: flex; flex-direction: column; }
+.attempt { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); font: var(--t-meta); letter-spacing: var(--ls-mono); border: 1px solid var(--ink-25); border-bottom: 0; }
+.attempt:last-child { border-bottom: 1px solid var(--ink-25); }
+.attempt .n { width: 32px; color: var(--ink-60); }
 .attempt .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.attempt.miss { border-color: rgba(251,93,93,.35); }
-.attempt.miss .txt { color: #ffc0c0; }
-.attempt.skip .txt { color: var(--faint); font-style: italic; }
-.attempt.hit { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.4); }
-.attempt.hit .txt { color: #b6f7de; font-weight: 600; }
-.attempt.empty { opacity: .45; border-style: dashed; }
+/* Une reponse refusee : une bande hachuree, pas du rouge. */
+.attempt.miss { background-image: var(--hatch); background-repeat: repeat-y; background-size: 8px 8px; background-position: left; padding-left: var(--sp-4); }
+.attempt.miss .txt { color: var(--ink); }
+.attempt.skip .txt { color: var(--ink-60); }
+.attempt.hit { border-color: var(--ink); }
+.attempt.hit .txt { color: var(--ink); }
+.attempt.empty { background-image: var(--dither-12); background-size: var(--dither-size); color: var(--ink-60); }

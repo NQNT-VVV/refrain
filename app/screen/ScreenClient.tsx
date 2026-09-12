@@ -158,7 +158,7 @@ export function ScreenClient() {
       )}
 
       <div className={styles.corner} hidden={options.stream}>
-        <span className="pill">{volume === 0 ? '🔇 son coupe' : '🔊 son actif'}</span>
+        <span className="pill">{volume === 0 ? 'SON COUPE' : 'SON ACTIF'}</span>
         <input
           type="range" min={0} max={100} value={volume} aria-label="Volume"
           onChange={(e) => { const v = Number(e.target.value); setVolumeState(v); player.setVolume(v / 100); }}
@@ -167,7 +167,7 @@ export function ScreenClient() {
           className="btn sm" type="button"
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
         >
-          ⛶ Plein ecran
+          PLEIN ECRAN
         </button>
       </div>
 
@@ -183,7 +183,7 @@ export function ScreenClient() {
                 onChange={(e) => setDraft(clean(e.target.value))}
               />
               <button className="btn primary lg" type="submit" data-testid="gate-submit" disabled={!socket}>
-                {code ? '🔊 Activer le son et demarrer' : 'Connecter l\'ecran'}
+                {code ? 'ACTIVER LE SON ET DEMARRER' : 'CONNECTER L\'ECRAN'}
               </button>
             </form>
           </div>
@@ -205,7 +205,7 @@ function Stage({ state, code, options }: { state: GameState; code: string; optio
     <div className={`${styles.screen} ${options.stream ? styles.stream : ''}`}>
       <header className={styles.head}>
         <div className={styles.pl}>
-          <span className={styles.em}>{state.playlist?.emoji ?? '🎧'}</span>
+          <span className={styles.em} aria-hidden="true">{state.playlist?.emoji ?? ''}</span>
           <span>{state.playlist?.title ?? 'Refrain'}</span>
         </div>
         <div className={styles.mid}>
@@ -377,7 +377,7 @@ function Playing({ state, ratio, seconds, buzzLock, side }: {
         </div>
 
         {state.settings.mode === 'buzzer' && buzzLock > 0 && (
-          <div className={styles.buzzGate}>🔒 Buzzer dans <b>{buzzLock}</b></div>
+          <div className={styles.buzzGate}>BUZZER DANS <b>{buzzLock}</b></div>
         )}
       </div>
 
@@ -392,7 +392,7 @@ function Playing({ state, ratio, seconds, buzzLock, side }: {
             const done = hasFoundAll(p.answered, ask);
             const part = hasFoundSome(p.answered);
             const marks = state.settings.mode === 'buzzer'
-              ? (state.round?.lockedOut.includes(p.id) ? '⛔' : '')
+              ? (state.round?.lockedOut.includes(p.id) ? 'HC' : '')
               : answerMarks(p.answered, ask).replace(/·/g, '');
             return (
               <div key={p.id} className={`${styles.prow} ${done ? styles.done : part ? styles.part : ''} ${p.connected ? '' : styles.off}`}>
@@ -452,7 +452,7 @@ function Buzzed({ state, answerLeft }: { state: GameState; answerLeft: number })
 
   return (
     <section className={`${styles.scene} ${styles.buzzed}`}>
-      <div className={styles.buzzAv}>{buzz?.avatar ?? '🔔'}</div>
+      <div className={styles.buzzAv} aria-hidden="true">{buzz?.avatar ?? ''}</div>
       <div className={styles.buzzName}>{buzz?.name ?? '—'}</div>
       <div className={styles.buzzSub}>a buzze — la reponse, vite !</div>
       {state.round?.answerDeadline && (
@@ -496,7 +496,7 @@ function Reveal({ state }: { state: GameState }) {
           {track.album && <div className={styles.revealAlbum}>{track.album}</div>}
           {fastest && (
             <div className={styles.fastestBadge}>
-              ⚡ Le plus rapide : {fastest.avatar} <b>{fastest.name}</b> en {fmtSeconds(fastest.ms)}
+              LE PLUS RAPIDE · <b>{fastest.name}</b> · {fmtSeconds(fastest.ms)}
             </div>
           )}
           <div className={styles.scorers}>
@@ -504,7 +504,7 @@ function Reveal({ state }: { state: GameState }) {
               <span key={r.playerId} className={styles.s} style={{ animationDelay: `${i * 0.07}s` }}>
                 {r.avatar} {r.name}<span className={styles.pts}> +{r.gained}</span>
               </span>
-            )) : <span className={styles.none}>Personne n&apos;a trouve… 😬</span>}
+            )) : <span className={styles.none}>PERSONNE N&apos;A TROUVE</span>}
           </div>
         </div>
       </div>
@@ -557,7 +557,7 @@ function Ended({ state }: { state: GameState }) {
   return (
     <section className={`${styles.scene} ${styles.ended}`}>
       <canvas ref={canvas} className={styles.confetti} />
-      <h2>🏆 Resultats</h2>
+      <h2>RESULTATS</h2>
       <div className={styles.podium}>
         {order.map((i) => (
           <div key={board[i].id} className={`${styles.step} ${steps[i]}`} style={{ animationDelay: `${i * 0.18}s` }}>

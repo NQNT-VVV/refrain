@@ -1,95 +1,93 @@
 import Link from 'next/link';
 
 import { Brand } from '@/components/Brand';
-import { SupportNote } from '@/components/SupportNote';
-
 import { JoinForm } from '@/components/JoinForm';
+import { SupportNote } from '@/components/SupportNote';
 import styles from './page.module.css';
 
 const FEATURES = [
-  { title: '🎧 17 listes pretes', text: 'Top du moment, annees 80/90/2000, rap FR, Disney, jeux video, metal, hymnes de soiree…' },
-  { title: '⚡ Reponse libre ou buzzer', text: 'Tout le monde tape titre + artiste avec bonus de rapidite, ou premier au buzzer valide par l\'animateur.' },
-  { title: '📺 Ecran streamable', text: 'Une page plein ecran a projeter, partager en visio ou capturer dans OBS.' },
-  { title: '🔤 Correction indulgente', text: 'Accents, fautes de frappe et mentions « feat. » sont pardonnes automatiquement.' },
+  { n: '0x01', title: '17 listes pretes', text: 'Top du moment, annees 80/90/2000, rap FR, Disney, jeux video, metal, hymnes de soiree.' },
+  { n: '0x02', title: 'Reponse libre ou buzzer', text: 'Tout le monde tape titre et artiste avec bonus de rapidite, ou premier au buzzer valide par l’animateur.' },
+  { n: '0x03', title: 'Ecran de projection', text: 'Une page plein ecran a projeter, partager en visio ou capturer dans OBS.' },
+  { n: '0x04', title: 'Correction indulgente', text: 'Accents, fautes de frappe et mentions « feat. » sont pardonnes automatiquement.' },
 ];
 
 export default function HomePage() {
   return (
     <div className={styles.wrap}>
-      <div className={styles.topbar}>
+      <div className="bar">
         <Brand href={null} />
-        <span className={styles.spacer} />
-        <Link className="btn sm" href="/tuto">📖 Comment ca marche</Link>
+        <span className="spacer" />
+        <span>EXTRAITS DE 30 S · AUCUN COMPTE REQUIS</span>
+        <Link className="btn sm" href="/tuto">COMMENT CA MARCHE</Link>
       </div>
 
       <header className={styles.hero}>
-        <span className={`pill ${styles.badge}`}>
-          <span className="dot" /> Extraits de 30 s • aucun compte requis
-        </span>
-        <h1>Refrain</h1>
-        <p>
-          Le blind test ou tout le monde reprend en choeur. Un animateur, un ecran, et la salle qui
-          repond depuis son telephone.
-        </p>
+        <div className={styles.kicker}>
+          <span>BLIND TEST MULTIJOUEUR</span>
+          <span>REGIE · ECRAN · TELEPHONE</span>
+          <span>ETAT : PRET</span>
+        </div>
+        <h1>REFRAIN</h1>
+        <p>LE BLIND TEST OU TOUT LE MONDE REPREND EN CHOEUR. UN ANIMATEUR, UN ECRAN, ET LA SALLE QUI REPOND DEPUIS SON TELEPHONE.</p>
       </header>
 
       <main className={styles.choices}>
         <section className={`card ${styles.choice}`}>
-          <div className={styles.icon}>🎛️</div>
-          <h2>J&apos;anime la partie</h2>
+          <div className={styles.num}>0x01</div>
+          <h2>J’ANIME LA PARTIE</h2>
           <p className={styles.lead}>
-            Cree un salon, choisis tes listes de morceaux, invite tes joueurs avec un QR code et
-            pilote les manches. Un ecran separe est disponible pour la projection ou le stream.
+            Cree un salon, choisis tes listes, invite tes joueurs avec un QR code et pilote les manches.
+            Un ecran separe est disponible pour la projection ou le stream.
           </p>
-          <Link className="btn primary lg block" href="/host">Creer une partie</Link>
+          <Link className="btn primary lg block" href="/host">CREER UNE PARTIE</Link>
         </section>
 
-        <section className={`card ${styles.choice} ${styles.join}`}>
-          <div className={styles.icon}>📱</div>
-          <h2>Je rejoins</h2>
-          <p className={styles.lead}>
-            Saisis le code affiche a l&apos;ecran, choisis ton pseudo, et c&apos;est parti.
-          </p>
-          <JoinForm className="col" inputClassName={styles.codeInput} />
+        <section className={`card ${styles.choice}`}>
+          <div className={styles.num}>0x02</div>
+          <h2>JE REJOINS</h2>
+          <p className={styles.lead}>Saisis le code affiche a l’ecran, choisis ton pseudo, et c’est parti.</p>
+          <JoinForm className="col" />
         </section>
       </main>
 
       <section className={styles.solo} aria-label="Modes solo">
         <div className={`card ${styles.daily}`}>
-          <div className={styles.dailyIcon}>🎵</div>
           <div className={styles.dailyText}>
-            <h2>Musique du jour</h2>
+            <span className="meta">OFFICE DU JOUR</span>
+            <h2>MUSIQUE DU JOUR</h2>
             <p className={styles.lead}>
-              Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le
-              retrouver. Une partie par jour.
+              Un morceau, le meme pour tout le monde, et six ecoutes de plus en plus longues pour le retrouver.
+              Une partie par jour.
             </p>
           </div>
-          <Link className="btn lg" href="/daily">Jouer aujourd&apos;hui</Link>
+          <Link className="btn lg" href="/daily">JOUER AUJOURD’HUI</Link>
         </div>
-        <div className={`card ${styles.daily} ${styles.weekly}`}>
-          <div className={styles.dailyIcon}>📀</div>
+        <div className={`card ${styles.daily}`}>
           <div className={styles.dailyText}>
-            <h2>Playlist de la semaine</h2>
+            <span className="meta">OFFICE DE LA SEMAINE</span>
+            <h2>PLAYLIST DE LA SEMAINE</h2>
             <p className={styles.lead}>
-              Cinq morceaux a la suite, six ecoutes chacun, le score s&apos;additionne. Une seule
-              tentative par semaine : la meme playlist pour tout le monde jusqu&apos;a dimanche.
+              Cinq morceaux a la suite, six ecoutes chacun, le score s’additionne. Une seule tentative
+              par semaine : la meme playlist pour tout le monde jusqu’a dimanche.
             </p>
           </div>
-          <Link className="btn lg" href="/weekly">Jouer cette semaine</Link>
+          <Link className="btn lg" href="/weekly">JOUER CETTE SEMAINE</Link>
         </div>
       </section>
 
       <section className={styles.feats}>
         {FEATURES.map((f) => (
           <div key={f.title} className={styles.feat}>
+            <span className="meta">{f.n}</span>
             <b>{f.title}</b>
-            <span>{f.text}</span>
+            <span className={styles.featText}>{f.text}</span>
           </div>
         ))}
       </section>
 
       <footer className={styles.footer}>
-        <p>Deja anime une partie ? <Link href="/host">Reprendre la regie</Link> — le lien retrouve ton salon en cours.</p>
+        <p>Deja anime une partie ? <Link href="/host">Reprendre la regie</Link> · le lien retrouve ton salon en cours.</p>
         <SupportNote className={styles.support} />
       </footer>
     </div>

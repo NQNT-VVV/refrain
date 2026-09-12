@@ -33,7 +33,7 @@ function Revealed({ track, highlight = false }: { track: RevealedTrack; highligh
   return (
     <div className={`${styles.revealed} ${track.solved ? styles.solved : styles.missed} ${highlight ? styles.fresh : ''}`}>
       <span className={styles.idx}>{track.index + 1}</span>
-      {track.cover ? <img src={track.cover} alt="" /> : <span className={styles.noCover}>🎵</span>}
+      {track.cover ? <img src={track.cover} alt="" /> : <span className={styles.noCover} aria-hidden="true" />}
       <span className={styles.meta}>
         <b>{track.title}</b>
         <span>{track.artist}</span>
@@ -115,14 +115,14 @@ export function WeeklyClient() {
       <div className={daily.brandBar}>
         <Brand />
         <span className={daily.spacer} />
-        <Link className="btn sm" href="/daily">🎵 Musique du jour</Link>
+        <Link className="btn sm" href="/daily">MUSIQUE DU JOUR</Link>
         <Link className="btn sm" href="/">← Accueil</Link>
       </div>
 
       <main className={daily.main}>
         <header className={daily.head}>
           <span className={daily.date}>{state ? prettyWeek(state.weekKey) : 'Playlist de la semaine'}</span>
-          <h1>📀 Playlist de la semaine</h1>
+          <h1>PLAYLIST DE LA SEMAINE</h1>
           <p>Cinq morceaux, les memes pour tout le monde, six ecoutes chacun. Une seule tentative par semaine : le score s&apos;additionne.</p>
         </header>
 
@@ -179,7 +179,7 @@ export function WeeklyClient() {
             {state.hubUrl && (
               state.identity ? (
                 <div className={`${daily.podiumNote} ${daily.linked}`}>
-                  <span aria-hidden="true">🏆</span>
+                  <span className="meta">PODIUM</span>
                   <span>
                     Connecte via Podium en tant que <b>{state.identity.pseudo}</b> : ton total compte pour le defi de la semaine.
                     {' '}<a href={`${state.hubUrl}/defis`}>Voir le classement</a>
@@ -187,7 +187,7 @@ export function WeeklyClient() {
                 </div>
               ) : (
                 <div className={daily.podiumNote}>
-                  <span aria-hidden="true">🏆</span>
+                  <span className="meta">PODIUM</span>
                   <span>
                     Tu joues en anonyme : rien n&apos;est enregistre.
                     {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi a Podium</a> pour etre classe avec les autres.

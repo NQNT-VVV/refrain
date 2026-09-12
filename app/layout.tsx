@@ -1,40 +1,13 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Color_Emoji, Space_Grotesk } from 'next/font/google';
 
 import { Aurora } from '@/components/Aurora';
 import { Toaster } from '@/components/Toaster';
+import { archivo, departure, emoji } from '@/lib/fonts';
 import './globals.css';
 
-const body = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-body',
-  display: 'swap',
-});
-
-/**
- * Police emoji embarquee. Une source navigateur OBS, ou un PC de projection
- * fraichement installe, n'a souvent aucune police emoji : avatars, marqueurs et
- * trophees s'affichent alors en carres vides — sur l'ecran que tout le monde
- * regarde. L'embarquer garantit le meme rendu partout.
- */
-const emoji = Noto_Color_Emoji({
-  subsets: ['emoji'],
-  weight: '400',
-  variable: '--font-emoji',
-  display: 'swap',
-  preload: false,
-});
-
-const display = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
+/** Une onde d'os sur fond noir : la marque, reduite a un signe. */
 const FAVICON =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎧%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23060505'/%3E%3Cpath fill='%23D9D2C3' d='M2 7h1v2H2zM4 5h1v6H4zM6 2h1v12H6zM9 4h1v8H9zM11 6h1v4h-1zM13 7h1v2h-1z'/%3E%3C/svg%3E";
 
 export const metadata: Metadata = {
   title: { default: 'Refrain — Blind Test', template: '%s — Refrain' },
@@ -45,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#07060e',
+  themeColor: '#060505',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -53,7 +26,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${body.variable} ${display.variable} ${emoji.variable}`}>
+    <html lang="fr" className={`${archivo.variable} ${departure.variable} ${emoji.variable}`}>
       <body>
         <Aurora />
         {children}

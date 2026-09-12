@@ -81,14 +81,14 @@ export function DailyClient() {
       <div className={styles.brandBar}>
         <Brand />
         <span className={styles.spacer} />
-        <Link className="btn sm" href="/weekly">📀 Playlist de la semaine</Link>
+        <Link className="btn sm" href="/weekly">PLAYLIST DE LA SEMAINE</Link>
         <Link className="btn sm" href="/">← Accueil</Link>
       </div>
 
       <main className={styles.main}>
         <header className={styles.head}>
           <span className={styles.date}>{state ? prettyDate(state.dateKey) : 'Musique du jour'}</span>
-          <h1>🎵 Musique du jour</h1>
+          <h1>MUSIQUE DU JOUR</h1>
           <p>Un seul morceau, le meme pour tout le monde. Six ecoutes, de plus en plus longues, pour le retrouver.</p>
         </header>
 
@@ -123,7 +123,7 @@ export function DailyClient() {
             {state.hubUrl && (
               state.identity ? (
                 <div className={`${styles.podiumNote} ${styles.linked}`}>
-                  <span aria-hidden="true">🏆</span>
+                  <span className="meta">PODIUM</span>
                   <span>
                     Connecte via Podium en tant que <b>{state.identity.pseudo}</b> : ton score compte pour le defi du jour.
                     {' '}<a href={`${state.hubUrl}/defis`}>Voir le classement</a>
@@ -131,7 +131,7 @@ export function DailyClient() {
                 </div>
               ) : (
                 <div className={styles.podiumNote}>
-                  <span aria-hidden="true">🏆</span>
+                  <span className="meta">PODIUM</span>
                   <span>
                     Tu joues en anonyme : rien n&apos;est enregistre.
                     {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi a Podium</a> pour etre classe avec les autres.
