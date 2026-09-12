@@ -371,6 +371,15 @@ io.on('connection', (socket) => {
   socket.on('youtube:failed', ({ videoId, reason } = {}, cb) => {
     const room = asAudioDevice(socket);
     if (!room) return fail(cb, 'Ce terminal ne pilote pas le son.');
+    // Le role « ecran » s'obtient avec le seul code du salon, qui reste affiche
+    // sur la projection et dans le stream. Cet evenement passe une manche : le
+    // role ne suffit donc pas. On exige que la partie lise reellement YouTube
+    // et que la video annoncee soit celle de la manche en cours ; le reste est
+    // ignore en silence, sans rien apprendre a l'emetteur.
+    const track = room.round?.track;
+    const current = room.playlist?.source === 'youtube' && track?.source === 'youtube'
+      && track.videoId === String(videoId || '');
+    if (!current) return ok(cb);
     // Video indisponible ou lecture refusee : on passe a la manche suivante.
     if (room.phase === 'countdown' || room.phase === 'playing') {
       console.warn(`[youtube] video ${videoId} injouable (${reason || 'inconnu'}), manche passee`);
