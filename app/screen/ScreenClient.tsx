@@ -44,6 +44,10 @@ export function ScreenClient() {
   const [muted, setMuted] = useState(false);
   const codeRef = useRef('');
   const joinedRef = useRef(false);
+  // Le clavier lit le reglage courant sans que l'ecouteur ait a se rebrancher
+  // a chaque cran de volume.
+  const soundRef = useRef({ volume, muted });
+  soundRef.current = { volume, muted };
 
   const options = useMemo<StreamOptions>(() => ({
     stream: params.get('stream') === '1',
@@ -57,6 +61,19 @@ export function ScreenClient() {
       : "L'extrait n'a pas pu etre charge.",
     'err',
   ));
+
+  /**
+   * Un seul chemin pour regler le son : la pastille, le curseur et le clavier
+   * disaient chacun leur verite, et la touche « M » finissait par afficher
+   * l'inverse de ce qu'on entendait.
+   */
+  const applySound = useCallback((next: { volume?: number; muted?: boolean }) => {
+    const level = next.volume ?? soundRef.current.volume;
+    const off = next.muted ?? soundRef.current.muted;
+    setVolumeState(level);
+    setMuted(off);
+    player.setVolume(off ? 0 : level / 100);
+  }, [player]);
 
   useEffect(() => {
     const initial = clean(params.get('code') ?? store.get('refrain.screen.code', ''));
@@ -129,19 +146,18 @@ export function ScreenClient() {
         if (document.fullscreenElement) void document.exitFullscreen();
         else void document.documentElement.requestFullscreen?.();
       } else if (e.key === 'm' || e.key === 'M') {
-        setMuted((v) => { player.setVolume(v ? volume / 100 : 0); return !v; });
+        applySound({ muted: !soundRef.current.muted });
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
-        setVolumeState((v) => {
-          const next = Math.max(0, Math.min(100, v + (e.key === 'ArrowUp' ? 5 : -5)));
-          player.setVolume(next / 100);
-          return next;
-        });
+        const step = e.key === 'ArrowUp' ? 5 : -5;
+        // Toucher au volume vaut reprise du son : sinon la barre monte et la
+        // salle n'entend toujours rien.
+        applySound({ volume: Math.max(0, Math.min(100, soundRef.current.volume + step)), muted: false });
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [player, volume]);
+  }, [applySound]);
 
   // Le serveur demande le chargement d'une playlist YouTube par evenement.
   useEffect(() => player.attach(socket), [socket, player]);
@@ -158,10 +174,10 @@ export function ScreenClient() {
       )}
 
       <div className={styles.corner} hidden={options.stream}>
-        <span className="pill">{volume === 0 ? 'SON COUPE' : 'SON ACTIF'}</span>
+        <span className="pill">{muted || volume === 0 ? 'SON COUPE' : 'SON ACTIF'}</span>
         <input
-          type="range" min={0} max={100} value={volume} aria-label="Volume"
-          onChange={(e) => { const v = Number(e.target.value); setVolumeState(v); player.setVolume(v / 100); }}
+          type="range" min={0} max={100} value={muted ? 0 : volume} aria-label="Volume"
+          onChange={(e) => applySound({ volume: Number(e.target.value), muted: false })}
         />
         <button
           className="btn sm" type="button"
