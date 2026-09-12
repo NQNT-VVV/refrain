@@ -359,6 +359,20 @@ class GameServer {
     return room.audioTarget === 'host' ? 'La regie' : 'L\'ecran de diffusion';
   }
 
+  /**
+   * Change la sortie du son. Le terminal qu'on abandonne doit etre coupe ici :
+   * il ne recevra plus aucun ordre, donc plus rien ne pourrait l'arreter — en
+   * pleine manche, les deux appareils jouaient le meme extrait dephase.
+   */
+  setAudioTarget(room, target) {
+    const next = target === 'host' ? 'host' : 'screen';
+    if (next !== room.audioTarget) {
+      this.io.to(this.audioRoom(room)).emit('audio', { action: 'stop' });
+      room.audioTarget = next;
+    }
+    return room.audioTarget;
+  }
+
   audioDeviceOnline(room) {
     return room.audioTarget === 'host' ? room.hostOnline : room.screenOnline > 0;
   }

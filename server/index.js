@@ -264,8 +264,7 @@ io.on('connection', (socket) => {
   socket.on('host:audioTarget', ({ target } = {}, cb) => {
     const room = asHost(socket);
     if (!room) return fail(cb, 'Session animateur expiree.');
-    room.audioTarget = target === 'host' ? 'host' : 'screen';
-    ok(cb, { audioTarget: room.audioTarget });
+    ok(cb, { audioTarget: game.setAudioTarget(room, target) });
     game.broadcast(room);
   });
 
