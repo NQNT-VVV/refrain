@@ -50,6 +50,12 @@
 .soundPanel input[type="range"] { flex: 1; min-width: 0; }
 .soundPanel .lvl { font: var(--t-ui); letter-spacing: var(--ls-mono); font-variant-numeric: tabular-nums; width: 44px; text-align: right; }
 .soundNote { flex: 1; min-width: 0; font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
+/* Cette page ne se joue qu'au doigt : le reglage du son est le seul endroit ou
+   des boutons de 28 px subsistaient, et le bloc global d'agartha.css ne
+   rattrape que les variantes de `.btn`. */
+@media (pointer: coarse) {
+  .soundToggle, .soundPanel button { width: 44px; height: 44px; }
+}
 
 .listenLink { display: inline-flex; align-items: center; gap: var(--sp-2); align-self: flex-start; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); text-decoration: underline; text-underline-offset: 4px; }
 

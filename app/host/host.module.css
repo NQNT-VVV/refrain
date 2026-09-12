@@ -33,7 +33,9 @@
 
 /* --- Sujets — carte joueur 0x05 -------------------------------- */
 .plist { display: flex; flex-direction: column; max-height: 46vh; overflow: auto; border: var(--border); }
-.plist.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); max-height: none; border: 0; gap: var(--sp-2); }
+/* `min(100%, …)` comme ailleurs : sans lui, la colonne de 300 px deborde de
+   l'ecran des le format telephone, et la regie se consulte aussi a la main. */
+.plist.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); max-height: none; border: 0; gap: var(--sp-2); }
 .bare { background: transparent; border: 0; padding: 0; }
 
 .pcard { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-bottom: var(--border); }
