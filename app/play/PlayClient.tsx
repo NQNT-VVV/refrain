@@ -347,13 +347,18 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
       <main className={styles.main}>
         {state.phase === 'lobby' && <Lobby state={state} me={me} code={code} />}
         {state.phase === 'countdown' && <Countdown round={state.round!.index + 1} value={countdown} />}
-        {state.phase === 'playing' && state.settings.mode === 'input' && (
-          <AnswerForm key={state.round!.index} state={state} me={me} self={self} socket={socket} />
+        {/* La pause garde le formulaire monte : le demonter effacerait ce que
+            chaque joueur a deja tape. */}
+        {(state.phase === 'playing' || state.phase === 'paused') && state.settings.mode === 'input' && (
+          <AnswerForm
+            key={state.round!.index} state={state} me={me} self={self} socket={socket}
+            paused={state.phase === 'paused'}
+          />
         )}
         {(state.phase === 'playing' || state.phase === 'buzzed') && state.settings.mode === 'buzzer' && (
           <Buzzer state={state} me={me} you={you} socket={socket} buzzLock={buzzLock} answerLeft={answerLeft} />
         )}
-        {state.phase === 'paused' && (
+        {state.phase === 'paused' && state.settings.mode !== 'input' && (
           <section className={styles.panel} data-testid="scene-paused">
             <div className={styles.pausedPanel}>
               <div className={styles.bars}><i /><i /></div>
@@ -467,8 +472,10 @@ function Countdown({ round, value }: { round: number; value: number | null }) {
 
 /* ---------------- Reponse libre ---------------- */
 
-function AnswerForm({ state, me, self, socket }: {
+function AnswerForm({ state, me, self, socket, paused }: {
   state: GameState; me: Me; self: PlayerRow | null; socket: Socket | null;
+  /** La partie est en pause : on garde la saisie, on suspend la validation. */
+  paused: boolean;
 }) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
@@ -569,10 +576,17 @@ function AnswerForm({ state, me, self, socket }: {
             </div>
           ) : (
             <>
-              <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={sending} aria-busy={sending}>
-                Valider ma reponse
+              <button
+                className="btn primary lg block" type="submit" data-testid="answer-submit"
+                disabled={sending || paused} aria-busy={sending}
+              >
+                {paused ? 'Partie en pause' : 'Valider ma reponse'}
               </button>
-              <p className={styles.hint}>{hint}</p>
+              <p className={styles.hint}>
+                {paused
+                  ? 'L\'animateur a mis la partie en pause. Ta saisie est gardee, la validation revient a la reprise.'
+                  : hint}
+              </p>
             </>
           )}
         </form>
