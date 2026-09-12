@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 
 import { Brand } from '@/components/Brand';
+import { Icon } from '@/components/Icon';
 import { QrCode } from '@/components/QrCode';
 import { SupportNote } from '@/components/SupportNote';
 import { asksArtist, hasFoundAll, hasFoundSome, PHASE_LABEL } from '@/lib/game';
@@ -104,7 +105,7 @@ export function HostClient() {
     setLoadingCat(cat.id);
     const res = await send('host:playlist', { type: 'catalog', id: cat.id }, 60000);
     setLoadingCat(null);
-    if (res?.ok) toast(`${cat.emoji} ${cat.title} — liste prete`, 'ok');
+    if (res?.ok) toast(`${cat.title} — liste prete`, 'ok');
   }
 
   // Un seul chrono pour toute la page : le panneau de jeu et la barre de
@@ -119,7 +120,14 @@ export function HostClient() {
     return (
       <div className={styles.shell}>
         <div className={styles.bar}><Brand /><span className="pill">REGIE</span></div>
-        <p className="muted">Ouverture du salon…</p>
+        {/* Jamais d'ecran vide : on dit ce qu'on attend, et on montre que ca travaille. */}
+        <div className="waiting" role="status" aria-live="polite">
+          <div className="frame">
+            <span className="what">Ouverture du salon</span>
+            <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
+            <span>Connexion au serveur · le code apparaitra ici</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -249,7 +257,7 @@ export function HostClient() {
                     {state.playlist?.source === 'catalog' && (
                       <div className="row" style={{ marginBottom: 4 }}>
                         <span className="muted grow" style={{ fontSize: 13 }}>
-                          {state.playlist.emoji} {state.playlist.title} — {state.playlist.total} titres
+                          {state.playlist.title} — {state.playlist.total} titres
                         </span>
                         <button
                           className="btn xs" disabled={refreshing}
@@ -476,7 +484,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
       90000,
     );
     setBusy(null);
-    if (res?.ok) toast(`${mode.emoji} ${picked.name} — ${mode.title}`, 'ok');
+    if (res?.ok) toast(`${picked.name} — ${mode.title}`, 'ok');
   }, [picked, send]);
 
   /** Changer d'avis sur les featurings reconstruit la liste deja choisie. */
@@ -645,7 +653,7 @@ function SearchTab({ send, count }: { send: Send; count: number }) {
         {picked.map((t) => (
           <span key={t.id} className={styles.p}>
             {t.title} — {t.artist}
-            <button title="Retirer" onClick={() => custom('remove', { id: t.id })}>✕</button>
+            <button title="Retirer" aria-label="Retirer ce titre" onClick={() => custom('remove', { id: t.id })}><Icon name="croix" /></button>
           </span>
         ))}
       </div>
@@ -787,7 +795,7 @@ function SettingsPanel({ settings, send, askArtist }: { settings: Settings; send
           <div className="seg" role="group">
             {(['input', 'buzzer'] as const).map((mode) => (
               <button key={mode} type="button" data-testid={`mode-${mode}`} aria-pressed={settings.mode === mode} onClick={() => patch({ mode })}>
-                {mode === 'input' ? '⌨️ Reponse libre' : '🔔 Buzzer'}
+                {mode === 'input' ? 'Reponse libre' : 'Buzzer'}
               </button>
             ))}
           </div>
@@ -858,7 +866,7 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
       <>
         <div className="grow muted" style={{ fontSize: 13.5 }}>
           {state.playlist
-            ? `${state.playlist.emoji} ${state.playlist.title} · ${state.settings.rounds} manches · ${state.settings.clip} s`
+            ? `${state.playlist.title} · ${state.settings.rounds} manches · ${state.settings.clip} s`
             : 'Aucune liste selectionnee'}
         </div>
         {why && <span className="pill">{why}</span>}
@@ -915,7 +923,7 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
           className="btn sm"
           onClick={() => { if (confirm('Arreter la partie et revenir au salon ?')) void send('host:lobby'); }}
         >↩ Retour au salon</button>
-        {!isReveal && <button className="btn" data-testid="reveal" onClick={() => send('host:reveal')}>👁 Reveler maintenant</button>}
+        {!isReveal && <button className="btn" data-testid="reveal" onClick={() => send('host:reveal')}><Icon name="oeil" />Reveler maintenant</button>}
         <button className="btn primary" data-testid="primary-action" onClick={() => send('host:next')}>
           {round.index + 1 >= round.total ? '🏁 Terminer' : '⏭ Manche suivante'}
         </button>

@@ -93,7 +93,15 @@ export function DailyClient() {
         </header>
 
         {error && <p className={styles.error}>{error}</p>}
-        {!state && !error && <div className={styles.loading}>Chargement de la musique du jour…</div>}
+        {!state && !error && (
+          <div className="waiting" role="status" aria-live="polite">
+            <div className="frame">
+              <span className="what">Chargement de la musique du jour</span>
+              <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
+              <span>Le morceau est le meme pour tout le monde</span>
+            </div>
+          </div>
+        )}
 
         {state && (
           <>

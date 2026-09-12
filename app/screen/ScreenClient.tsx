@@ -205,7 +205,6 @@ function Stage({ state, code, options }: { state: GameState; code: string; optio
     <div className={`${styles.screen} ${options.stream ? styles.stream : ''}`}>
       <header className={styles.head}>
         <div className={styles.pl}>
-          <span className={styles.em} aria-hidden="true">{state.playlist?.emoji ?? ''}</span>
           <span>{state.playlist?.title ?? 'Refrain'}</span>
         </div>
         <div className={styles.mid}>
@@ -305,7 +304,7 @@ function Lobby({ state, code }: { state: GameState; code: string }) {
         {count === 0
           ? 'En attente des joueurs…'
           : state.playlist
-            ? `${count} joueur${count > 1 ? 's' : ''} • ${state.playlist.emoji} ${state.playlist.title} • ${state.settings.rounds} manches`
+            ? `${count} joueur${count > 1 ? 's' : ''} · ${state.playlist.title} · ${state.settings.rounds} manches`
             : `${count} joueur${count > 1 ? 's' : ''} • l'animateur choisit la liste`}
       </div>
     </section>

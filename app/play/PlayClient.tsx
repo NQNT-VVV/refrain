@@ -435,7 +435,7 @@ function Lobby({ state, me, code }: { state: GameState; me: Me; code: string }) 
 
         <p className={styles.hint}>
           {state.counts.players} joueur{state.counts.players > 1 ? 's' : ''} •{' '}
-          {state.playlist ? `${state.playlist.emoji} ${state.playlist.title}` : 'liste en cours de choix…'}
+          {state.playlist ? state.playlist.title : 'Liste en cours de choix…'}
         </p>
         <p className={styles.hint}>Salon <b className="code-chip">{code}</b></p>
         <SupportNote />

@@ -127,7 +127,15 @@ export function WeeklyClient() {
         </header>
 
         {error && <p className={daily.error}>{error}</p>}
-        {!state && !error && <div className={daily.loading}>Chargement de la playlist…</div>}
+        {!state && !error && (
+          <div className="waiting" role="status" aria-live="polite">
+            <div className="frame">
+              <span className="what">Chargement de la playlist de la semaine</span>
+              <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
+              <span>Le morceau est le meme pour tout le monde</span>
+            </div>
+          </div>
+        )}
 
         {state && (
           <>
