@@ -53,8 +53,20 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
 
   const audio = useRef<HTMLAudioElement | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef<RoundState>(state);
   stateRef.current = state;
+
+  // Quitter la page pendant une ecoute laissait l'extrait se jouer jusqu'au
+  // bout, et deux minuteurs tourner dans le vide.
+  useEffect(() => {
+    const el = audio.current;
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (blurTimer.current) clearTimeout(blurTimer.current);
+      el?.pause();
+    };
+  }, []);
 
   // Le morceau ne joue jamais au-dela de ce qui est debloque : on coupe et on
   // revient au debut. Le cap est relu a chaque tick pour suivre les etapes.
@@ -182,7 +194,12 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
               value={text}
               onChange={(e) => { setText(e.target.value); suggest(e.target.value); }}
               onFocus={() => hits.length && setOpen(true)}
-              onBlur={() => setTimeout(() => setOpen(false), 150)}
+              onBlur={() => {
+                // Le delai laisse passer le clic sur une suggestion, qui ferme
+                // la liste lui-meme.
+                if (blurTimer.current) clearTimeout(blurTimer.current);
+                blurTimer.current = setTimeout(() => setOpen(false), 150);
+              }}
               aria-label="Ta reponse"
               enterKeyHint="send"
               maxLength={120}
@@ -204,7 +221,9 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
           )}
           <div className={styles.actions}>
             <button className="btn" type="button" onClick={() => { if (!busy) void onSkip(); }} disabled={busy} aria-busy={busy}>
-              PASSER (+{nextUnlock} S)
+              {/* A la derniere etape il n'y a plus rien a debloquer : annoncer
+                  « +0 S » promettrait un gain qui n'existe pas. */}
+              {nextUnlock > 0 ? `PASSER (+${nextUnlock} S)` : 'PASSER'}
             </button>
             <button className="btn primary" type="submit" disabled={busy || text.trim().length < 2} aria-busy={busy}>
               Valider
