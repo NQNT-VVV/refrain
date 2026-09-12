@@ -348,12 +348,12 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
                 )}
               </div>
               <div className={styles.tools}>
-                <button className="btn xs" title="Retirer un point" onClick={() => send('host:award', { playerId: p.id, delta: -1 })}>−</button>
-                <button className="btn xs" title="Donner un point" onClick={() => send('host:award', { playerId: p.id, delta: 1 })}>+</button>
+                <button className="btn xs" title="Retirer un point" aria-label={`Retirer un point a ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: -1 })}>−</button>
+                <button className="btn xs" title="Donner un point" aria-label={`Donner un point a ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: 1 })}>+</button>
                 <button
-                  className="btn xs danger" title="Exclure"
+                  className="btn xs danger" title="Exclure" aria-label={`Exclure ${p.name}`}
                   onClick={() => { if (confirm(`Retirer ${p.name} de la partie ?`)) void send('host:kick', { playerId: p.id }); }}
-                >✕</button>
+                ><Icon name="croix" /></button>
               </div>
               {p.lastGain > 0 && <span className={styles.sc} style={{ color: 'var(--accent)' }}>+{p.lastGain}</span>}
               <span className={styles.sc}>{p.score}</span>

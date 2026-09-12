@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
+import { Icon } from '@/components/Icon';
 import { Brand } from '@/components/Brand';
 import styles from './legal.module.css';
 
@@ -21,7 +22,7 @@ export default function LegalPage() {
       <div className={styles.topbar}>
         <Brand />
         <span className={styles.spacer} />
-        <Link className="btn sm" href="/">← Accueil</Link>
+        <Link className="btn sm" href="/"><Icon name="precedent" />Accueil</Link>
       </div>
 
       <header className={styles.hero}>

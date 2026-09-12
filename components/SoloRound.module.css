@@ -8,8 +8,10 @@
 .playBtn {
   width: 56px; height: 56px; flex: none; cursor: pointer;
   border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
-  font: var(--t-ui-l); letter-spacing: var(--ls-mono); display: grid; place-items: center; transition: none;
+  font: var(--t-meta); letter-spacing: var(--ls-mono); display: grid; place-items: center;
+  transition: background var(--tap), color var(--tap);
 }
+.playBtn .ico { width: 24px; height: 24px; }
 .playBtn:hover:not(:disabled) { background: var(--bg); color: var(--ink); animation: flash var(--dur-flash) var(--ease-hold); }
 .playBtn:active:not(:disabled) { border-color: var(--accent); background: var(--accent-deep); color: var(--ink); }
 .playBtn:disabled { background-color: transparent; background-image: var(--dither-25); background-size: var(--dither-size); border-color: var(--ink-12); color: var(--ink-60); cursor: not-allowed; }
@@ -56,8 +58,8 @@
 
 /* --- Tentatives ---------------------------------------------------- */
 .attempts { display: flex; flex-direction: column; }
-.attempt { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); font: var(--t-meta); letter-spacing: var(--ls-mono); border: 1px solid var(--ink-25); border-bottom: 0; }
-.attempt:last-child { border-bottom: 1px solid var(--ink-25); }
+.attempt { display: flex; align-items: center; gap: var(--sp-3); min-height: 32px; padding: var(--sp-2) var(--sp-3); font: var(--t-meta); letter-spacing: var(--ls-mono); border: var(--border); border-bottom: 0; }
+.attempt:last-child { border-bottom: var(--border); }
 .attempt .n { width: 32px; color: var(--ink-60); }
 .attempt .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Une reponse refusee : une bande hachuree, pas du rouge. */
@@ -66,7 +68,11 @@
 .attempt.skip .txt { color: var(--ink-60); }
 .attempt.hit { border-color: var(--ink); }
 .attempt.hit .txt { color: var(--ink); }
-.attempt.empty { background-image: var(--dither-12); background-size: var(--dither-size); color: var(--ink-60); }
+/* Une tentative pas encore jouee est une case vide, pas un aplat de pois : six
+   lignes de dithering formaient un grand bloc qui n'informait de rien et couvrait
+   la moitie de l'ecran du telephone. */
+.attempt.empty { color: var(--ink-55); border-style: dashed; }
+.attempt.empty .n { color: var(--ink-55); }
 
 @media (max-width: 640px) {
   .stages { gap: 2px; }

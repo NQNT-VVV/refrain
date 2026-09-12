@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 
+import { Icon } from '@/components/Icon';
 import { toast } from '@/lib/toast';
 import type { DailyAttempt, SearchTrack } from '@/lib/types';
 
@@ -142,7 +143,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             disabled={!state.preview}
             aria-label={playing ? 'Arreter' : 'Ecouter'}
           >
-            {playing ? 'STOP' : 'PLAY'}
+            <Icon name={playing ? 'pause' : 'jouer'} label={playing ? 'Arreter l’ecoute' : 'Ecouter l’extrait'} />
           </button>
           <div className={styles.playInfo}>
             <b>{state.finished ? 'Extrait complet' : `${state.unlocked} seconde${state.unlocked > 1 ? 's' : ''} debloquee${state.unlocked > 1 ? 's' : ''}`}</b>

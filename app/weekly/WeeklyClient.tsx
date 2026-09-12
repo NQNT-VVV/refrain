@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import { Icon } from '@/components/Icon';
 import { Brand } from '@/components/Brand';
 import { SoloRound } from '@/components/SoloRound';
 import { SupportNote } from '@/components/SupportNote';
@@ -115,8 +116,8 @@ export function WeeklyClient() {
       <div className={daily.brandBar}>
         <Brand />
         <span className={daily.spacer} />
-        <Link className="btn sm" href="/daily">MUSIQUE DU JOUR</Link>
-        <Link className="btn sm" href="/">← Accueil</Link>
+        <Link className="btn sm" href="/daily" title="Musique du jour"><Icon name="musique" />Du jour</Link>
+        <Link className="btn sm" href="/"><Icon name="precedent" />Accueil</Link>
       </div>
 
       <main className={daily.main}>

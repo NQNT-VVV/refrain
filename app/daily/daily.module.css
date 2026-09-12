@@ -3,7 +3,7 @@
   max-width: 560px; margin: 0 auto; width: 100%;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
-.brandBar { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4) 0; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.brandBar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3) var(--sp-4) 0; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
 .brandBar .spacer { flex: 1; }
 
 .main { flex: 1; display: flex; flex-direction: column; padding: var(--sp-4) var(--sp-4) var(--sp-8); gap: var(--sp-4); }
@@ -37,3 +37,11 @@
 .error { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink); border: 1px solid var(--ink); padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); background-image: var(--hatch); background-repeat: repeat-y; background-size: 8px 8px; background-position: left; }
 
 @media (min-width: 900px) { .app { max-width: 640px; } }
+
+
+@media (max-width: 640px) {
+  /* Trois elements sur une ligne de 390 px : le separateur disparait et la barre
+     passe a la ligne au lieu de pousser le dernier bouton hors de l'ecran. */
+  .brandBar .spacer { display: none; }
+  .brandBar { justify-content: flex-start; }
+}
