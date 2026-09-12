@@ -948,10 +948,13 @@ function useKeyboardShortcuts(state: GameState | null, send: Send) {
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
       const { state: s, send: emit } = ref.current;
       if (!s) return;
+      // Verrouillage majuscules ou non, les raccourcis repondent : la regie se
+      // pilote a l'aveugle, en regardant la salle.
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
 
       if (s.phase === 'buzzed') {
-        if (e.key === 'o' || e.key === 'Enter') void emit('host:judge', { ok: true });
-        if (e.key === 'n' || e.key === 'Escape') void emit('host:judge', { ok: false });
+        if (key === 'o' || key === 'Enter') void emit('host:judge', { ok: true });
+        if (key === 'n' || key === 'Escape') void emit('host:judge', { ok: false });
         return;
       }
       if (e.code === 'Space') {
@@ -959,8 +962,8 @@ function useKeyboardShortcuts(state: GameState | null, send: Send) {
         if (s.phase === 'lobby') void emit('host:start');
         else void emit('host:next');
       }
-      if (e.key === 'r' && s.phase === 'playing') void emit('host:reveal');
-      if ((e.key === 'p' || e.key === 'P') && (s.phase === 'playing' || s.phase === 'paused')) void emit('host:pause');
+      if (key === 'r' && s.phase === 'playing') void emit('host:reveal');
+      if (key === 'p' && (s.phase === 'playing' || s.phase === 'paused')) void emit('host:pause');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
