@@ -569,7 +569,7 @@ function AnswerForm({ state, me, self, socket }: {
             </div>
           ) : (
             <>
-              <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={sending}>
+              <button className="btn primary lg block" type="submit" data-testid="answer-submit" disabled={sending} aria-busy={sending}>
                 Valider ma reponse
               </button>
               <p className={styles.hint}>{hint}</p>

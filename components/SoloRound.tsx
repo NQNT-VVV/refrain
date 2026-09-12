@@ -203,10 +203,10 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             </div>
           )}
           <div className={styles.actions}>
-            <button className="btn" type="button" onClick={() => { if (!busy) void onSkip(); }} disabled={busy}>
+            <button className="btn" type="button" onClick={() => { if (!busy) void onSkip(); }} disabled={busy} aria-busy={busy}>
               PASSER (+{nextUnlock} S)
             </button>
-            <button className="btn primary" type="submit" disabled={busy || text.trim().length < 2}>
+            <button className="btn primary" type="submit" disabled={busy || text.trim().length < 2} aria-busy={busy}>
               Valider
             </button>
           </div>

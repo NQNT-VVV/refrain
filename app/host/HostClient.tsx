@@ -281,6 +281,8 @@ export function HostClient() {
                           aria-pressed={state.playlist?.id === c.id}
                           style={{ ['--c' as string]: c.accent }}
                           onClick={() => pickCategory(c)}
+                          disabled={loadingCat !== null}
+                          aria-busy={loadingCat === c.id}
                         >
                           <span className={styles.check}>×</span>
                           <span className={styles.em}>{c.emoji}</span>
@@ -711,7 +713,7 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
           value={url} onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && source) { e.preventDefault(); void submit(); } }}
         />
-        <button className="btn" disabled={busy || !source} onClick={submit}>
+        <button className="btn" disabled={busy || !source} onClick={submit} aria-busy={busy}>
           {busy ? 'Chargement…' : SOURCE_LABEL[source ?? 'deezer']}
         </button>
       </div>
