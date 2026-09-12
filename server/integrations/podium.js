@@ -128,7 +128,13 @@ async function activeChallenges(slug) {
   const hit = cache.get(slug);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.list;
   try {
-    const res = await fetchJson(`${URL_BASE}/api/v1/games/${encodeURIComponent(slug)}/challenges/active`, {}, 5000);
+    // La cle du jeu accompagne cette demande : c'est elle qui ouvre le « seed »
+    // du defi, et le seed decide quel morceau est la musique du jour. Sans lui,
+    // le tirage retombe sur la date, et deux joueurs du meme jour n'auraient
+    // pas la meme chanson. Un jeu sans cle recoit la liste, simplement privee
+    // de son seed.
+    const init = GAME_KEY ? { headers: { Authorization: `Bearer ${GAME_KEY}` } } : {};
+    const res = await fetchJson(`${URL_BASE}/api/v1/games/${encodeURIComponent(slug)}/challenges/active`, init, 5000);
     const list = res.ok && Array.isArray(res.json?.challenges) ? res.json.challenges : [];
     cache.set(slug, { at: Date.now(), list });
     return list;
