@@ -84,7 +84,9 @@ app.get('/api/qr', async (req, res) => {
 
 /** Ce que ce serveur sait faire : l'interface s'y adapte. */
 app.get('/api/sources', (req, res) => {
-  res.json({ deezer: true, youtube: true, spotify: spotify.enabled() });
+  // Spotify se lit aussi sans identifiants (page publique, 100 titres) : l'import
+  // reste propose, les identifiants ne font qu'elargir a 400 titres.
+  res.json({ deezer: true, youtube: true, spotify: true, spotifyApi: spotify.enabled() });
 });
 
 app.get('/api/health', (req, res) => {
@@ -237,15 +239,17 @@ io.on('connection', (socket) => {
 
   socket.on('host:create', (payload, cb) => {
     const room = game.createRoom();
+    game.setListener(room, payload?.listener);
     bindHost(socket, room);
     ok(cb, { code: room.code, hostToken: room.hostToken, state: game.hostState(room) });
     game.broadcast(room);
   });
 
-  socket.on('host:resume', ({ code, hostToken } = {}, cb) => {
+  socket.on('host:resume', ({ code, hostToken, listener } = {}, cb) => {
     const room = game.get(code);
     if (!room) return fail(cb, 'Cette partie n\'existe plus.');
     if (room.hostToken !== hostToken) return fail(cb, 'Jeton animateur invalide.');
+    game.setListener(room, listener);
     bindHost(socket, room);
     ok(cb, { code: room.code, state: game.hostState(room) });
     game.broadcast(room);
@@ -589,7 +593,7 @@ nextApp
       console.log('\n  🎧  Refrain — serveur pret\n');
       for (const u of urls) console.log(`     ${u}`);
       console.log('\n     Animateur : /host      Ecran : /screen      Joueurs : /j/CODE');
-      console.log(`     Spotify : ${spotify.enabled() ? 'configure' : 'absent (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)'}\n`);
+      console.log(`     Spotify : ${spotify.enabled() ? 'configure' : 'page publique seulement, 100 titres (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)'}\n`);
 
       // Prechauffage discret des listes les plus utilisees
       for (const id of ['top', 'hymnes', 'fr']) {

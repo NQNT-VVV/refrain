@@ -1,7 +1,6 @@
 'use strict';
 
-const dz = require('./deezer');
-const { matchTitle, matchArtist } = require('./match');
+const { toPlayable, resolvePlayable } = require('./resolve');
 
 /**
  * Spotify comme catalogue, Deezer comme source sonore.
@@ -17,7 +16,8 @@ const { matchTitle, matchArtist } = require('./match');
 
 const API = 'https://api.spotify.com/v1';
 const TOKEN_URL = 'https://accounts.spotify.com/api/token';
-const MAX_TRACKS = 200;
+const MAX_TRACKS = 400;
+const EMBED_URL = 'https://open.spotify.com/embed/playlist/';
 
 const clientId = () => process.env.SPOTIFY_CLIENT_ID || '';
 const clientSecret = () => process.env.SPOTIFY_CLIENT_SECRET || '';
@@ -60,7 +60,9 @@ async function api(path) {
     if (!retry.ok) throw new Error(`Spotify a repondu ${retry.status}.`);
     return retry.json();
   }
-  if (res.status === 404) throw new Error('Playlist Spotify introuvable ou privee.');
+  if (res.status === 404 || res.status === 403) {
+    throw Object.assign(new Error('Playlist Spotify introuvable ou privee.'), { status: res.status });
+  }
   if (res.status === 429) throw new Error('Spotify limite les appels, reessaie dans un instant.');
   if (!res.ok) throw new Error(`Spotify a repondu ${res.status}.`);
   return res.json();
@@ -78,33 +80,80 @@ function parsePlaylistId(input) {
   return null;
 }
 
-/** Metadonnees d'une playlist, sans ses morceaux. */
-async function playlistInfo(playlistId) {
-  const json = await api(`/playlists/${playlistId}?fields=name,owner(display_name),images,tracks(total)`);
+/**
+ * Lecture de secours : la page « embed » publique d'une playlist.
+ *
+ * Sans cle et sans quota, elle repond aussi pour les playlists editoriales
+ * (« Today's Top Hits »), que l'API refuse en client-credentials depuis fin
+ * 2024, et pour un serveur ou Spotify n'est pas configure. Elle se limite aux
+ * cent premiers titres et ne donne pas l'ISRC : la resolution chez Deezer se
+ * fait alors par titre et artiste, qui reussit sur l'immense majorite.
+ */
+async function embedPlaylist(playlistId) {
+  const res = await fetch(EMBED_URL + encodeURIComponent(playlistId), {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; refrain/1.0)', 'Accept-Language': 'fr-FR,fr;q=0.9' },
+  });
+  if (!res.ok) throw new Error('Playlist Spotify introuvable ou privee.');
+  const html = await res.text();
+  const raw = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/)?.[1];
+  const entity = raw ? JSON.parse(raw)?.props?.pageProps?.state?.data?.entity : null;
+  if (!entity?.trackList?.length) throw new Error('Playlist Spotify introuvable ou privee.');
+  const entries = entity.trackList
+    .filter((t) => t?.title && t.subtitle && (t.entityType || 'track') === 'track')
+    .map((t) => {
+      const artists = String(t.subtitle).split(/\s*,\s*/).filter(Boolean);
+      return { title: t.title, artist: artists[0], artists, album: '', isrc: null };
+    });
   return {
-    name: json.name || 'Playlist Spotify',
-    owner: json.owner?.display_name || '',
-    cover: json.images?.[0]?.url || '',
-    total: json.tracks?.total || 0,
+    info: {
+      name: entity.name || entity.title || 'Playlist Spotify',
+      owner: entity.subtitle || '',
+      cover: entity.coverArt?.sources?.[0]?.url || '',
+      total: entries.length,
+    },
+    entries,
   };
 }
 
-/** Morceaux d'une playlist, pagines. */
-async function playlistItems(playlistId, max = MAX_TRACKS) {
-  const fields = 'items(track(name,artists(name),album(name),external_ids(isrc),duration_ms)),next';
+/** Metadonnees d'une playlist, sans ses morceaux. */
+async function playlistInfo(playlistId) {
+  if (!enabled()) return (await embedPlaylist(playlistId)).info;
+  try {
+    const json = await api(`/playlists/${playlistId}?fields=name,owner(display_name),images`);
+    return {
+      name: json.name || 'Playlist Spotify',
+      owner: json.owner?.display_name || '',
+      cover: json.images?.[0]?.url || '',
+    };
+  } catch (err) {
+    if (!err.status) throw err;
+    return (await embedPlaylist(playlistId)).info;
+  }
+}
+
+/** Reduit un element de playlist a ce qui sert a le retrouver chez Deezer. */
+function toEntry(item) {
+  // `item` dans le nouveau point d'acces, `track` dans l'ancien.
+  const t = item?.item || item?.track;
+  if (!t?.name || !t.artists?.length) return null;
+  if (t.type && t.type !== 'track') return null;      // episodes de podcast
+  return {
+    title: t.name,
+    artist: t.artists[0].name,
+    artists: t.artists.map((a) => a.name),
+    album: t.album?.name || '',
+    isrc: t.external_ids?.isrc || null,
+  };
+}
+
+/** Pages de l'API, sur un chemin donne (`items` ou `tracks`). */
+async function apiItems(playlistId, route, max) {
   const out = [];
   for (let offset = 0; offset < max; offset += 100) {
-    const page = await api(`/playlists/${playlistId}/tracks?limit=100&offset=${offset}&fields=${encodeURIComponent(fields)}`);
+    const page = await api(`/playlists/${playlistId}/${route}?limit=100&offset=${offset}`);
     for (const item of page.items || []) {
-      const t = item?.track;
-      if (!t?.name || !t.artists?.length) continue;
-      out.push({
-        title: t.name,
-        artist: t.artists[0].name,
-        artists: t.artists.map((a) => a.name),
-        album: t.album?.name || '',
-        isrc: t.external_ids?.isrc || null,
-      });
+      const entry = toEntry(item);
+      if (entry) out.push(entry);
       if (out.length >= max) return out;
     }
     if (!page.next) break;
@@ -113,39 +162,24 @@ async function playlistItems(playlistId, max = MAX_TRACKS) {
 }
 
 /**
- * Retrouve chez Deezer un morceau repere sur Spotify.
- * L'ISRC d'abord — exact — puis la recherche titre + artiste en dernier recours.
+ * Morceaux d'une playlist, pagines.
+ *
+ * Spotify a renomme `/tracks` en `/items` en 2026 ; on essaie le nouveau, puis
+ * l'ancien, puis la page publique. Une reponse vide compte comme un echec :
+ * c'est ce que renvoie l'API quand elle masque le contenu d'une playlist.
  */
-async function toPlayable(entry) {
-  if (entry.isrc) {
-    const byIsrc = await dz.trackByIsrc(entry.isrc);
-    if (byIsrc?.preview) return byIsrc;
-  }
-  try {
-    const results = await dz.searchTracks(`${entry.title} ${entry.artist}`, 5);
-    for (const candidate of results) {
-      if (!candidate.preview) continue;
-      if (matchTitle(entry.title, candidate.title) && matchArtist(entry.artist, candidate.artist, candidate.contributors)) {
-        return candidate;
+async function playlistItems(playlistId, max = MAX_TRACKS) {
+  if (enabled()) {
+    for (const route of ['items', 'tracks']) {
+      try {
+        const entries = await apiItems(playlistId, route, max);
+        if (entries.length) return entries;
+      } catch (err) {
+        if (!err.status) throw err;     // quota, panne : inutile d'insister
       }
     }
-  } catch { /* Deezer indisponible : le morceau sera simplement ecarte */ }
-  return null;
-}
-
-/**
- * Retrouve les extraits jouables d'une liste de morceaux Spotify.
- * `onProgress` permet a l'animateur de voir la resolution avancer.
- */
-async function resolvePlayable(entries, onProgress) {
-  const tracks = [];
-  const BATCH = 8;
-  for (let i = 0; i < entries.length; i += BATCH) {
-    const found = await Promise.all(entries.slice(i, i + BATCH).map(toPlayable));
-    for (const track of found) if (track?.preview) tracks.push(track);
-    onProgress?.(Math.min(i + BATCH, entries.length), entries.length, tracks.length);
   }
-  return tracks;
+  return (await embedPlaylist(playlistId)).entries.slice(0, max);
 }
 
 /** Enchainement complet, pour les appels qui n'ont pas besoin de progression. */
@@ -157,6 +191,6 @@ async function playableTracks(playlistId, { max = MAX_TRACKS, onProgress } = {})
 }
 
 module.exports = {
-  enabled, parsePlaylistId, playlistInfo, playlistItems,
+  enabled, parsePlaylistId, playlistInfo, playlistItems, embedPlaylist,
   resolvePlayable, playableTracks, toPlayable, MAX_TRACKS,
 };

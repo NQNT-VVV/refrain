@@ -153,7 +153,9 @@ export function useYouTubePlayer({ onVideos, onMeta, onFailed }: Options) {
   const loadPlaylist = useCallback(async (playlistId: string) => {
     const p = await ensure();
     p.cuePlaylist({ list: playlistId, listType: 'playlist', index: 0 });
-    const ids = await poll(() => p.getPlaylist() ?? [], (v) => v.length > 0, 8000);
+    // Secours quand le serveur n'a pas pu lire la playlist (mix « RD… ») : le
+    // lecteur met parfois plus de dix secondes a la decouvrir.
+    const ids = await poll(() => p.getPlaylist() ?? [], (v) => v.length > 0, 15000);
     handlers.current.onVideos(playlistId, ids ?? []);
   }, [ensure]);
 

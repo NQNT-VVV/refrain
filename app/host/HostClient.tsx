@@ -20,6 +20,21 @@ import { useRoundClock } from '@/lib/useRoundClock';
 import styles from './host.module.css';
 
 interface HostSession { code: string; hostToken: string }
+interface Sources { spotify?: boolean; spotifyApi?: boolean }
+
+/**
+ * Identifiant de ce navigateur pour la memoire d'ecoute : le serveur retient
+ * ce qu'il a deja fait entendre, d'un salon et d'une liste a l'autre.
+ */
+function listenerKey(): string {
+  const known = store.get<string | null>('refrain.listener', null);
+  if (known && /^[A-Za-z0-9_-]{16,64}$/.test(known)) return known;
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const fresh = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  store.set('refrain.listener', fresh);
+  return fresh;
+}
 type Tab = 'catalog' | 'artist' | 'search' | 'import';
 
 const MODE_NOTE = {
@@ -35,7 +50,7 @@ export function HostClient() {
   const [tab, setTab] = useState<Tab>('catalog');
   const [blurred, setBlurred] = useState(false);
   const [loadingCat, setLoadingCat] = useState<string | null>(null);
-  const [sources, setSources] = useState<{ spotify?: boolean }>({});
+  const [sources, setSources] = useState<Sources>({});
   const [obsSide, setObsSide] = useState<'right' | 'left'>('right');
   const [obsTransparent, setObsTransparent] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,9 +78,10 @@ export function HostClient() {
 
   const { socket, state, setState } = useGameSocket({
     onReady: async (s) => {
+      const listener = listenerKey();
       const saved = store.get<HostSession | null>('refrain.host', null);
       if (saved?.code && saved.hostToken) {
-        const res = await call<{ code: string; state: GameState }>(s, 'host:resume', saved);
+        const res = await call<{ code: string; state: GameState }>(s, 'host:resume', { ...saved, listener });
         if (res.ok) {
           setCode(res.code);
           codeRef.current = res.code;
@@ -73,7 +89,7 @@ export function HostClient() {
           return;
         }
       }
-      const created = await call<{ code: string; hostToken: string; state: GameState }>(s, 'host:create');
+      const created = await call<{ code: string; hostToken: string; state: GameState }>(s, 'host:create', { listener });
       if (!created.ok) return toast(created.error, 'err');
       store.set('refrain.host', { code: created.code, hostToken: created.hostToken });
       setCode(created.code);
@@ -675,7 +691,7 @@ function detectSource(raw: string): 'youtube' | 'deezer' | 'spotify' | null {
 
 const SOURCE_LABEL = { spotify: 'CHARGER', youtube: 'CHARGER', deezer: 'IMPORTER' } as const;
 
-function ImportTab({ send, state, sources }: { send: Send; state: GameState; sources: { spotify?: boolean } }) {
+function ImportTab({ send, state, sources }: { send: Send; state: GameState; sources: Sources }) {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -687,12 +703,13 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
   async function submit() {
     if (!source) return;
     setBusy(true);
-    // Spotify demande de retrouver chaque morceau chez Deezer : c'est plus long.
-    const res = await send('host:playlist', { type: source, id: url.trim() }, source === 'spotify' ? 180000 : 60000);
+    // Spotify et YouTube demandent de retrouver chaque morceau chez Deezer :
+    // une minute pour quatre cents titres, l'avancement s'affiche en dessous.
+    const res = await send('host:playlist', { type: source, id: url.trim() }, source === 'deezer' ? 60000 : 180000);
     setBusy(false);
     if (!res?.ok) return;
     toast(
-      source === 'youtube' ? 'Playlist envoyee au lecteur…'
+      source === 'youtube' ? 'Playlist YouTube prete'
       : source === 'spotify' ? 'Playlist Spotify prete' : 'Playlist Deezer importee',
       'ok',
     );
@@ -701,15 +718,13 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
   return (
     <div>
       <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
-        Colle une playlist <b>Deezer</b>, <b>YouTube</b>
-        {sources.spotify && <> ou <b>Spotify</b></>} — le type est reconnu tout seul.
+        Colle une playlist <b>Spotify</b>, <b>YouTube</b> ou <b>Deezer</b> — le type est reconnu
+        tout seul. Elle doit etre publique ou non repertoriee.
       </p>
       <div className="row">
         <input
           className="input grow" autoComplete="off"
-          placeholder={sources.spotify
-            ? 'https://open.spotify.com/playlist/… ou YouTube, ou Deezer'
-            : 'https://www.youtube.com/playlist?list=… ou https://www.deezer.com/playlist/…'}
+          placeholder="https://open.spotify.com/playlist/… ou YouTube, ou Deezer"
           value={url} onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && source) { e.preventDefault(); void submit(); } }}
         />
@@ -725,17 +740,17 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
         </p>
       )}
 
-      {!audioDeviceReady && (
+      {isYoutube && !playlist?.pending && !audioDeviceReady && (
         <p className={styles.note} style={{ marginTop: 10 }}>
           {state.audioTarget === 'host' ? 'LA REGIE' : "L'ECRAN DE DIFFUSION"} DOIT ETRE CONNECTE :
-          c&apos;est lui qui lit la playlist YouTube.
+          c&apos;est lui qui lit les videos absentes de Deezer.
         </p>
       )}
 
-      {source === 'spotify' && !sources.spotify && (
+      {source === 'spotify' && !sources.spotifyApi && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          Spotify n&apos;est pas configure sur ce serveur : il manque
-          <code> SPOTIFY_CLIENT_ID</code> et <code>SPOTIFY_CLIENT_SECRET</code>.
+          Sans identifiants Spotify sur ce serveur, seuls les 100 premiers titres d&apos;une
+          playlist sont lus (400 sinon).
         </p>
       )}
 
@@ -744,17 +759,17 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
           {playlist.pending
             ? playlist.subtitle
             : `${playlist.subtitle}. Spotify ne fournit plus d'extraits : chaque morceau est
-               retrouve chez Deezer par son identifiant international, ce qui explique l'ecart.`}
+               retrouve chez Deezer, les rares absents sont ecartes.`}
         </p>
       )}
 
       {isYoutube && (
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist?.pending
-            ? 'Le lecteur parcourt la playlist'
-            : `${playlist?.total} VIDEOS PRETES. Les titres viennent de YouTube : ils sont moins
-               propres que ceux de Deezer, le mode buzzer est souvent plus confortable. Le son ne
-               peut pas etre diffuse sur les telephones dans ce mode.`}
+            ? playlist.subtitle
+            : `${playlist?.subtitle}. Les videos retrouvees sur Deezer y prennent leur extrait et
+               leur titre exact ; les autres sont lues sur YouTube, avec un titre moins propre et
+               sans son sur les telephones.`}
         </p>
       )}
     </div>
