@@ -20,7 +20,9 @@
     "test:artist": "node test/artist.mjs",
     "test:pause": "node test/pause.mjs",
     "test:podium": "node test/podium.mjs",
-    "test:weekly": "node test/weekly.mjs"
+    "test:weekly": "node test/weekly.mjs",
+    "test:variety": "node test/variety.mjs",
+    "test:import": "node test/import.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",

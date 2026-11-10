@@ -1,6 +1,6 @@
 /** Verifie qu'on peut repondre a chaque manche, pas seulement a la premiere. */
 import { io } from 'socket.io-client';
-const U = 'http://localhost:3000';
+const U = process.env.TARGET || 'http://localhost:3000';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const call = (s, ev, p) => new Promise((res) => s.emit(ev, p, res));
 const mk = () => io(U, { transports: ['websocket'] });

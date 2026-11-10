@@ -33,6 +33,9 @@ const CATEGORIES = [
       'Gloria Gaynor', 'Céline Dion', 'Francky Vincent', 'Les Charlots', 'Michel Delpech',
       'Gilbert Montagné', 'Boney M.', 'Ottawan', 'Sardou', 'La Compagnie Créole',
       'Rick Astley', 'Bon Jovi', 'Journey', 'Toto', 'ABBA', 'Queen', 'Kool & The Gang',
+      'Bonnie Tyler', 'Cyndi Lauper', 'Europe', 'Survivor', 'The Weather Girls', 'Patrick Hernandez',
+      'Lou Bega', 'Las Ketchup', 'Bob Sinclar', 'Dalida', 'Annie Cordy', 'Gala', 'Corona',
+      'Images', 'Indochine', 'Téléphone', 'Gipsy Kings', 'Magic System',
     ].map((artist) => ({ artist })),
   },
   {
@@ -48,6 +51,10 @@ const CATEGORIES = [
       'Téléphone', 'Indochine', 'Mylène Farmer', 'Zaz', 'Louane', 'Angèle', 'Clara Luciani',
       'Vianney', 'Stromae', 'Calogero', 'Bénabar', 'Julien Doré', 'Pierre Bachelet',
       'Jacques Dutronc', 'Georges Brassens',
+      'Michel Polnareff', 'Claude Nougaro', 'Nino Ferrer', 'Laurent Voulzy', 'Patricia Kaas',
+      'Florent Pagny', 'Pascal Obispo', 'Zazie', 'Patrick Bruel', '-M-', 'Les Rita Mitsouko',
+      'Noir Désir', 'Christophe', 'Barbara', 'Joe Dassin', 'Dalida', 'Hoshi', 'Juliette Armanet',
+      'Slimane', 'Christophe Maé', 'Grand Corps Malade', 'Gilbert Bécaud',
     ].map((artist) => ({ artist })),
   },
   {
@@ -61,6 +68,9 @@ const CATEGORIES = [
       'Aya Nakamura', 'Soprano', 'IAM', 'Suprême NTM', 'MC Solaar', 'Bigflo & Oli',
       'Vald', 'Lomepal', 'Dadju', 'Naps', 'Tiakola', 'Freeze Corleone', 'Sexion d\'Assaut',
       'Sniper', 'Diam\'s', 'Rohff', 'Sefyu', 'Niska', 'Maes', 'Werenoi', 'Fresh La Peufra',
+      'Kaaris', 'Lacrim', 'Hamza', 'Alonzo', 'Kery James', 'Oxmo Puccino', 'Youssoupha',
+      'Koba LaD', 'Zola', 'Heuss L\'enfoiré', 'Josman', 'Laylow', 'Rim\'K', 'Kalash Criminel',
+      'La Fouine', 'Mister V', 'Lefa', 'Médine', 'Akhenaton', 'Disiz', 'Alpha Wann', 'Jok\'Air',
     ].map((artist) => ({ artist })),
   },
   {
@@ -75,6 +85,10 @@ const CATEGORIES = [
       'Eurythmics', 'Toto', 'Wham!', 'Europe', 'Survivor', 'Rick Astley', 'Kool & The Gang',
       'Dire Straits', 'U2', 'Bananarama', 'Desireless', 'Lio', 'Indochine', 'Téléphone',
       'Jean-Jacques Goldman', 'Daniel Balavoine', 'The Cure', 'New Order',
+      'Kim Wilde', 'Simple Minds', 'Billy Idol', 'Phil Collins', 'Lionel Richie', 'George Michael',
+      'Pet Shop Boys', 'Culture Club', 'The Bangles', 'Laura Branigan', 'Spandau Ballet',
+      'Soft Cell', 'Étienne Daho', 'Gold', 'Images', 'Jeanne Mas', 'Peter Gabriel', 'Kate Bush',
+      'Van Halen', 'Bonnie Tyler', 'Murray Head', 'Patrick Coutin',
     ].map((artist) => ({ artist })),
   },
   {
@@ -90,6 +104,10 @@ const CATEGORIES = [
       'Vengaboys', 'Daft Punk', 'Robert Miles', 'Lauryn Hill', 'The Notorious B.I.G.',
       '2Pac', 'Dr. Dre', 'R.E.M.', 'Green Day', 'The Cranberries', 'Savage Garden',
       'Ricky Martin', 'Pascal Obispo', 'Zebda', 'Alliage', 'Worlds Apart',
+      'Britney Spears', 'Eagle-Eye Cherry', 'Fugees', 'Coolio', 'Dr. Alban', 'Corona',
+      'Culture Beat', 'La Bouche', 'Blackstreet', 'Take That', 'Boyzone', 'Hanson',
+      'Natalie Imbruglia', 'Texas', 'Moby', 'Fatboy Slim', 'Mylène Farmer', 'IAM',
+      'Native', 'Larusso', 'Mano Negra', 'Les Négresses Vertes',
     ].map((artist) => ({ artist })),
   },
   {
@@ -105,6 +123,10 @@ const CATEGORIES = [
       'Avril Lavigne', 'Snow Patrol', 'Kings of Leon', 'Franz Ferdinand', 'The White Stripes',
       'Sean Paul', 'Usher', 'Christina Aguilera', 'P!nk', 'Diam\'s', 'Kyo', 'Superbus',
       'Corneille', 'Tryo', 'Yannick Noah',
+      'Nelly', 'Gwen Stefani', 'Britney Spears', 'Lady Gaga', 'The Pussycat Dolls', 'Timbaland',
+      'Akon', 'James Blunt', 'Mika', 'Katy Perry', 'Jennifer Lopez', 'Alizée', 'Lorie',
+      'M. Pokora', 'Amel Bent', 'Christophe Maé', 'Grand Corps Malade', 'Sinik', 'Booba',
+      'Bob Sinclar', 'Daft Punk', 'Muse',
     ].map((artist) => ({ artist })),
   },
   {
@@ -120,6 +142,10 @@ const CATEGORIES = [
       'Taylor Swift', 'Kendrick Lamar', 'Major Lazer', 'Kygo', 'Clean Bandit', 'Stromae',
       'GIMS', 'Kendji Girac', 'Louane', 'Christine and the Queens', 'Pharrell Williams',
       'Mark Ronson',
+      'Rihanna', 'Katy Perry', 'Justin Bieber', 'Shawn Mendes', 'Sam Smith', 'Hozier',
+      'Macklemore & Ryan Lewis', 'Gotye', 'OneRepublic', 'Martin Garrix', 'Zara Larsson',
+      'Kungs', 'Indila', 'PNL', 'Angèle', 'Soprano', 'Bigflo & Oli', 'Jain',
+      'Lilly Wood and The Prick', 'Nekfeu', 'Black M', 'Vianney',
     ].map((artist) => ({ artist })),
   },
   {
@@ -407,6 +433,18 @@ function diversify(tracks, maxPerArtist = 2) {
   return out;
 }
 
+/** Retire les doublons d'une playlist importee, sans limiter les artistes. */
+function dedupe(tracks) {
+  const seen = new Set();
+  return tracks.filter((t) => {
+    if (!t || (!t.preview && t.source !== 'youtube')) return false;
+    const key = t.source === 'youtube' && !t.title ? `yt:${t.videoId}` : trackKey(t);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function shuffle(arr, rng = Math.random) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -436,7 +474,7 @@ async function buildCategory(id, { force = false } = {}) {
   const cat = getCategory(id);
   if (!cat) throw new Error(`Categorie inconnue : ${id}`);
 
-  const cacheKey = `cat_${id}_v3`;
+  const cacheKey = `cat_${id}_v4`;
   if (!force) {
     const cached = dz.readCache(cacheKey, 6 * 60 * 60 * 1000);
     if (cached && cached.length >= 20) return cached;
@@ -454,9 +492,10 @@ async function buildCategory(id, { force = false } = {}) {
       chunks.push(...batch);
     }
     const flat = chunks.flat();
-    // Quatre titres par artiste dans le vivier : la variete d'une partie donnee
-    // est garantie ailleurs, au moment de composer la liste des manches.
-    const maxPerArtist = cat.seeds.length > 15 ? 4 : 6;
+    // Six titres par artiste dans le vivier : la variete d'une partie (un titre
+    // par artiste, artistes pas entendus recemment d'abord) est garantie au
+    // moment de composer la liste des manches, voir variety.js.
+    const maxPerArtist = cat.seeds.length > 15 ? 6 : 8;
     const tracks = diversify(shuffle(flat), maxPerArtist);
     if (tracks.length) dz.writeCache(cacheKey, tracks);
     stopTimer();
@@ -515,23 +554,33 @@ async function buildArtist(artistId, mode = 'hits', { featurings = true } = {}) 
     dz.artistCollaborations(artistId, info.name),
   ]);
 
-  // Les collaborations s'ajoutent ou se retirent selon le choix de l'animateur.
+  // Une discographie Deezer embarque des pistes qui ne sont pas de lui : les
+  // compilations de son label (« Echelon » chez Vald : Aociz, Seezy, Sirius…)
+  // ou l'album d'un proche ou il apparait a peine. Rien ne dit qu'il chante
+  // dessus, et ces pistes noyaient les vraies : on ne garde que celles dont il
+  // est l'artiste principal. Ses vrais featurings arrivent par `guests`, ou sa
+  // presence est verifiee.
+  const wanted = normalize(info.name);
+  const own = discography.filter((t) => normalize(t.artist) === wanted);
+
   // L'exclusion se fait par identifiant de piste : le meme titre peut exister
-  // en version solo et en version invitee, seule la seconde doit sauter.
+  // en version solo et en version invitee, seule la seconde est un featuring.
   const sharedIds = new Set(collaborations.sharedIds);
   const sharedTitles = new Set(collaborations.sharedTitles || []);
-  const source = featurings
-    ? [...discography, ...collaborations.guests]
-    : discography.filter((t) => (
-        !sharedIds.has(t.id)
-        && !sharedTitles.has(normalize(t.title))
-        && !FEAT_IN_TITLE.test(t.fullTitle || t.title)
-      ));
+  const isFeat = (t) => sharedIds.has(t.id)
+    || sharedTitles.has(normalize(t.title))
+    || FEAT_IN_TITLE.test(t.fullTitle || t.title);
+
+  const solo = own.filter((t) => !isFeat(t)).map((t) => ({ ...t, feat: false }));
+  const feats = [
+    ...own.filter(isFeat),
+    ...collaborations.guests,
+  ].map((t) => ({ ...t, feat: true }));
 
   // Un meme morceau revient en single, en reedition, en version « reloaded » :
   // on ne garde que la version la mieux classee de chaque titre.
   const byTitle = new Map();
-  for (const track of source) {
+  for (const track of featurings ? [...solo, ...feats] : solo) {
     if (!playableForGame(track)) continue;
     const key = normalize(track.title);
     if (!key) continue;
@@ -544,23 +593,36 @@ async function buildArtist(artistId, mode = 'hits', { featurings = true } = {}) 
     throw new Error(`Trop peu de morceaux jouables pour ${info.name}.`);
   }
 
-  // La frontiere entre tube et rarete depend de la taille du repertoire.
-  // On la place franchement : sinon « vrai fan » ressemble a « au hasard ».
-  const hitCount = Math.max(15, Math.min(45, Math.round(ranked.length * 0.2)));
-  const deepFrom = Math.max(12, Math.min(70, Math.round(ranked.length * 0.45)));
+  // Trois etages de popularite, en proportion du repertoire : le quart le plus
+  // ecoute, le milieu, puis les raretes. Chaque mode dose ensuite ses etages
+  // partie par partie (voir `pickQueue`) au lieu de tirer a plat : tiree
+  // uniformement, une grosse discographie est faite aux deux tiers de faces B,
+  // et « au hasard » ne sortait presque plus un tube.
+  const tierOf = (i) => (i < ranked.length * 0.25 ? 0 : i < ranked.length * 0.6 ? 1 : 2);
+  const tiered = ranked.map((t, i) => ({ ...t, tier: tierOf(i) }));
 
   let tracks;
-  if (mode === 'hits') tracks = ranked.slice(0, hitCount);
-  else if (mode === 'deep') tracks = ranked.slice(deepFrom);
-  else tracks = ranked;
+  if (mode === 'hits') {
+    // Assez large pour tourner sur plusieurs parties sans revenir aux memes.
+    const hitCount = Math.max(20, Math.min(60, Math.round(ranked.length * 0.3)));
+    tracks = tiered.slice(0, hitCount);
+  } else if (mode === 'deep') {
+    tracks = tiered.filter((t) => t.tier > 0);
+  } else {
+    tracks = tiered;
+  }
+  if (tracks.length < 8) tracks = tiered;   // repertoire trop mince pour trancher
 
-  if (tracks.length < 8) tracks = ranked;   // repertoire trop mince pour trancher
+  // Part des featurings dans une partie : celle du vivier, plafonnee au tiers.
+  // Sans plafond, un repertoire riche en invitations ne joue plus que ca.
+  const featCount = tracks.filter((t) => t.feat).length;
+  const featShare = featurings ? Math.min(0.3, featCount / tracks.length) : 0;
 
   return {
     id: `artist-${artistId}-${mode}-${featurings ? 'f' : 'n'}`,
     title: `${info.name} — ${config.title}`,
     emoji: config.emoji,
-    subtitle: `${tracks.length} titres${featurings ? '' : ', sans featuring'} sur ${ranked.length} au repertoire`,
+    subtitle: `${tracks.length} titres${featurings ? `, dont ${featCount} featurings` : ', sans featuring'} sur ${ranked.length} au repertoire`,
     accent: '#F472B6',
     source: 'artist',
     artist: info,
@@ -568,11 +630,28 @@ async function buildArtist(artistId, mode = 'hits', { featurings = true } = {}) 
     featurings,
     // Toute la partie porte sur cet artiste : le demander n'aurait aucun sens.
     askArtist: false,
+    // Regles de composition d'une partie, appliquees par `pickQueue`.
+    mix: {
+      groupBy: 'album',
+      tiers: ARTIST_MIX[mode] || null,
+      featShare,
+    },
     tracks: shuffle(tracks),
   };
 }
 
+/**
+ * Dosage des etages de popularite par partie.
+ * « Au hasard » garde une majorite de titres connus : c'est ce qui le distingue
+ * de « vrai fan », et ce qui le rend jouable a plusieurs.
+ */
+const ARTIST_MIX = {
+  hits: null,
+  random: { 0: 0.4, 1: 0.35, 2: 0.25 },
+  deep: { 1: 0.5, 2: 0.5 },
+};
+
 module.exports = {
-  CATEGORIES, listCategories, getCategory, buildCategory, diversify, shuffle,
+  CATEGORIES, listCategories, getCategory, buildCategory, diversify, dedupe, shuffle,
   ARTIST_MODES, buildArtist,
 };

@@ -333,7 +333,7 @@ async function artistDiscography(artistId, { maxReleases = 45 } = {}) {
  * les Muppets — et seules les deux dernieres sont des collaborations.
  */
 async function artistCollaborations(artistId, artistName) {
-  const key = `collabs_${artistId}_v5`;
+  const key = `collabs_${artistId}_v6`;
   const cached = readCache(key, 24 * 60 * 60 * 1000);
   if (cached) return cached;
 
@@ -370,7 +370,17 @@ async function artistCollaborations(artistId, artistName) {
     .filter((raw) => norm(raw.artist?.name || '') !== wanted)
     .slice(0, 12);
 
+  // Le top liste aussi les morceaux ou il est invite, avec leurs contributeurs :
+  // ce sont ses featurings les plus connus, bien plus surs que la recherche.
   const guests = [];
+  const guestIds = new Set();
+  for (const raw of top.data || []) {
+    if (norm(raw.artist?.name || '') === wanted) continue;
+    const credited = (raw.contributors || []).some((c) => norm(c.name) === wanted);
+    const track = credited ? toTrack(raw) : null;
+    if (track && !guestIds.has(track.id)) { guests.push(track); guestIds.add(track.id); }
+  }
+
   const checked = await Promise.all(candidates.map(async (raw) => {
     try {
       const full = await dz(`/track/${raw.id}`);
@@ -380,7 +390,9 @@ async function artistCollaborations(artistId, artistName) {
       return null;
     }
   }));
-  for (const track of checked) if (track?.preview) guests.push(track);
+  for (const track of checked) {
+    if (track?.preview && !guestIds.has(track.id)) { guests.push(track); guestIds.add(track.id); }
+  }
 
   const result = { sharedIds, sharedTitles, guests };
   writeCache(key, result);
@@ -402,12 +414,22 @@ async function trackByIsrc(isrc) {
   }
 }
 
-async function playlistTracks(playlistId, limit = 200) {
-  const key = `playlist_${playlistId}_${limit}`;
+/**
+ * Morceaux d'une playlist Deezer, pages comprises : l'objet playlist n'en
+ * embarque qu'une partie, la suite vient de /playlist/{id}/tracks.
+ */
+async function playlistTracks(playlistId, limit = 500) {
+  const key = `playlist_${playlistId}_${limit}_v2`;
   const cached = readCache(key, DEFAULT_TTL);
   if (cached) return cached;
-  const json = await dz(`/playlist/${playlistId}?limit=${limit}`);
-  const tracks = (json.tracks?.data || []).map(toTrack).filter(Boolean);
+  const json = await dz(`/playlist/${playlistId}`);
+  const raw = [];
+  for (let index = 0; index < limit; index += 100) {
+    const page = await dz(`/playlist/${playlistId}/tracks?index=${index}&limit=100`);
+    raw.push(...(page.data || []));
+    if (!page.next || !(page.data || []).length) break;
+  }
+  const tracks = raw.slice(0, limit).map(toTrack).filter(Boolean);
   const value = { title: json.title || `Playlist ${playlistId}`, cover: json.picture_big || '', tracks };
   writeCache(key, value);
   return value;

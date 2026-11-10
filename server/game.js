@@ -1,13 +1,15 @@
 'use strict';
 
 const crypto = require('crypto');
-const { matchTitle, matchArtist, normalize } = require('./match');
+const { matchTitle, matchArtist } = require('./match');
 const catalog = require('./catalog');
 const deezer = require('./deezer');
 const youtube = require('./youtube');
 const spotify = require('./spotify');
+const resolve = require('./resolve');
 const metrics = require('./metrics');
 const podium = require('./integrations/podium');
+const variety = require('./variety');
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans O/0/I/1/L
 
@@ -86,7 +88,9 @@ class Room {
     this.screenOnline = 0;
     this.history = [];
     this.connectedCount = 0;      // tenu a jour, plutot que recompte a chaque fois
-    this.playedTrackIds = new Set();   // memoire des parties precedentes du salon
+    // Cle de la memoire d'ecoute (voir variety.js) : fournie par le navigateur
+    // de l'animateur, a defaut propre au salon.
+    this.listenerKey = `room:${code}`;
     this.paused = null;                // { phaseBefore, remainingMs, answerRemainingMs } pendant une pause
     this.broadcastTimer = null;
     this.dirty = false;
@@ -224,7 +228,7 @@ class GameServer {
       if (!id) throw new Error('Identifiant de playlist Deezer invalide.');
       const dzApi = require('./deezer');
       const pl = await dzApi.playlistTracks(id);
-      const tracks = catalog.diversify(catalog.shuffle(pl.tracks), 3);
+      const tracks = catalog.dedupe(pl.tracks);
       if (tracks.length < 5) throw new Error('Cette playlist Deezer n\'a pas assez d\'extraits jouables.');
       room.playlist = {
         id: `dz-${id}`, title: pl.title, emoji: '🎧',
@@ -238,11 +242,10 @@ class GameServer {
       room.playlist = { ...built, pending: false };
       metrics.playlistSelections.inc({ source: 'artist', id: spec.mode || 'hits' });
       room.settings.rounds = clamp(room.settings.rounds, 3, built.tracks.length);
-      // Nouveau repertoire : la memoire du salon repart de zero.
-      room.playedTrackIds = new Set();
+      // La memoire d'ecoute n'est pas remise a zero : changer de profondeur ou
+      // de reglage ne doit pas resservir ce qu'on vient d'entendre.
       return room.playlist;
     } else if (spec.type === 'spotify') {
-      if (!spotify.enabled()) throw new Error('Spotify n\'est pas configure sur ce serveur.');
       const id = spotify.parsePlaylistId(spec.id);
       if (!id) throw new Error('Lien de playlist Spotify invalide.');
 
@@ -265,7 +268,9 @@ class GameServer {
         this.broadcast(room);
       });
 
-      const usable = catalog.diversify(catalog.shuffle(tracks), 4);
+      // Aucun plafond par artiste ici : une playlist importee est un choix de
+      // l'animateur, la variete d'une partie est assuree a la composition.
+      const usable = catalog.dedupe(tracks);
       if (usable.length < 5) {
         room.playlist = null;
         this.broadcastNow(room);
@@ -280,19 +285,73 @@ class GameServer {
     } else if (spec.type === 'youtube') {
       const listId = youtube.parsePlaylistId(spec.id);
       if (!listId) throw new Error('Lien de playlist YouTube invalide (il faut le parametre « list »).');
-      if (!this.audioDeviceOnline(room)) {
-        throw new Error(this.audioTargetLabel(room) + ' n\'est pas connecte : c\'est lui qui charge la playlist.');
-      }
-      // Sans cle API, le serveur ne peut pas lister la playlist : le lecteur
-      // YouTube du terminal audio s'en charge et nous renvoie les identifiants.
+      const key = `yt-${listId}`;
+      metrics.playlistSelections.inc({ source: 'youtube', id: 'import' });
+
+      // Le serveur lit d'abord la playlist lui-meme : titres et chaines de
+      // chaque video, sans cle API et sans dependre de l'ecran.
       room.playlist = {
-        id: `yt-${listId}`, title: 'Playlist YouTube', emoji: '▶️',
-        subtitle: 'Chargement par le lecteur…', accent: '#FF3D46',
+        id: key, title: 'Playlist YouTube', emoji: '▶️',
+        subtitle: 'Lecture de la playlist…', accent: '#FF3D46',
         source: 'youtube', ytPlaylistId: listId, tracks: [], pending: true,
       };
-      this.io.to(this.audioRoom(room)).emit('youtube:load', { playlistId: listId });
-      metrics.playlistSelections.inc({ source: 'youtube', id: 'import' });
-      return room.playlist;
+      this.broadcastNow(room);
+      let fetched = null;
+      try {
+        fetched = await youtube.fetchPlaylist(listId);
+      } catch (err) {
+        console.warn(`[youtube] lecture serveur de ${listId} impossible :`, err.message);
+      }
+
+      if (room.playlist?.id !== key) return room.playlist;   // l'animateur a change d'avis
+      if (fetched) {
+        room.playlist.title = fetched.title;
+        // Chaque video est retrouvee chez Deezer quand c'est possible : extrait
+        // propre, titre exact pour la correction, son jouable sur les telephones.
+        // Les autres restent lues par le lecteur YouTube du terminal audio.
+        const parsed = fetched.videos.map((v) => youtube.parseVideoTitle(v.title, v.channel));
+        const entries = parsed.map((p, i) => ({
+          title: p.title,
+          artist: p.artist,
+          artists: youtube.splitArtists(p.artist, fetched.videos[i].channel),
+          raw: fetched.videos[i].title,
+        }));
+        const found = await resolve.resolveEach(entries, (done, total, ok) => {
+          if (room.playlist?.id !== key) return;
+          room.playlist.subtitle = `${done}/${total} videos verifiees • ${ok} retrouvees sur Deezer`;
+          this.broadcast(room);
+        });
+        if (room.playlist?.id !== key) return room.playlist;   // l'animateur a change d'avis
+
+        const tracks = catalog.dedupe(found.map((track, i) => {
+          if (track) return track;
+          const t = youtube.toTrack(fetched.videos[i].videoId, i);
+          t.title = parsed[i].title;
+          t.artist = parsed[i].artist;
+          return t;
+        }));
+        const viaYoutube = tracks.filter((t) => t.source === 'youtube').length;
+        room.playlist = {
+          id: key, title: fetched.title, emoji: '▶️',
+          subtitle: viaYoutube
+            ? `${tracks.length} titres • ${tracks.length - viaYoutube} via Deezer, ${viaYoutube} lus sur YouTube`
+            : `${tracks.length} titres, tous retrouves sur Deezer`,
+          accent: '#FF3D46', source: 'youtube', ytPlaylistId: listId, tracks, pending: false,
+        };
+      } else {
+        // Mix genere (« RD… »), page refusee : le lecteur YouTube du terminal
+        // audio sait parfois mieux faire, on lui passe la main.
+        if (!this.audioDeviceOnline(room)) {
+          room.playlist = null;
+          this.broadcastNow(room);
+          throw new Error('Playlist YouTube illisible depuis le serveur, et '
+            + this.audioTargetLabel(room).toLowerCase() + ' n\'est pas connecte pour essayer a sa place. '
+            + 'Verifie qu\'elle est publique ou non repertoriee.');
+        }
+        room.playlist.subtitle = 'Chargement par le lecteur…';
+        this.io.to(this.audioRoom(room)).emit('youtube:load', { playlistId: listId });
+        return room.playlist;
+      }
     } else if (spec.type === 'custom') {
       const tracks = catalog.diversify(room.customTracks, 99);
       if (tracks.length < 3) throw new Error('Ajoute au moins 3 titres a ta selection.');
@@ -318,8 +377,6 @@ class GameServer {
     pl.tracks = tracks;
     pl.subtitle = `${tracks.length} titres, tout juste actualises`;
     room.settings.rounds = clamp(room.settings.rounds, 3, tracks.length);
-    // La memoire des morceaux joues repart : le vivier n'est plus le meme.
-    room.playedTrackIds = new Set();
     this.broadcast(room);
     return tracks.length;
   }
@@ -393,7 +450,9 @@ class GameServer {
     const ids = [...new Set((videoIds || []).filter((v) => typeof v === 'string' && v.length > 5))];
     pl.tracks = ids.map((id, i) => youtube.toTrack(id, i));
     pl.pending = false;
-    pl.subtitle = `${pl.tracks.length} videos chargees`;
+    pl.subtitle = pl.tracks.length
+      ? `${pl.tracks.length} videos chargees`
+      : 'Playlist introuvable : elle doit etre publique ou non repertoriee';
     if (pl.tracks.length) room.settings.rounds = clamp(room.settings.rounds, 3, pl.tracks.length);
     this.broadcast(room);
     return true;
@@ -415,7 +474,8 @@ class GameServer {
     if (!room.playlist) throw new Error('Choisis d\'abord une liste de morceaux.');
     if (room.playlist.pending) throw new Error('La playlist YouTube n\'est pas encore chargee.');
     if (room.connectedCount === 0) throw new Error('Aucun joueur connecte.');
-    if (room.playlist.source === 'youtube' && !this.audioDeviceOnline(room)) {
+    if (room.playlist.tracks.length < 3) throw new Error('Cette liste n\'a pas assez de morceaux pour une partie.');
+    if (room.playlist.tracks.some((t) => t.source === 'youtube') && !this.audioDeviceOnline(room)) {
       throw new Error(this.audioTargetLabel(room) + ' doit rester connecte pour lire YouTube.');
     }
     room.clearTimers();
@@ -474,48 +534,23 @@ class GameServer {
   }
 
   /**
-   * Compose la liste des manches.
-   *
-   * Deux regles, dans cet ordre : on sert d'abord ce que ce salon n'a jamais
-   * entendu — sinon deux parties d'affilee se ressemblent — puis on limite a
-   * deux titres par artiste, pour qu'une partie ne vire pas au monographique.
+   * Compose la liste des manches, d'apres ce que cette regie a deja entendu
+   * (toutes listes confondues) et les regles de dosage de la liste. Le detail
+   * est dans variety.js.
    */
   pickQueue(room) {
-    const wanted = room.settings.rounds;
-    const pool = catalog.shuffle(room.playlist.tracks);
-    const played = room.playedTrackIds;
-
-    const ordered = [
-      ...pool.filter((t) => !played.has(t.id)),
-      ...pool.filter((t) => played.has(t.id)),
-    ];
-
-    const queue = [];
-    const perArtist = new Map();
-    for (const track of ordered) {
-      if (queue.length >= wanted) break;
-      const key = normalize(track.artist || '');
-      const seen = perArtist.get(key) || 0;
-      if (key && seen >= 2) continue;
-      perArtist.set(key, seen + 1);
-      queue.push(track);
-    }
-
-    // Vivier trop etroit pour tenir la contrainte : on complete sans elle.
-    if (queue.length < wanted) {
-      const taken = new Set(queue.map((t) => t.id));
-      for (const track of ordered) {
-        if (queue.length >= wanted) break;
-        if (!taken.has(track.id)) { queue.push(track); taken.add(track.id); }
-      }
-    }
-
-    for (const track of queue) played.add(track.id);
-    // On borne la memoire : au-dela, les plus anciens redeviennent jouables.
-    if (played.size > 400) {
-      room.playedTrackIds = new Set([...played].slice(-300));
-    }
+    const mix = room.playlist.mix || {};
+    const memory = variety.memory.get(room.listenerKey);
+    const queue = variety.composeQueue(room.playlist.tracks, {
+      wanted: room.settings.rounds, memory, mix,
+    });
+    variety.memory.record(room.listenerKey, queue, variety.groupsOf(queue, mix));
     return queue;
+  }
+
+  /** Rattache le salon a la memoire d'ecoute d'un navigateur d'animateur. */
+  setListener(room, key) {
+    if (typeof key === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(key)) room.listenerKey = `host:${key}`;
   }
 
   nextRound(room) {

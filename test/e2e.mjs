@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const URL = 'http://localhost:3000';
+const URL = process.env.TARGET || 'http://localhost:3000';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const call = (s, ev, p) => new Promise((res) => s.emit(ev, p, res));
 const fails = [];

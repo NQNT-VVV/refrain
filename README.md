@@ -135,25 +135,38 @@ Tubes de l'ete, Classique, Metal.
 > Allegro con brio », impossibles a taper au clavier. En buzzer, la liste
 > fonctionne tres bien.
 
-Elles sont construites a la volee depuis l'API Deezer (60 a 100 titres chacune,
-melanges, deux morceaux maximum par artiste), puis mises en cache dans
-`.cache/` pendant 6 h. Le premier chargement d'une liste prend quelques
-secondes ; ensuite c'est instantane.
+Elles sont construites a la volee depuis l'API Deezer, a partir des tops de
+20 a 56 artistes par liste, puis mises en cache dans `.cache/` pendant 6 h. Le
+premier chargement d'une liste prend une quinzaine de secondes ; ensuite c'est
+instantane.
 
-Chaque liste tient **90 a 215 titres** — quatre morceaux par artiste au
-maximum — et se reconstruit toute seule au bout de six heures. Le bouton
+Chaque liste tient **150 a 350 titres** — six morceaux par artiste au maximum —
+et se reconstruit toute seule au bout de six heures. Le bouton
 **🔄 Actualiser** force la reconstruction immediatement.
 
 ### Ne pas rejouer les memes morceaux
 
 Un vivier profond ne suffit pas : avec douze manches tirees dans quatre-vingts
-titres, deux parties d'affilee partagent statistiquement trois morceaux. Le
-salon **retient donc ce qu'il a deja joue** et sert d'abord les inedits. Il faut
-epuiser tout le vivier avant qu'un morceau revienne.
+titres, deux parties d'affilee partagent statistiquement trois morceaux. La
+regie **retient donc ce qu'elle a deja fait entendre** et sert d'abord les
+inedits ; un morceau ne revient qu'une fois tout le vivier epuise, en
+commencant par les plus anciennement joues.
 
-Une seconde regle s'applique en composant la liste des manches : **deux titres
-par artiste au maximum**, pour qu'une partie ne vire pas au monographique meme
-si le vivier en contient quatre.
+Cette memoire appartient au **navigateur de l'animateur**, pas au salon ni a la
+liste : changer de liste, de profondeur, de reglage, ou recreer un salon ne la
+remet pas a zero. Elle est gardee sur le serveur (`.cache/listen-memory.json`,
+60 jours sans jouer et elle s'efface), sous un identifiant tire au hasard par
+le navigateur — aucune donnee personnelle. `REFRAIN_MEMORY_FILE=off` la garde en
+memoire seulement.
+
+La composition d'une partie suit trois autres regles, detaillees dans
+`server/variety.js` :
+
+- **un titre par artiste** quand le vivier le permet (deux sinon) ;
+- a fraicheur egale, **les artistes entendus il y a le plus longtemps** passent
+  devant : deux parties d'affilee sur « Annees 80 » n'ont aucun artiste en
+  commun ;
+- deux titres du meme artiste ne se suivent jamais.
 
 ### Une partie sur un seul artiste
 
@@ -172,7 +185,7 @@ n'aurait aucun sens. Seul le titre compte, et le reglage « demander aussi
 l'artiste » se desactive tout seul.
 
 Une case **« Inclure les featurings »** decide du sort de ses collaborations et
-de ses passages invite chez d'autres. Trois pieges ont demande du soin :
+de ses passages invite chez d'autres. Plusieurs pieges ont demande du soin :
 
 - les pistes d'album ne portent ni contributeurs ni mention « feat » : la
   detection vient du top de l'artiste, qui les liste avec leur **role** ;
@@ -181,20 +194,40 @@ de ses passages invite chez d'autres. Trois pieges ont demande du soin :
 - l'exclusion se fait par identifiant de piste, et par titre uniquement quand
   *toutes* ses versions sont des collaborations. Le top de Queen contient quatre
   « Bohemian Rhapsody » — l'album, un live, un medley et une version avec les
-  Muppets — et seule la version d'album doit survivre.
+  Muppets — et seule la version d'album doit survivre ;
+- une discographie Deezer embarque des pistes **qui ne sont pas de l'artiste** :
+  les compilations de son label (« Echelon » chez Vald : Aociz, Seezy,
+  Sirius…), l'album d'un proche. Seules les pistes dont il est l'artiste
+  principal sont gardees ; ses vrais featurings viennent de son top et d'une
+  recherche, ou sa presence est verifiee.
 
-Resultat mesure : Vald passe de 230 a 198 titres, Queen de 208 a 202 —
-« Under Pressure » sort, « Bohemian Rhapsody » et « Killer Queen » restent.
+**Dosage d'une partie.** Chaque profondeur tire dans trois etages de
+popularite — le quart le plus ecoute du repertoire, le milieu, les raretes :
+
+| | Vivier | Partie de 12 manches |
+|---|---|---|
+| ⭐ Les classiques | 30 % les mieux classes (20 a 60 titres) | au hasard dans ce vivier |
+| 🎲 Au hasard | tout le repertoire | ~40 % de tubes, 35 % de milieu, 25 % de raretes |
+| 🕵️ Vrai fan | tout sauf le quart le plus ecoute | moitie milieu, moitie raretes |
+
+Avec les featurings, leur part suit celle du vivier, **plafonnee a 30 %**, et ils
+sont **espaces regulierement** (`.F..F..F..F.`) plutot que groupes. Un album ne
+fournit qu'un titre par partie quand c'est possible.
+
+Ces regles corrigent un defaut remonte en soiree : la limite de deux titres par
+artiste et par partie, pensee pour les listes generales, s'appliquait aussi ici.
+Vald n'avait plus droit qu'a deux titres, et ses featurings — d'autres artistes
+principaux, une douzaine, toujours les memes — remplissaient le reste en bloc.
+Sans featurings, c'etaient les pistes Echelon qui prenaient la place.
+
+Resultat mesure sur **Vald** : 211 titres avec featurings (dont 40), 171 sans ;
+classiques 51 a 60 titres, vrai fan 128 a 158.
 
 La discographie complete est reconstituee album par album, EP et singles
 compris, puis dedoublonnee : un morceau sorti en single, en reedition et en
 version « reloaded » ne compte qu'une fois, dans sa version la mieux classee.
 Intros, interludes et pistes de moins d'une minute sont ecartes — ils ne font
 pas de bonnes manches.
-
-Exemple mesure : **Vald**, 226 titres au repertoire une fois nettoye. Classiques
-45 titres (rang moyen 681 000), au hasard 226, vrai fan 156 (rang moyen 398 000).
-Sur **Queen** l'ecart est encore plus marque : 614 000 contre 183 000.
 
 Autres sources dans la regie :
 
@@ -210,22 +243,29 @@ de 30 s sur la plupart des morceaux en client-credentials. Elle reste excellente
 pour savoir *quoi* jouer, mais ne donne plus de quoi le jouer.
 
 Chaque morceau est donc retrouve chez Deezer par son **ISRC**, l'identifiant
-international de l'enregistrement : pas d'ambiguite de titre, pas de reprise
-prise pour l'original. A defaut d'ISRC, une recherche titre + artiste prend le
-relais, verifiee par le meme correcteur que les reponses des joueurs. L'ecart
-entre morceaux demandes et morceaux jouables s'affiche a l'import.
+international de l'enregistrement, ou a defaut par deux recherches titre +
+artiste (titre debarrasse de « - Remastered 2011 »), verifiees par le meme
+correcteur que les reponses des joueurs. Mesure sans ISRC : 49 titres sur 50.
 
-Le taux de resolution est eleve : mesure sur deux playlists publiques,
-**115 titres jouables sur 116** et **198 sur 200**. Compter une vingtaine de
-secondes pour une playlist de cent titres — l'avancement est visible dans la
+**Aucun plafond par artiste** : une playlist importee est un choix de
+l'animateur. Les imports gardaient autrefois quatre titres par artiste au plus
+(trois pour Deezer), si bien qu'une playlist de 200 sons centree sur quelques
+artistes n'en laissait qu'une poignee. La variete d'une partie est assuree a la
+composition, comme pour les listes pretes.
+
+La lecture de la playlist essaie, dans l'ordre :
+
+1. l'API, point d'acces `/items` (le nom de 2026), puis l'ancien `/tracks` —
+   jusqu'a **400 titres** ;
+2. la **page publique** d'integration (`open.spotify.com/embed/playlist/…`),
+   sans cle : les **100 premiers titres**. Elle repond aussi pour les playlists
+   **editoriales** (`37i9dQ…`, « Today's Top Hits »), que l'API refuse en
+   client-credentials, et pour un serveur sans identifiants.
+
+Compter une minute pour quatre cents titres — l'avancement est visible dans la
 regie.
 
-⚠️ Les playlists **editoriales** de Spotify (identifiants en `37i9dQ…`, du genre
-« Today's Top Hits ») ne sont plus accessibles en client-credentials depuis fin
-2024 : elles repondent 404. Les playlists creees par des utilisateurs, elles,
-fonctionnent normalement.
-
-**Configuration.** Cree une application sur
+**Configuration (facultative).** Cree une application sur
 [developer.spotify.com](https://developer.spotify.com/dashboard) : elle donne un
 Client ID et un Client Secret. Le flux « client credentials » suffit.
 
@@ -239,37 +279,41 @@ kubectl -n refrain rollout restart deploy/refrain
 ```
 
 En local, `SPOTIFY_CLIENT_ID` et `SPOTIFY_CLIENT_SECRET` dans l'environnement.
-Le Deployment lit ces cles en `optional: true` : **sans elles l'application
-tourne normalement**, l'import Spotify est simplement masque dans la regie.
-`GET /api/sources` dit ce que le serveur sait faire.
+Le Deployment lit ces cles en `optional: true` : **sans elles l'import Spotify
+fonctionne quand meme**, limite aux cent premiers titres. `GET /api/sources`
+dit ce que le serveur sait faire (`spotifyApi`).
 
 ### Playlists YouTube
 
-Colle l'adresse d'une playlist publique (celle qui contient `list=`). La lecture
-est directe : pas de passage par Deezer.
+Colle l'adresse d'une playlist publique ou non repertoriee (celle qui contient
+`list=`, liens `music.youtube.com` compris).
 
-Comme il n'y a **aucune cle API**, le serveur ne peut pas lire une playlist
-YouTube. C'est le terminal charge du son — l'ecran de diffusion, ou la regie si
-la sortie est reglee sur « Ici » — qui embarque un lecteur YouTube invisible,
-remonte la liste des videos a l'import, puis le titre de chaque video au moment
-de la jouer. Ce titre sert ensuite a la correction.
+**Le serveur lit la playlist lui-meme**, sans cle API : la page web porte les
+cent premieres videos, la suite vient par pages de cent, jusqu'a **400 videos**.
+Chaque video est ensuite **retrouvee chez Deezer** a partir de son titre
+(« Artiste - Titre (Clip officiel) » est nettoye, la chaine « Artiste - Topic »
+sert d'artiste a defaut) : extrait propre, titre exact pour la correction, son
+jouable sur les telephones. Mesure sur « Les 100 classiques du rap francais » :
+**79 videos sur 98** passent par Deezer, en une dizaine de secondes.
 
-Trois consequences a connaitre :
+Les videos introuvables chez Deezer sont **lues sur YouTube**, par le lecteur
+invisible du terminal charge du son — l'ecran de diffusion, ou la regie si la
+sortie est reglee sur « Ici », qui doit alors rester connecte :
 
-- **Les titres sont ceux de YouTube**, pas d'un catalogue propre. Le serveur
-  nettoie ce qu'il peut (« (Official Video) », « [Remastered in 4K] », « | Label »,
-  conventions K-pop `ARTISTE 'Titre'`), mais ca reste moins net que Deezer.
-- **L'artiste n'est demande que s'il est connaissable.** Une video intitulee
-  simplement « Trois nuits par semaine » ne nomme pas Indochine : sur ces
-  manches-la, le champ artiste disparait cote joueur et seuls les points du
-  titre comptent. Le **mode buzzer** est souvent plus confortable sur ces listes.
-- **Le son ne peut pas etre diffuse sur les telephones** avec YouTube : une video
-  ne se replique pas proprement sur vingt appareils.
-- L'ecran (ou la regie) doit rester connecte pendant toute la partie : c'est lui
-  qui joue. Une video indisponible fait passer la manche automatiquement.
+- leur titre est celui de la video, moins net que Deezer ;
+- **l'artiste n'est demande que s'il est connaissable** : sur une video intitulee
+  simplement « Trois nuits par semaine », seul le titre compte ;
+- leur son n'est **pas diffuse sur les telephones** ;
+- une video indisponible fait passer la manche automatiquement.
+
+**Secours.** Les mix generes par YouTube (`RD…`) ne s'ouvrent pas comme une
+page : le serveur passe alors la main au lecteur du terminal audio, qui remonte
+la liste des videos. Sans terminal audio connecte, la regie le dit plutot que
+d'attendre.
 
 - **📥 Playlist Deezer** — l'adresse d'une playlist publique
   (`https://www.deezer.com/fr/playlist/1234567890`) ou juste son numero.
+  Jusqu'a 500 titres, sans plafond par artiste.
 
 ---
 
@@ -473,6 +517,8 @@ npm run test:artist  # mode artiste : featurings et absence de question artiste
 npm run test:pause   # la pause fige chrono et son, la reprise repart de la
 npm run test:podium  # cookie Podium, rattachement au join, musique du jour (serveur avec PODIUM_SSO_SECRET=devsecret)
 npm run test:weekly  # playlist de la semaine : cinq morceaux, score cumule, une tentative (meme serveur)
+npm run test:variety # composition des parties, sans serveur : feats espaces, dosage, pas de redite
+npm run test:import  # imports Spotify (page publique), YouTube lu par le serveur, mix illisible
 PLAYERS=2000 npm run load
 ```
 
