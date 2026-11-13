@@ -17,7 +17,7 @@ import styles from './daily.module.css';
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { cache: 'no-store', ...init });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error || 'Le serveur ne repond pas.');
+  if (!res.ok) throw new Error((data as { error?: string }).error || 'Le serveur ne répond pas.');
   return data as T;
 }
 
@@ -53,7 +53,7 @@ export function DailyClient() {
       });
       setState(next);
       if (next.result === 'ok') { sfx.unlock(); sfx.good(); }
-      else if (next.result === 'miss' && !next.finished) toast(`Non… ${next.unlocked} s debloquees.`, 'err');
+      else if (next.result === 'miss' && !next.finished) toast(`Non… ${next.unlocked} s débloquées.`, 'err');
     } catch (e) {
       toast((e as Error).message, 'err');
     } finally {
@@ -67,7 +67,7 @@ export function DailyClient() {
     try {
       const next = await api<DailyState>('/api/daily/skip', { method: 'POST' });
       setState(next);
-      if (!next.finished) toast(`Passe. ${next.unlocked} s debloquees.`);
+      if (!next.finished) toast(`Passé. ${next.unlocked} s débloquées.`);
     } catch (e) {
       toast((e as Error).message, 'err');
     } finally {
@@ -89,8 +89,8 @@ export function DailyClient() {
       <main className={styles.main}>
         <header className={styles.head}>
           <span className={styles.date}>{state ? prettyDate(state.dateKey) : 'Musique du jour'}</span>
-          <h1>MUSIQUE DU JOUR</h1>
-          <p>Un seul morceau, le meme pour tout le monde. Six ecoutes, de plus en plus longues, pour le retrouver.</p>
+          <h1>Musique du jour</h1>
+          <p>Un seul morceau, le même pour tout le monde. Six écoutes, de plus en plus longues, pour le retrouver.</p>
         </header>
 
         {error && <p className={styles.error}>{error}</p>}
@@ -99,19 +99,19 @@ export function DailyClient() {
             <div className="frame">
               <span className="what">Chargement de la musique du jour</span>
               <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
-              <span>Le morceau est le meme pour tout le monde</span>
+              <span>Le morceau est le même pour tout le monde</span>
             </div>
           </div>
         )}
 
         {state && (
           <>
-            <SoloRound state={state} busy={busy} onGuess={guess} onSkip={skip} finishedLabel="La partie du jour est terminee." />
+            <SoloRound state={state} busy={busy} onGuess={guess} onSkip={skip} finishedLabel="La partie du jour est terminée." />
 
             {state.finished && state.track && (
               <section className={`card ${styles.reveal}`}>
                 <div className={`${styles.verdict} ${state.solved ? styles.win : styles.lose}`}>
-                  {state.solved ? `Trouve en ${state.attempts.length} ecoute${state.attempts.length > 1 ? 's' : ''} !` : 'Pas cette fois…'}
+                  {state.solved ? `Trouvé en ${state.attempts.length} écoute${state.attempts.length > 1 ? 's' : ''} !` : 'Pas cette fois…'}
                 </div>
                 <div className={styles.trackCard}>
                   {state.track.cover && <img src={state.track.cover} alt="" />}
@@ -123,27 +123,27 @@ export function DailyClient() {
                 </div>
                 <div className={styles.score}><b>{state.score}</b><span>points</span></div>
                 {state.track.link && (
-                  <a className="btn sm" href={state.track.link} target="_blank" rel="noreferrer">Ecouter en entier ↗</a>
+                  <a className="btn sm" href={state.track.link} target="_blank" rel="noreferrer">Écouter en entier ↗</a>
                 )}
-                <p className={styles.next}>Un nouveau morceau demain, a minuit. En attendant, la <Link href="/weekly">playlist de la semaine</Link>.</p>
+                <p className={styles.next}>Un nouveau morceau demain, à minuit. En attendant, la <Link href="/weekly">playlist de la semaine</Link>.</p>
               </section>
             )}
 
             {state.hubUrl && (
               state.identity ? (
                 <div className={`${styles.podiumNote} ${styles.linked}`}>
-                  <span className="meta">PODIUM</span>
+                  <span className="meta">Podium</span>
                   <span>
-                    Connecte via Podium en tant que <b>{state.identity.pseudo}</b> : ton score compte pour le defi du jour.
+                    Connecté via Podium en tant que <b>{state.identity.pseudo}</b> : ton score compte pour le défi du jour.
                     {' '}<a href={`${state.hubUrl}/defis`}>Voir le classement</a>
                   </span>
                 </div>
               ) : (
                 <div className={styles.podiumNote}>
-                  <span className="meta">PODIUM</span>
+                  <span className="meta">Podium</span>
                   <span>
-                    Tu joues en anonyme : rien n&apos;est enregistre.
-                    {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi a Podium</a> pour etre classe avec les autres.
+                    Tu joues en anonyme : rien n’est enregistré.
+                    {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi à Podium</a> pour être classé avec les autres.
                   </span>
                 </div>
               )

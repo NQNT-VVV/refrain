@@ -1,53 +1,62 @@
-.wrap { max-width: 900px; margin: 0 auto; padding: 0 0 var(--sp-24); }
+/* Le mode d'emploi : des fiches posees les unes sous les autres. */
+.wrap { max-width: 940px; width: 100%; margin: 0 auto; padding: 0 0 var(--sp-24); }
 
-.topbar { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--margin); border-bottom: var(--border); font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.topbar { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--margin); font: var(--t-meta); color: var(--ink-60); }
 .topbar .spacer { flex: 1; }
 
-.hero { margin: var(--sp-12) var(--margin) 0; padding-bottom: var(--sp-6); border-bottom: var(--border); }
-.hero h1 { font: var(--t-h1); letter-spacing: var(--ls-display); margin-bottom: var(--sp-3); }
-.hero p { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); max-width: 64ch; }
+.hero { margin: var(--sp-8) var(--margin) 0; padding-bottom: var(--sp-6); border-bottom: 2px solid var(--ink-12); animation: rise .6s var(--ease) both; }
+.hero h1 { font: 800 clamp(38px, 6vw, 64px)/1 var(--font-display); letter-spacing: var(--ls-display); margin-bottom: var(--sp-4); }
+.hero p { font: 400 19px/1.55 var(--font-mono); color: var(--ink-90); max-width: 64ch; }
 
 .section { margin: var(--sp-12) var(--margin) 0; }
-.section > h2 { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
-.section > h2::after { content: ''; flex: 1; height: 1px; background: var(--ink-25); }
+.section > h2 { font: 800 30px/1.05 var(--font-display); letter-spacing: var(--ls-display); color: var(--ink); display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.section > h2::after { content: ''; flex: 1; height: 2px; border-radius: 2px; background: var(--ink-12); }
 
-.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); border-top: var(--border); border-left: var(--border); }
-.step { padding: var(--sp-4); border-right: var(--border); border-bottom: var(--border); }
-.step .num { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); margin-bottom: var(--sp-3); display: block; }
-.step h3 { font: var(--t-ui); letter-spacing: var(--ls-mono); margin-bottom: var(--sp-2); }
-.step p { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
-.step code { font: var(--t-meta); padding: 0 var(--sp-1); border: var(--border); }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--sp-4); }
+.step { padding: var(--sp-4) var(--sp-6) var(--sp-6); border-radius: 18px; background: var(--paper); border: var(--border); transition: transform .35s var(--ease-bounce), box-shadow .35s var(--ease); }
+.step:hover { transform: translateY(-4px) rotate(-1deg); box-shadow: var(--shadow); }
+.step:nth-child(even):hover { transform: translateY(-4px) rotate(1deg); }
+.step .num { font: 800 44px/1 var(--font-display); color: var(--accent); margin-bottom: var(--sp-2); display: block; text-transform: none; letter-spacing: 0; }
+.step h3 { font: 700 19px/1.2 var(--font-mono); margin-bottom: var(--sp-2); }
+.step p { font: var(--t-prose); color: var(--ink-90); }
 
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--gutter); }
-.card2 { padding: var(--sp-4); border: var(--border); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--sp-4); }
+.card2 { padding: var(--sp-6); border-radius: 18px; background: var(--paper); border: var(--border); transition: transform .35s var(--ease), box-shadow .35s var(--ease); }
+.card2:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .card2 .icon { display: none; }
 .card2 h3 { font: var(--t-h2); letter-spacing: var(--ls-display); margin-bottom: var(--sp-3); }
-.card2 p { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
-.card2 ul { margin: var(--sp-3) 0 0; padding-left: var(--sp-4); font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
+.card2 p { font: var(--t-prose); color: var(--ink-90); }
+.card2 ul { margin: var(--sp-3) 0 0; padding-left: var(--sp-4); font: var(--t-prose); color: var(--ink-90); }
 .card2 li + li { margin-top: var(--sp-1); }
-.card2 b { color: var(--ink); font-weight: 400; }
+.card2 b { color: var(--ink); font-weight: 700; }
 
-.table { width: 100%; border-collapse: collapse; font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.table th, .table td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: var(--border); }
-.table th { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); font-weight: 400; }
-.table td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table { width: 100%; border-collapse: collapse; font: var(--t-ui); }
+.table th, .table td { text-align: left; padding: var(--sp-3) var(--sp-4); border-bottom: var(--border); }
+.table th { font: var(--t-meta); color: var(--ink-60); }
+.table td:last-child { text-align: right; font: 800 19px/1 var(--font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .table tr:last-child td { border-bottom: 0; }
-.tableWrap { overflow-x: auto; border: var(--border); }
+.table tbody tr { transition: background .2s ease; }
+.table tbody tr:hover { background: var(--gold-18); }
+.tableWrap { overflow-x: auto; border: var(--border); border-radius: 16px; background: var(--paper); }
 
-.tip { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-3) 0; margin-top: var(--sp-4); border: var(--border); font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
-.tip::before { content: ''; align-self: stretch; background-image: var(--dither-50); background-size: var(--dither-size); }
-.tip b { color: var(--ink); font-weight: 400; }
+/* Une astuce : un papier jaune colle en marge. */
+.tip { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); border-radius: 6px; background: var(--gold); font: var(--t-prose); color: var(--ink); rotate: -.5deg; box-shadow: 0 6px 12px rgba(34,30,26,.12); }
+.tip b { font-weight: 700; }
 .tip .mark { display: none; }
-.tip.warn { border-color: var(--ink); }
-.tip.warn::before { background-image: var(--hatch); }
+.tip.warn { background: var(--accent-deep); border: 2px solid var(--accent); rotate: .5deg; }
 
-.keys { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
-.keys span { display: inline-flex; align-items: center; gap: var(--sp-2); font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
-.keys kbd { font: var(--t-meta); letter-spacing: var(--ls-mono); padding: 0 var(--sp-2); height: 24px; display: inline-flex; align-items: center; border: 1px solid var(--ink); color: var(--ink); }
+.keys { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-3); }
+.keys span { display: inline-flex; align-items: center; gap: var(--sp-2); font: var(--t-meta); color: var(--ink-60); }
+/* Une touche de clavier : elle s'enfonce quand on la survole. */
+.keys kbd { font: 700 14px/1 var(--font-mono); padding: 0 10px; min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 2px solid var(--ink); background: var(--paper-hi); color: var(--ink); box-shadow: 0 3px 0 var(--ink); transition: transform var(--tap), box-shadow var(--tap); }
+.keys span:hover kbd { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
 
-.cta { margin: var(--sp-16) var(--margin) 0; display: flex; gap: var(--sp-3); flex-wrap: wrap; }
-.footer { margin: var(--sp-12) var(--margin) 0; padding-top: var(--sp-6); border-top: var(--border); }
+.cta { margin: var(--sp-16) var(--margin) 0; display: flex; gap: var(--sp-4); flex-wrap: wrap; }
+.footer { margin: var(--sp-12) var(--margin) 0; padding-top: var(--sp-6); border-top: 2px solid var(--ink-12); }
 
 @media (max-width: 640px) {
-  .wrap { padding: var(--sp-6) var(--sp-3) var(--sp-12); }
+  .wrap { padding: 0 0 var(--sp-12); }
 }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes rise { from { opacity: 0; translate: 0 22px; } to { opacity: 1; translate: 0 0; } }

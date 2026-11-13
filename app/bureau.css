@@ -22,8 +22,8 @@
 --radius:12px;--r-s:8px;--r-l:20px;
 --shadow:0 10px 22px rgba(34,30,26,.12);--shadow-lift:0 18px 34px rgba(34,30,26,.18);
 /* --- TYPO : Fraunces pour dire, Karla pour lire, Caveat pour annoter ------ */
---font-display:var(--font-fraunces),'Fraunces',Georgia,serif;
---font-mono:var(--font-karla),'Karla',ui-sans-serif,system-ui,sans-serif;
+--font-display:var(--font-fraunces),'Fraunces',Georgia,serif,var(--font-emoji);
+--font-mono:var(--font-karla),'Karla',ui-sans-serif,system-ui,sans-serif,var(--font-emoji);
 --font-hand:var(--font-caveat),'Caveat',cursive;
 --emoji:var(--font-emoji),'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji',sans-serif;
 --fs-1:13px;--fs-2:17px;--fs-3:22px;--fs-4:40px;--fs-5:56px;--fs-6:clamp(60px,12vw,190px);

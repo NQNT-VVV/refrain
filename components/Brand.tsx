@@ -8,7 +8,7 @@ export function Brand({ compact = false, href = '/' as string | null }) {
   const content = (
     <>
       {!compact && <span className="brand-name">Refrain</span>}
-      <span className="brand-beta">Beta</span>
+      <span className="brand-beta">Bêta</span>
     </>
   );
 

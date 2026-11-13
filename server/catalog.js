@@ -18,15 +18,15 @@ const CATEGORIES = [
     id: 'top',
     emoji: '🔥',
     title: 'Top du moment',
-    subtitle: 'Le classement Deezer, mis a jour tout seul',
+    subtitle: 'Le classement Deezer, mis à jour tout seul',
     accent: '#FF3D8B',
     seeds: [{ chart: 0, limit: 100 }],
   },
   {
     id: 'hymnes',
     emoji: '🍻',
-    title: 'Hymnes de soiree',
-    subtitle: 'Ceux que tout le monde reprend en choeur',
+    title: 'Hymnes de soirée',
+    subtitle: 'Ceux que tout le monde reprend en chœur',
     accent: '#FBBF24',
     seeds: [
       'Michel Sardou', 'Claude François', 'Joe Dassin', 'Patrick Sébastien', 'Village People',
@@ -41,7 +41,7 @@ const CATEGORIES = [
   {
     id: 'fr',
     emoji: '🇫🇷',
-    title: 'Chanson francaise',
+    title: 'Chanson française',
     subtitle: 'Du classique au moderne',
     accent: '#60A5FA',
     seeds: [
@@ -61,7 +61,7 @@ const CATEGORIES = [
     id: 'rapfr',
     emoji: '🎤',
     title: 'Rap FR',
-    subtitle: 'Des pionniers a la nouvelle vague',
+    subtitle: 'Des pionniers à la nouvelle vague',
     accent: '#A78BFA',
     seeds: [
       'Jul', 'Ninho', 'PNL', 'Damso', 'Orelsan', 'Booba', 'SCH', 'Nekfeu', 'Gazo',
@@ -76,8 +76,8 @@ const CATEGORIES = [
   {
     id: '80s',
     emoji: '📼',
-    title: 'Annees 80',
-    subtitle: 'Synthes, epaulettes et refrains immortels',
+    title: 'Années 80',
+    subtitle: 'Synthés, épaulettes et refrains immortels',
     accent: '#F472B6',
     seeds: [
       'Michael Jackson', 'Madonna', 'Queen', 'Prince', 'a-ha', 'Depeche Mode', 'The Police',
@@ -94,7 +94,7 @@ const CATEGORIES = [
   {
     id: '90s',
     emoji: '💿',
-    title: 'Annees 90',
+    title: 'Années 90',
     subtitle: 'Eurodance, grunge et boys bands',
     accent: '#34D399',
     seeds: [
@@ -113,7 +113,7 @@ const CATEGORIES = [
   {
     id: '2000s',
     emoji: '📱',
-    title: 'Annees 2000',
+    title: 'Années 2000',
     subtitle: 'MP3, MSN et sonneries polyphoniques',
     accent: '#38BDF8',
     seeds: [
@@ -132,8 +132,8 @@ const CATEGORIES = [
   {
     id: '2010s',
     emoji: '🕶️',
-    title: 'Annees 2010',
-    subtitle: 'La decennie streaming',
+    title: 'Années 2010',
+    subtitle: 'La décennie streaming',
     accent: '#818CF8',
     seeds: [
       'Adele', 'Ed Sheeran', 'Bruno Mars', 'Drake', 'Daft Punk', 'Avicii', 'Calvin Harris',
@@ -151,8 +151,8 @@ const CATEGORIES = [
   {
     id: 'rock',
     emoji: '🎸',
-    title: 'Rock legendes',
-    subtitle: 'Les riffs que personne n\'a le droit de rater',
+    title: 'Rock légendes',
+    subtitle: 'Les riffs que personne n’a le droit de rater',
     accent: '#FB7185',
     seeds: [
       'Queen', 'AC/DC', 'Led Zeppelin', 'Pink Floyd', 'The Rolling Stones', 'The Beatles',
@@ -167,7 +167,7 @@ const CATEGORIES = [
     id: 'disco',
     emoji: '🕺',
     title: 'Disco & Funk',
-    subtitle: 'Boule a facettes obligatoire',
+    subtitle: 'Boule à facettes obligatoire',
     accent: '#FACC15',
     seeds: [
       'Bee Gees', 'Donna Summer', 'CHIC', 'Earth, Wind & Fire', 'Kool & The Gang',
@@ -194,8 +194,8 @@ const CATEGORIES = [
   {
     id: 'films',
     emoji: '🎬',
-    title: 'Films & Series',
-    subtitle: 'Themes cultes du grand et du petit ecran',
+    title: 'Films & Séries',
+    subtitle: 'Thèmes cultes du grand et du petit écran',
     accent: '#E879F9',
     seeds: [
       { artist: 'Hans Zimmer' }, { artist: 'John Williams' }, { artist: 'Ennio Morricone' },
@@ -216,7 +216,7 @@ const CATEGORIES = [
   {
     id: 'disney',
     emoji: '🏰',
-    title: 'Disney & dessins animes',
+    title: 'Disney & dessins animés',
     subtitle: 'Chapitre nostalgie, VF comprise',
     accent: '#F0ABFC',
     seeds: [
@@ -244,7 +244,7 @@ const CATEGORIES = [
   {
     id: 'jeux',
     emoji: '🎮',
-    title: 'Jeux video',
+    title: 'Jeux vidéo',
     subtitle: 'Pour les vrais',
     accent: '#4ADE80',
     seeds: [
@@ -264,7 +264,7 @@ const CATEGORIES = [
     id: 'rnb',
     emoji: '🎶',
     title: 'R&B & Soul',
-    subtitle: 'Groove et voix d\'or',
+    subtitle: 'Groove et voix d’or',
     accent: '#C084FC',
     seeds: [
       'Beyoncé', 'Rihanna', 'Usher', 'Alicia Keys', 'Aretha Franklin', 'Marvin Gaye',
@@ -278,7 +278,7 @@ const CATEGORIES = [
     id: 'latino',
     emoji: '🌴',
     title: 'Latino & Reggaeton',
-    subtitle: 'Ca sent les vacances',
+    subtitle: 'Ça sent les vacances',
     accent: '#FB923C',
     seeds: [
       'Daddy Yankee', 'Bad Bunny', 'J Balvin', 'Shakira', 'Enrique Iglesias', 'Luis Fonsi',
@@ -315,7 +315,7 @@ const CATEGORIES = [
     id: 'kpop',
     emoji: '🇰🇷',
     title: 'K-pop',
-    subtitle: 'Choregraphies incluses',
+    subtitle: 'Chorégraphies incluses',
     accent: '#F472B6',
     seeds: [
       'BTS', 'BLACKPINK', 'TWICE', 'Stray Kids', 'NewJeans', 'SEVENTEEN', 'EXO',
@@ -356,8 +356,8 @@ const CATEGORIES = [
   {
     id: 'ete',
     emoji: '☀️',
-    title: 'Tubes de l\'ete',
-    subtitle: 'Ceux qui sentent la creme solaire',
+    title: 'Tubes de l’été',
+    subtitle: 'Ceux qui sentent la crème solaire',
     accent: '#FACC15',
     seeds: [
       'Kungs', 'Ofenbach', 'Bob Sinclar', 'Shakira', 'Luis Fonsi', 'Magic System',
@@ -371,7 +371,7 @@ const CATEGORIES = [
     id: 'classique',
     emoji: '🎻',
     title: 'Classique',
-    subtitle: 'Plutot au buzzer : les titres sont coriaces',
+    subtitle: 'Plutôt au buzzer : les titres sont coriaces',
     accent: '#94A3B8',
     seeds: [
       'Ludwig van Beethoven', 'Wolfgang Amadeus Mozart', 'Johann Sebastian Bach',
@@ -386,7 +386,7 @@ const CATEGORIES = [
     id: 'metal',
     emoji: '🤘',
     title: 'Metal',
-    subtitle: 'Volume conseille : trop fort',
+    subtitle: 'Volume conseillé : trop fort',
     accent: '#94A3B8',
     seeds: [
       'Metallica', 'Iron Maiden', 'Slipknot', 'System of a Down', 'Rammstein', 'Nightwish',
@@ -472,7 +472,7 @@ const buildLocks = new Map();
 /** Construit (et met en cache) la liste de morceaux jouables d'une categorie. */
 async function buildCategory(id, { force = false } = {}) {
   const cat = getCategory(id);
-  if (!cat) throw new Error(`Categorie inconnue : ${id}`);
+  if (!cat) throw new Error(`Catégorie inconnue : ${id}`);
 
   const cacheKey = `cat_${id}_v4`;
   if (!force) {
@@ -521,11 +521,11 @@ const ARTIST_MODES = {
   },
   random: {
     emoji: '🎲', title: 'Au hasard',
-    hint: 'Pioches dans toute la discographie, tubes et faces B melanges.',
+    hint: 'Pioches dans toute la discographie, tubes et faces B mélangés.',
   },
   deep: {
-    emoji: '🕵️', title: 'T\'es un vrai fan ?',
-    hint: 'Uniquement les morceaux que le grand public ne connait pas.',
+    emoji: '🕵️', title: 'T’es un vrai fan ?',
+    hint: 'Uniquement les morceaux que le grand public ne connaît pas.',
   },
 };
 
@@ -622,7 +622,7 @@ async function buildArtist(artistId, mode = 'hits', { featurings = true } = {}) 
     id: `artist-${artistId}-${mode}-${featurings ? 'f' : 'n'}`,
     title: `${info.name} — ${config.title}`,
     emoji: config.emoji,
-    subtitle: `${tracks.length} titres${featurings ? `, dont ${featCount} featurings` : ', sans featuring'} sur ${ranked.length} au repertoire`,
+    subtitle: `${tracks.length} titres${featurings ? `, dont ${featCount} featurings` : ', sans featuring'} sur ${ranked.length} au répertoire`,
     accent: '#F472B6',
     source: 'artist',
     artist: info,

@@ -4,7 +4,7 @@ import { WeeklyClient } from './WeeklyClient';
 
 export const metadata: Metadata = {
   title: 'Playlist de la semaine',
-  description: 'Cinq morceaux, les memes pour tout le monde, six ecoutes chacun. Une seule tentative par semaine.',
+  description: 'Cinq morceaux, les mêmes pour tout le monde, six écoutes chacun. Une seule tentative par semaine.',
 };
 
 export default function WeeklyPage() {

@@ -21,3 +21,8 @@
 .ko { border-color: var(--accent); box-shadow: 0 4px 0 var(--accent); animation: shake .35s var(--ease); }
 
 .caret { width: 3px; height: 28px; border-radius: 2px; background: var(--accent); animation: blink 1s ease-in-out infinite; }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pop { 0% { opacity: 0; scale: .8; } 70% { opacity: 1; scale: 1.05; } 100% { opacity: 1; scale: 1; } }
+@keyframes shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 4px 0; } }

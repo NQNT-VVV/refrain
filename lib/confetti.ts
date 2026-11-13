@@ -1,4 +1,4 @@
-const COLORS = ['#8b5cf6', '#22d3ee', '#ff3d8b', '#fbbf24', '#34d399', '#ffffff'];
+const COLORS = ['#C8442B', '#F2C230', '#1F4E46', '#221E1A', '#D9A074', '#F4EFE3'];
 
 /**
  * Confettis maison sur un <canvas>. Renvoie une fonction d'arret, a appeler au

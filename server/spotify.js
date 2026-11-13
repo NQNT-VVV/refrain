@@ -30,7 +30,7 @@ function enabled() {
 let token = null; // { value, expiresAt }
 
 async function getToken() {
-  if (!enabled()) throw new Error('Spotify n\'est pas configure sur ce serveur.');
+  if (!enabled()) throw new Error('Spotify n’est pas configuré sur ce serveur.');
   if (token && Date.now() < token.expiresAt - 30_000) return token.value;
 
   const credentials = Buffer.from(`${clientId()}:${clientSecret()}`).toString('base64');
@@ -43,7 +43,7 @@ async function getToken() {
     body: 'grant_type=client_credentials',
   });
   if (!res.ok) {
-    const detail = res.status === 400 || res.status === 401 ? 'identifiants refuses' : `erreur ${res.status}`;
+    const detail = res.status === 400 || res.status === 401 ? 'identifiants refusés' : `erreur ${res.status}`;
     throw new Error(`Spotify : ${detail}.`);
   }
   const json = await res.json();
@@ -57,14 +57,14 @@ async function api(path) {
   if (res.status === 401) {
     token = null;                       // jeton perime : une seule relance
     const retry = await fetch(API + path, { headers: { Authorization: `Bearer ${await getToken()}` } });
-    if (!retry.ok) throw new Error(`Spotify a repondu ${retry.status}.`);
+    if (!retry.ok) throw new Error(`Spotify a répondu ${retry.status}.`);
     return retry.json();
   }
   if (res.status === 404 || res.status === 403) {
-    throw Object.assign(new Error('Playlist Spotify introuvable ou privee.'), { status: res.status });
+    throw Object.assign(new Error('Playlist Spotify introuvable ou privée.'), { status: res.status });
   }
-  if (res.status === 429) throw new Error('Spotify limite les appels, reessaie dans un instant.');
-  if (!res.ok) throw new Error(`Spotify a repondu ${res.status}.`);
+  if (res.status === 429) throw new Error('Spotify limite les appels, réessaie dans un instant.');
+  if (!res.ok) throw new Error(`Spotify a répondu ${res.status}.`);
   return res.json();
 }
 
@@ -93,11 +93,11 @@ async function embedPlaylist(playlistId) {
   const res = await fetch(EMBED_URL + encodeURIComponent(playlistId), {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; refrain/1.0)', 'Accept-Language': 'fr-FR,fr;q=0.9' },
   });
-  if (!res.ok) throw new Error('Playlist Spotify introuvable ou privee.');
+  if (!res.ok) throw new Error('Playlist Spotify introuvable ou privée.');
   const html = await res.text();
   const raw = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/)?.[1];
   const entity = raw ? JSON.parse(raw)?.props?.pageProps?.state?.data?.entity : null;
-  if (!entity?.trackList?.length) throw new Error('Playlist Spotify introuvable ou privee.');
+  if (!entity?.trackList?.length) throw new Error('Playlist Spotify introuvable ou privée.');
   const entries = entity.trackList
     .filter((t) => t?.title && t.subtitle && (t.entityType || 'track') === 'track')
     .map((t) => {

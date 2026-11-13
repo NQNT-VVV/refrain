@@ -59,7 +59,7 @@ export function ScreenClient() {
   const player = useAudioDevice((reason) => toast(
     reason === 'autoplay'
       ? 'Le navigateur bloque la lecture — clique sur la page.'
-      : "L'extrait n'a pas pu etre charge.",
+      : "L’extrait n’a pas pu être chargé.",
     'err',
   ));
 
@@ -180,7 +180,7 @@ export function ScreenClient() {
       )}
 
       <div className={styles.corner} hidden={options.stream}>
-        <span className="pill">{muted || volume === 0 ? 'SON COUPE' : 'SON ACTIF'}</span>
+        <span className="pill">{muted || volume === 0 ? 'Son coupé' : 'Son actif'}</span>
         <input
           type="range" min={0} max={100} value={muted ? 0 : volume} aria-label="Volume"
           onChange={(e) => applySound({ volume: Number(e.target.value), muted: false })}
@@ -189,15 +189,15 @@ export function ScreenClient() {
           className="btn sm" type="button"
           onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
         >
-          PLEIN ECRAN
+          Plein écran
         </button>
       </div>
 
       {!joined && (
         <div className={styles.gate}>
           <div>
-            <h1>{code ? `Partie ${code}` : 'Ecran de diffusion'}</h1>
-            <p>{code ? 'Un clic pour autoriser le son et lancer l\'affichage.' : 'Saisis le code de la partie affiche dans la regie.'}</p>
+            <h1>{code ? `Partie ${code}` : 'Écran de diffusion'}</h1>
+            <p>{code ? 'Un clic pour autoriser le son et lancer l’affichage.' : 'Saisis le code de la partie affiché dans la régie.'}</p>
             <form onSubmit={enter}>
               <input
                 className={`input ${styles.gateCode}`} data-testid="gate-code" value={draft} maxLength={4} placeholder="CODE"
@@ -208,7 +208,7 @@ export function ScreenClient() {
                 className="btn primary lg" type="submit" data-testid="gate-submit"
                 disabled={!socket || entering} aria-busy={entering}
               >
-                {code ? 'ACTIVER LE SON ET DEMARRER' : 'CONNECTER L\'ECRAN'}
+                {code ? 'Activer le son et démarrer' : 'Connecter l’écran'}
               </button>
             </form>
           </div>
@@ -240,7 +240,7 @@ function Stage({ state, code, options }: { state: GameState; code: string; optio
             </>
           )}
         </div>
-        {!options.stream && <span className="brand-beta">beta</span>}
+        {!options.stream && <span className="brand-beta">bêta</span>}
         <span className="pill"><span className="dot" /> <span className={styles.codeMini}>{code}</span></span>
       </header>
 
@@ -281,8 +281,8 @@ function Paused() {
   return (
     <section className={`${styles.scene} ${styles.pausedScene}`} data-testid="scene-paused">
       <div className={styles.pauseBars}><i /><i /></div>
-      <div className={styles.big}>PAUSE</div>
-      <div className={styles.sub}>On reprend dans un instant — le chrono est fige.</div>
+      <div className={styles.big}>Pause</div>
+      <div className={styles.sub}>On reprend dans un instant — le chrono est figé.</div>
     </section>
   );
 }
@@ -330,7 +330,7 @@ function Lobby({ state, code }: { state: GameState; code: string }) {
           ? 'En attente des joueurs…'
           : state.playlist
             ? `${count} joueur${count > 1 ? 's' : ''} · ${state.playlist.title} · ${state.settings.rounds} manches`
-            : `${count} joueur${count > 1 ? 's' : ''} • l'animateur choisit la liste`}
+            : `${count} joueur${count > 1 ? 's' : ''} • l’animateur choisit la liste`}
       </div>
     </section>
   );
@@ -395,7 +395,7 @@ function Playing({ state, ratio, seconds, buzzLock, side }: {
         </div>
 
         {state.settings.mode === 'buzzer' && buzzLock > 0 && (
-          <div className={styles.buzzGate}>BUZZER DANS <b>{buzzLock}</b></div>
+          <div className={styles.buzzGate}>Buzzer dans <b>{buzzLock}</b></div>
         )}
       </div>
 
@@ -404,7 +404,7 @@ function Playing({ state, ratio, seconds, buzzLock, side }: {
           <Crowd state={state} />
         ) : (
         <>
-        <h3>{state.settings.mode === 'buzzer' ? 'Au buzzer' : 'Qui a trouve ?'}</h3>
+        <h3>{state.settings.mode === 'buzzer' ? 'Au buzzer' : 'Qui a trouvé ?'}</h3>
         <div className={styles.list}>
           {state.leaderboard.map((p) => {
             const done = hasFoundAll(p.answered, ask);
@@ -436,7 +436,7 @@ function Crowd({ state }: { state: GameState }) {
   const fastest = state.round?.fastest ?? [];
   return (
     <div className={styles.crowd} data-testid="crowd">
-      <h3>Qui a trouve ?</h3>
+      <h3>Qui a trouvé ?</h3>
       <div className={styles.crowdCount}>
         <b>{done.toLocaleString('fr-FR')}</b>
         <span>/ {connected.toLocaleString('fr-FR')} joueurs</span>
@@ -472,10 +472,10 @@ function Buzzed({ state, answerLeft }: { state: GameState; answerLeft: number })
     <section className={`${styles.scene} ${styles.buzzed}`}>
       <div className={styles.buzzAv} aria-hidden="true">{buzz?.avatar ?? ''}</div>
       <div className={styles.buzzName}>{buzz?.name ?? '—'}</div>
-      <div className={styles.buzzSub}>a buzze — la reponse, vite !</div>
+      <div className={styles.buzzSub}>a buzzé — la réponse, vite !</div>
       {state.round?.answerDeadline && (
         <div className={`${styles.answerClock} ${answerLeft <= 3 ? styles.urgent : ''}`}>
-          <b>{answerLeft}</b> <span>seconde{answerLeft > 1 ? 's' : ''} pour repondre</span>
+          <b>{answerLeft}</b> <span>seconde{answerLeft > 1 ? 's' : ''} pour répondre</span>
         </div>
       )}
     </section>
@@ -508,13 +508,13 @@ function Reveal({ state }: { state: GameState }) {
           />
         )}
         <div className={`${styles.revealText} grow`}>
-          <div className={styles.kicker}>La reponse etait</div>
+          <div className={styles.kicker}>La réponse était</div>
           <div className={styles.revealTitle}>{track.title}</div>
           {track.artist && <div className={styles.revealArtist}>{track.artist}</div>}
           {track.album && <div className={styles.revealAlbum}>{track.album}</div>}
           {fastest && (
             <div className={styles.fastestBadge}>
-              LE PLUS RAPIDE · <b>{fastest.name}</b> · {fmtSeconds(fastest.ms)}
+              Le plus rapide · <b>{fastest.name}</b> · {fmtSeconds(fastest.ms)}
             </div>
           )}
           <div className={styles.scorers}>
@@ -522,7 +522,7 @@ function Reveal({ state }: { state: GameState }) {
               <span key={r.playerId} className={styles.s} style={{ animationDelay: `${i * 0.07}s` }}>
                 {r.avatar} {r.name}<span className={styles.pts}> +{r.gained}</span>
               </span>
-            )) : <span className={styles.none}>PERSONNE N&apos;A TROUVE</span>}
+            )) : <span className={styles.none}>Personne n’a trouvé</span>}
           </div>
         </div>
       </div>
@@ -575,7 +575,7 @@ function Ended({ state }: { state: GameState }) {
   return (
     <section className={`${styles.scene} ${styles.ended}`}>
       <canvas ref={canvas} className={styles.confetti} />
-      <h2>RESULTATS</h2>
+      <h2>Résultats</h2>
       <div className={styles.podium}>
         {order.map((i) => (
           <div key={board[i].id} className={`${styles.step} ${steps[i]}`} style={{ animationDelay: `${i * 0.18}s` }}>

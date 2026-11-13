@@ -104,7 +104,7 @@ export function PlayClient() {
     onAudio: (cue) => player.handleCue(cue),
     onKicked: () => {
       store.del(sessionKey);
-      toast('Tu as ete retire de la partie.', 'err');
+      toast('Tu as été retiré de la partie.', 'err');
       setTimeout(() => router.replace('/'), 1600);
     },
     onPodiumRatings: ({ ratings: next }) => setRatings(next),
@@ -242,7 +242,7 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, pod
             />
             {podiumPseudo && (
               <span className="pill ok" style={{ alignSelf: 'flex-start' }}>
-                Connecte via PODIUM · ton score comptera pour le classement
+                Connecté via Podium · ton score comptera pour le classement
               </span>
             )}
           </div>
@@ -250,7 +250,7 @@ function JoinScreen({ code, pseudo, setPseudo, connected, joining, onSubmit, pod
             {connected ? 'Entrer dans la partie' : 'Connexion…'}
           </button>
           <p className={styles.hint} style={{ textAlign: 'center' }}>
-            Telephone ou ordinateur, peu importe. Le son sort sur l&apos;ecran de l&apos;animateur.
+            Téléphone ou ordinateur, peu importe. Le son sort sur l’écran de l’animateur.
           </p>
           <SupportNote />
         </form>
@@ -295,7 +295,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
               <div className={styles.name}>{self?.name ?? me.name}</div>
               <div className={`${styles.rank} faint`}>
                 {state.phase === 'lobby'
-                  ? 'Pret'
+                  ? 'Prêt'
                   : `${ordinal(you?.rank ?? 0)} sur ${state.counts.players}`}
               </div>
             </div>
@@ -310,7 +310,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
               type="button"
               className={`${styles.soundToggle} ${sound.muted ? styles.off : ''} ${soundOpen ? styles.open : ''}`}
               onClick={() => { if (!soundOpen) sound.probe(); setSoundOpen((v) => !v); }}
-              aria-expanded={soundOpen} aria-label="Reglage du son" title="Reglage du son"
+              aria-expanded={soundOpen} aria-label="Réglage du son" title="Réglage du son"
             >
               {sound.muted || sound.volume === 0 ? 'OFF' : 'ON'}
             </button>
@@ -323,7 +323,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
           <div className={styles.soundPanel}>
             <button
               type="button" onClick={sound.toggleMute}
-              aria-label={sound.muted ? 'Reactiver le son' : 'Couper le son'}
+              aria-label={sound.muted ? 'Réactiver le son' : 'Couper le son'}
             >
               {sound.muted ? 'OFF' : 'ON'}
             </button>
@@ -373,7 +373,7 @@ function PlayScreen({ code, me, self, you, state, socket, connected, sound, onLe
             <div className={styles.pausedPanel}>
               <div className={styles.bars}><i /><i /></div>
               <h2 className={styles.big}>Pause</h2>
-              <p className="muted">L&apos;animateur revient dans un instant. Ton chrono est fige, rien n&apos;est perdu.</p>
+              <p className="muted">L’animateur revient dans un instant. Ton chrono est figé, rien n’est perdu.</p>
             </div>
           </section>
         )}
@@ -435,7 +435,7 @@ function Lobby({ state, me, code }: { state: GameState; me: Me; code: string }) 
         <div>
           <h2 className={styles.big}>Tu es dans la place</h2>
           <p className="muted" style={{ marginTop: 6 }}>
-            L&apos;animateur lance la partie quand tout le monde est la.
+            L’animateur lance la partie quand tout le monde est là.
           </p>
         </div>
 
@@ -475,7 +475,7 @@ function Countdown({ round, value }: { round: number; value: number | null }) {
       <div className={styles.countdown}>
         <div className={styles.n} key={label}>{label}</div>
       </div>
-      <p className="muted" style={{ textAlign: 'center' }}>Manche <b>{round}</b> — prepare-toi</p>
+      <p className="muted" style={{ textAlign: 'center' }}>Manche <b>{round}</b> — prépare-toi</p>
     </section>
   );
 }
@@ -490,7 +490,7 @@ function AnswerForm({ state, me, self, socket, paused }: {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [sending, setSending] = useState(false);
-  const [hint, setHint] = useState('Tu peux corriger et revalider autant que tu veux : plus tu trouves tot, plus tu marques.');
+  const [hint, setHint] = useState('Tu peux corriger et revalider autant que tu veux : plus tu trouves tôt, plus tu marques.');
 
   const titleRef = useRef<HTMLInputElement>(null);
   const [foundAt, setFoundAt] = useState<number | null>(null);
@@ -535,10 +535,10 @@ function AnswerForm({ state, me, self, socket, paused }: {
 
     const gotTitle = res.titleOk && !before.title;
     const gotArtist = res.artistOk && !before.artist;
-    if (gotTitle && gotArtist) { sfx.great(); toast('TITRE ET ARTISTE · ACCEPTES', 'ok'); navigator.vibrate?.([20, 50, 20, 50, 30]); }
-    else if (gotTitle) { sfx.good(); toast('TITRE ACCEPTE', 'ok'); navigator.vibrate?.(45); }
-    else if (gotArtist) { sfx.good(); toast('ARTISTE ACCEPTE', 'ok'); navigator.vibrate?.(45); }
-    else { sfx.bad(); setHint('Pas encore… reessaie, le chrono tourne.'); navigator.vibrate?.(90); }
+    if (gotTitle && gotArtist) { sfx.great(); toast('Titre et artiste · acceptés', 'ok'); navigator.vibrate?.([20, 50, 20, 50, 30]); }
+    else if (gotTitle) { sfx.good(); toast('Titre accepté', 'ok'); navigator.vibrate?.(45); }
+    else if (gotArtist) { sfx.good(); toast('Artiste accepté', 'ok'); navigator.vibrate?.(45); }
+    else { sfx.bad(); setHint('Pas encore… réessaie, le chrono tourne.'); navigator.vibrate?.(90); }
   }
 
   return (
@@ -548,7 +548,7 @@ function AnswerForm({ state, me, self, socket, paused }: {
           <div className={styles.wave}><i /><i /><i /><i /><i /></div>
           <div className="grow">
             <div className={styles.stageTitle}>Manche {state.round!.index + 1}</div>
-            <div className={styles.big}>C&apos;EST QUOI CE MORCEAU ?</div>
+            <div className={styles.big}>C’est quoi ce morceau ?</div>
           </div>
         </div>
 
@@ -579,9 +579,9 @@ function AnswerForm({ state, me, self, socket, paused }: {
           {allFound ? (
             <div className={styles.allFound}>
               <span className={styles.mark} aria-hidden="true" />
-              <span className={styles.t}>Tout trouve !</span>
+              <span className={styles.t}>Tout trouvé !</span>
               <span className={styles.s}>
-                {elapsed ? `En ${elapsed} s — les points arrivent a la revelation.` : 'Les points arrivent a la revelation.'}
+                {elapsed ? `En ${elapsed} s — les points arrivent à la révélation.` : 'Les points arrivent à la révélation.'}
               </span>
             </div>
           ) : (
@@ -590,11 +590,11 @@ function AnswerForm({ state, me, self, socket, paused }: {
                 className="btn primary lg block" type="submit" data-testid="answer-submit"
                 disabled={sending || paused} aria-busy={sending}
               >
-                {paused ? 'Partie en pause' : 'Valider ma reponse'}
+                {paused ? 'Partie en pause' : 'Valider ma réponse'}
               </button>
               <p className={styles.hint}>
                 {paused
-                  ? 'L\'animateur a mis la partie en pause. Ta saisie est gardee, la validation revient a la reprise.'
+                  ? 'L’animateur a mis la partie en pause. Ta saisie est gardée, la validation revient à la reprise.'
                   : hint}
               </p>
             </>
@@ -615,7 +615,7 @@ function LiveMini({ state, me }: { state: GameState; me: Me }) {
   return (
     <div className={styles.liveMini}>
       <div className={styles.head}>
-        Qui a deja trouve ? <span className={styles.headCount}>{counts.done}/{counts.connected}</span>
+        Qui a déjà trouvé ? <span className={styles.headCount}>{counts.done}/{counts.connected}</span>
       </div>
       {rows.map((p) => {
         const done = hasFoundAll(p.answered, ask);
@@ -667,17 +667,17 @@ function Buzzer({ state, me, you, socket, buzzLock, answerLeft }: {
     if (res.reason === 'too_early') {
       sfx.bad();
       navigator.vibrate?.(120);
-      toast('Trop tot ! Ecoute encore un peu.', 'err');
+      toast('Trop tôt ! Écoute encore un peu.', 'err');
     } else if (res.reason === 'taken') {
-      toast('Trop tard, quelqu\'un a ete plus rapide.', 'err');
+      toast('Trop tard, quelqu’un a été plus rapide.', 'err');
     }
   }
 
   const label = buzzed
-    ? (isMine ? 'A TOI !' : '…')
-    : lockedOut ? 'BLOQUE'
+    ? (isMine ? 'À toi !' : '…')
+    : lockedOut ? 'Bloqué'
     : arming ? String(buzzLock)
-    : 'BUZZ';
+    : 'Buzz';
 
   return (
     <section className={styles.panel}>
@@ -694,24 +694,24 @@ function Buzzer({ state, me, you, socket, buzzLock, answerLeft }: {
         {buzzed ? (
           <>
             <span className={styles.who}>
-              {isMine ? 'A TOI DE REPONDRE' : `${buzz?.name ?? 'UN SUJET'} A BUZZE`}
+              {isMine ? 'À toi de répondre' : `${buzz?.name ?? 'Un sujet'} a buzzé`}
             </span>
             <p className="muted" style={{ marginTop: 6 }}>
-              {isMine ? 'Annonce le titre et l\'artiste a voix haute.' : 'L\'animateur valide ou non sa reponse.'}
+              {isMine ? 'Annonce le titre et l’artiste à voix haute.' : 'L’animateur valide ou non sa réponse.'}
             </p>
             {state.round?.answerDeadline && (
               <div className={`${styles.answerClock} ${answerLeft <= 3 ? styles.urgent : ''}`}>
-                <b>{answerLeft}</b> <span>{isMine ? 'pour repondre' : 'restantes'}</span>
+                <b>{answerLeft}</b> <span>{isMine ? 'pour répondre' : 'restantes'}</span>
               </div>
             )}
           </>
         ) : (
           <p className="muted">
             {lockedOut
-              ? 'Tu as deja tente ta chance sur cette manche.'
+              ? 'Tu as déjà tenté ta chance sur cette manche.'
               : arming
-                ? `Le buzzer s'ouvre dans ${buzzLock} s — ecoute d'abord.`
-                : 'Sois le premier a appuyer, puis annonce ta reponse a voix haute.'}
+                ? `Le buzzer s’ouvre dans ${buzzLock} s — écoute d’abord.`
+                : 'Sois le premier à appuyer, puis annonce ta réponse à voix haute.'}
           </p>
         )}
       </div>
@@ -735,7 +735,7 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
   return (
     <section className={styles.panel}>
-      <div className={styles.stageTitle}>La reponse</div>
+      <div className={styles.stageTitle}>La réponse</div>
       <div className={`card ${styles.trackCard}`}>
         {track.cover ? <img src={track.cover} alt="" /> : <div className="avatar lg" aria-hidden="true" />}
         <div className="grow">
@@ -747,11 +747,11 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
       <div className={styles.verdict}>
         <div className={`${styles.v} ${badge?.titleOk ? styles.yes : styles.no}`}>
-          <b>TITRE</b><span>{badge?.titleOk ? 'OK' : 'NON'}</span>
+          <b>Titre</b><span>{badge?.titleOk ? 'OK' : 'Non'}</span>
         </div>
         {asksArtist(state) ? (
           <div className={`${styles.v} ${badge?.artistOk ? styles.yes : styles.no}`}>
-            <b>ARTISTE</b><span>{badge?.artistOk ? 'OK' : 'NON'}</span>
+            <b>Artiste</b><span>{badge?.artistOk ? 'OK' : 'Non'}</span>
           </div>
         ) : (
           <div className={styles.v}><b>Artiste</b><span className="faint">—</span></div>
@@ -762,7 +762,7 @@ function Reveal({ state, me, self }: { state: GameState; me: Me; self: PlayerRow
 
       {track.link && (
         <a className={styles.listenLink} href={track.link} target="_blank" rel="noopener noreferrer">
-          ECOUTER LE MORCEAU EN ENTIER
+          Écouter le morceau en entier
         </a>
       )}
 
@@ -812,18 +812,18 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
       <div className={styles.final}>
         <div className={styles.medal} aria-hidden="true" />
         <div>
-          <div className={styles.pos}>{position ? `${ordinal(position)} place` : 'Partie terminee'}</div>
+          <div className={styles.pos}>{position ? `${ordinal(position)} place` : 'Partie terminée'}</div>
           <p className="muted">
-            {position === 1 ? 'Personne ne t\'arrete.' : `${score} points sur ${state.counts.players} joueurs.`}
+            {position === 1 ? 'Personne ne t’arrête.' : `${score} points sur ${state.counts.players} joueurs.`}
           </p>
           {rating && <PodiumPill rating={rating} hubUrl={hubUrl} />}
         </div>
         <Board rows={boardWithSelf({ ...state, leaderboard: board }, self)} me={me} />
         <button
           className="btn block"
-          onClick={() => copyToClipboard(`${location.origin}/j/${code}`).then(() => toast('Lien copie', 'ok'))}
+          onClick={() => copyToClipboard(`${location.origin}/j/${code}`).then(() => toast('Lien copié', 'ok'))}
         >
-          COPIER LE LIEN DE LA PARTIE
+          Copier le lien de la partie
         </button>
       </div>
     </section>
@@ -838,7 +838,7 @@ function Ending({ state, me, self, you, code, rating, hubUrl }: {
 function PodiumPill({ rating, hubUrl }: { rating: PodiumRating; hubUrl: string | null }) {
   const className = `pill ${rating.after >= rating.before ? 'ok' : ''}`;
   const style = { marginTop: 10, fontSize: 13.5 };
-  const label = `PODIUM ${rating.after >= rating.before ? '+' : ''}${Math.round(rating.after - rating.before)} · ${rating.tier}`;
+  const label = `Podium ${rating.after >= rating.before ? '+' : ''}${Math.round(rating.after - rating.before)} · ${rating.tier}`;
 
   if (!hubUrl) return <span className={className} style={style}>{label}</span>;
   return (

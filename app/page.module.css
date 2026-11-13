@@ -103,3 +103,7 @@
   .cta { width: 100%; }
   .cta > :global(.btn) { flex: 1 1 auto; }
 }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }

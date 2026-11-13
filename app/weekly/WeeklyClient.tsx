@@ -20,7 +20,7 @@ const MAX_PER_TRACK = 60;
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { cache: 'no-store', ...init });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error || 'Le serveur ne repond pas.');
+  if (!res.ok) throw new Error((data as { error?: string }).error || 'Le serveur ne répond pas.');
   return data as T;
 }
 
@@ -41,7 +41,7 @@ function Revealed({ track, highlight = false }: { track: RevealedTrack; highligh
       </span>
       <span className={styles.pts}>
         <b>{track.points}</b>
-        <small>{track.solved ? `en ${track.attempts} ecoute${track.attempts > 1 ? 's' : ''}` : 'rate'}</small>
+        <small>{track.solved ? `en ${track.attempts} écoute${track.attempts > 1 ? 's' : ''}` : 'raté'}</small>
       </span>
     </div>
   );
@@ -72,11 +72,11 @@ export function WeeklyClient() {
       const done = next.revealed[next.revealed.length - 1] || null;
       setLastRevealed(next.finished ? null : done);
       if (done?.solved) { sfx.unlock(); sfx.good(); }
-      else if (done && !next.finished) toast(`Rate. C'etait « ${done.title} ».`, 'err');
+      else if (done && !next.finished) toast(`Raté. C’était « ${done.title} ».`, 'err');
     } else if (next.result === 'miss') {
-      toast(`Non… ${next.unlocked} s debloquees.`, 'err');
+      toast(`Non… ${next.unlocked} s débloquées.`, 'err');
     } else if (next.result === 'skipped') {
-      toast(`Passe. ${next.unlocked} s debloquees.`);
+      toast(`Passé. ${next.unlocked} s débloquées.`);
     }
   }
 
@@ -123,8 +123,8 @@ export function WeeklyClient() {
       <main className={daily.main}>
         <header className={daily.head}>
           <span className={daily.date}>{state ? prettyWeek(state.weekKey) : 'Playlist de la semaine'}</span>
-          <h1>PLAYLIST DE LA SEMAINE</h1>
-          <p>Cinq morceaux, les memes pour tout le monde, six ecoutes chacun. Une seule tentative par semaine : le score s&apos;additionne.</p>
+          <h1>Playlist de la semaine</h1>
+          <p>Cinq morceaux, les mêmes pour tout le monde, six écoutes chacun. Une seule tentative par semaine : le score s’additionne.</p>
         </header>
 
         {error && <p className={daily.error}>{error}</p>}
@@ -133,7 +133,7 @@ export function WeeklyClient() {
             <div className="frame">
               <span className="what">Chargement de la playlist de la semaine</span>
               <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
-              <span>Le morceau est le meme pour tout le monde</span>
+              <span>Le morceau est le même pour tout le monde</span>
             </div>
           </div>
         )}
@@ -156,7 +156,7 @@ export function WeeklyClient() {
 
             {!state.finished && lastRevealed && (
               <section className={`card ${styles.justPlayed}`}>
-                <span className={styles.justLabel}>{lastRevealed.solved ? 'Trouve !' : 'C’etait…'}</span>
+                <span className={styles.justLabel}>{lastRevealed.solved ? 'Trouvé !' : 'C’était…'}</span>
                 <Revealed track={lastRevealed} highlight />
               </section>
             )}
@@ -168,19 +168,19 @@ export function WeeklyClient() {
             {state.finished && (
               <section className={`card ${daily.reveal}`}>
                 <div className={`${daily.verdict} ${solvedCount >= 3 ? daily.win : daily.lose}`}>
-                  {solvedCount === state.tracksTotal ? 'Sans faute !' : solvedCount === 0 ? 'Semaine difficile…' : `${solvedCount} sur ${state.tracksTotal} trouves`}
+                  {solvedCount === state.tracksTotal ? 'Sans faute !' : solvedCount === 0 ? 'Semaine difficile…' : `${solvedCount} sur ${state.tracksTotal} trouvés`}
                 </div>
                 <div className={daily.score}><b>{state.totalScore}</b><span>/ {maxScore} points</span></div>
                 <div className={styles.list}>
                   {state.revealed.map((r) => <Revealed key={r.index} track={r} />)}
                 </div>
-                <p className={daily.next}>Une nouvelle playlist lundi, a minuit. D&apos;ici la, la <Link href="/daily">musique du jour</Link> change chaque matin.</p>
+                <p className={daily.next}>Une nouvelle playlist lundi, à minuit. D’ici là, la <Link href="/daily">musique du jour</Link> change chaque matin.</p>
               </section>
             )}
 
             {!state.finished && state.revealed.length > 0 && (
-              <section className={styles.list} aria-label="Morceaux deja joues">
-                <span className={styles.listTitle}>Deja joues</span>
+              <section className={styles.list} aria-label="Morceaux déjà joues">
+                <span className={styles.listTitle}>Déjà joues</span>
                 {[...state.revealed].reverse().map((r) => <Revealed key={r.index} track={r} />)}
               </section>
             )}
@@ -188,18 +188,18 @@ export function WeeklyClient() {
             {state.hubUrl && (
               state.identity ? (
                 <div className={`${daily.podiumNote} ${daily.linked}`}>
-                  <span className="meta">PODIUM</span>
+                  <span className="meta">Podium</span>
                   <span>
-                    Connecte via Podium en tant que <b>{state.identity.pseudo}</b> : ton total compte pour le defi de la semaine.
+                    Connecté via Podium en tant que <b>{state.identity.pseudo}</b> : ton total compte pour le défi de la semaine.
                     {' '}<a href={`${state.hubUrl}/defis`}>Voir le classement</a>
                   </span>
                 </div>
               ) : (
                 <div className={daily.podiumNote}>
-                  <span className="meta">PODIUM</span>
+                  <span className="meta">Podium</span>
                   <span>
-                    Tu joues en anonyme : rien n&apos;est enregistre.
-                    {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi a Podium</a> pour etre classe avec les autres.
+                    Tu joues en anonyme : rien n’est enregistré.
+                    {' '}<a href={`${state.hubUrl}/connexion`}>Connecte-toi à Podium</a> pour être classé avec les autres.
                   </span>
                 </div>
               )

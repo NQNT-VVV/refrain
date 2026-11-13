@@ -1,146 +1,167 @@
 /* ==========================================================================
-   REFRAIN · /host — la regie. Densite et lisibilite : c'est le poste de
-   commande, pas une affiche. Filets, dither pour l'inerte, sang pour le vivant.
+   REFRAIN · /host — la regie. Le poste de commande : dense, lisible, mais
+   pose sur la meme table que le reste. Papier pour les panneaux, jaune pour
+   ce qui est choisi, rouge pour ce qui vit.
    ========================================================================== */
-.shell { max-width: 1320px; margin: 0 auto; padding: var(--sp-4) var(--margin) var(--sp-24); }
+.shell { max-width: 1320px; width: 100%; margin: 0 auto; padding: var(--sp-4) var(--margin) var(--sp-32); }
 /* Le Toaster est monte dans le layout racine : on le cible depuis le body. */
-:global(body):has(.shell) :global(#toasts) { bottom: 88px; }
+:global(body):has(.shell) :global(#toasts) { bottom: 104px; }
 
-.bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-6); padding-bottom: var(--sp-3); border-bottom: var(--border); font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-6); font: var(--t-meta); color: var(--ink-60); animation: rise .5s var(--ease) both; }
 .brand { font: var(--t-h2); letter-spacing: var(--ls-display); display: flex; align-items: center; gap: var(--sp-2); }
 
-.grid { display: grid; grid-template-columns: 360px 1fr; gap: var(--gutter); align-items: start; }
-.sticky { position: sticky; top: var(--sp-4); display: flex; flex-direction: column; gap: var(--gutter); }
+.grid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: var(--sp-6); align-items: start; }
+.grid > * { animation: rise .6s var(--ease) both; }
+.grid > *:nth-child(2) { animation-delay: 90ms; }
+.sticky { position: sticky; top: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-6); }
 @media (max-width: 940px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
   .sticky { position: static; }
 }
 
-/* --- Salon — en-tete de partie 0x0C ---------------------------- */
+/* --- Salon : le code, gros, et le QR a cote ------------------------------- */
 .roomCode { display: flex; align-items: center; gap: var(--sp-4); }
-.roomCode .big { font: var(--t-display); letter-spacing: var(--ls-display); font-size: 44px; line-height: 1; color: var(--ink); }
-/* Le QR reste clair : c'est la seule surface du systeme qui doit se scanner. */
-.qrMini { background: var(--ink); border: 1px solid var(--ink); padding: var(--sp-1); width: 96px; height: 96px; flex: none; line-height: 0; }
+.roomCode .big { font: 800 52px/1 var(--font-display); letter-spacing: .04em; color: var(--ink); background: var(--gold); padding: 6px 12px 8px; border-radius: 12px; rotate: -2deg; display: inline-block; animation: pop .5s var(--ease-bounce) .2s both; }
+/* Le QR reste sur fond blanc : il doit se scanner. */
+.qrMini { background: #FFFFFF; border: 2px solid var(--ink); border-radius: 12px; padding: 6px; width: 100px; height: 100px; flex: none; line-height: 0; box-shadow: 0 4px 0 var(--ink); transition: transform .3s var(--ease-bounce); }
+.qrMini:hover { transform: scale(1.6); transform-origin: 100% 0; position: relative; z-index: 5; }
 .qrMini svg { width: 100%; height: 100%; display: block; }
-.linkRow { display: flex; gap: var(--sp-2); align-items: center; }
-.linkRow code { flex: 1; min-width: 0; font: var(--t-meta); letter-spacing: 0; padding: var(--sp-2) var(--sp-3); border: var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linkRow, .obsUrl { display: flex; gap: var(--sp-2); align-items: center; }
+.linkRow code, .obsUrl code { flex: 1; min-width: 0; font: 500 14px/1.4 ui-monospace, 'SFMono-Regular', Menlo, monospace; padding: 10px 12px; border: var(--border); border-radius: 10px; background: var(--paper-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* --- Lien OBS ------------------------------------------------- */
+/* --- Lien OBS -------------------------------------------------------------- */
 .obsRow { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.obsRow .seg button { height: 24px; padding: 0 var(--sp-2); }
-.obsUrl { display: flex; gap: var(--sp-2); align-items: center; }
-.obsUrl code { flex: 1; min-width: 0; font: var(--t-meta); letter-spacing: 0; padding: var(--sp-2) var(--sp-3); border: var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obsRow .seg button { height: 28px; padding: 0 var(--sp-2); }
 
-/* --- Sujets — carte joueur 0x05 -------------------------------- */
-.plist { display: flex; flex-direction: column; max-height: 46vh; overflow: auto; border: var(--border); }
-/* `min(100%, …)` comme ailleurs : sans lui, la colonne de 300 px deborde de
-   l'ecran des le format telephone, et la regie se consulte aussi a la main. */
-.plist.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); max-height: none; border: 0; gap: var(--sp-2); }
-.bare { background: transparent; border: 0; padding: 0; }
+/* --- Joueurs ---------------------------------------------------------------- */
+.plist { display: flex; flex-direction: column; max-height: 46vh; overflow: auto; border: var(--border); border-radius: var(--radius); background: var(--paper-hi); }
+.plist.wide { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); max-height: none; border: 0; background: transparent; gap: var(--sp-3); overflow: visible; }
+.bare { background: transparent; border: 0; padding: 0; box-shadow: none; }
 
-.pcard { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-bottom: var(--border); }
-.plist.wide .pcard { border: var(--border); }
+.pcard { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-bottom: var(--border); animation: rise .4s var(--ease) both; transition: background .3s var(--ease), border-color .3s var(--ease); }
+.plist.wide .pcard { border: var(--border); border-radius: var(--radius); background: var(--paper-hi); padding: var(--sp-3); }
 .plist:not(.wide) .pcard:last-child { border-bottom: 0; }
 .pcard.off { color: var(--ink-60); }
-.pcard.done { border-left: 1px solid var(--ink); }
-.pcard.part { background-image: var(--dither-12); background-size: var(--dither-size); }
-.pcard .nm { flex: 1; min-width: 0; font: var(--t-ui); letter-spacing: var(--ls-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pcard .guess { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
-.pcard .sc { font-variant-numeric: tabular-nums; font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.pcard .tools { display: flex; gap: var(--sp-1); opacity: 0; transition: none; }
+/* A trouve : la carte passe au jaune. */
+.pcard.done { background: var(--gold); border-color: var(--ink); }
+.plist.wide .pcard.done { background: var(--gold); border: 2px solid var(--ink); }
+.pcard.part { background-image: var(--dither-25); background-size: var(--dither-size); }
+.pcard .nm { flex: 1; min-width: 0; font: var(--t-ui); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard .guess { font: var(--t-meta); color: var(--ink-60); }
+.pcard .sc { font: 800 20px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.pcard .tools { display: flex; gap: var(--sp-1); opacity: 0; transition: opacity .2s ease; }
 .pcard:hover .tools, .pcard:focus-within .tools { opacity: 1; }
 @media (hover: none) { .pcard .tools { opacity: 1; } }
 
-/* --- Onglets -------------------------------------------------- */
-.tabs { display: flex; border: var(--border); width: fit-content; max-width: 100%; overflow: auto; }
-.tabs button { border: 0; border-right: var(--border); background: transparent; color: var(--ink-60); height: 40px; padding: 0 var(--sp-4); cursor: pointer; font: var(--t-meta); letter-spacing: var(--ls-mono); white-space: nowrap; transition: none; }
-.tabs button:last-child { border-right: 0; }
-.tabs button:hover { color: var(--ink); background-image: var(--dither-12); background-size: var(--dither-size); }
-.tabs button[aria-selected="true"] { background: var(--ink); background-image: none; color: var(--bg); }
+/* --- Onglets ---------------------------------------------------------------- */
+.tabs { display: flex; gap: 4px; padding: 4px; background: var(--ink-12); border-radius: 14px; width: fit-content; max-width: 100%; overflow: auto; }
+.tabs button { border: 0; background: transparent; color: var(--ink-60); height: 40px; padding: 0 var(--sp-4); border-radius: 10px; cursor: pointer; font: var(--t-meta); white-space: nowrap; transition: background var(--tap), color var(--tap), transform var(--tap); }
+.tabs button:hover { color: var(--ink); background: var(--ink-12); }
+.tabs button:active { transform: scale(.96); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
 
-/* --- Catalogue — carte de jeu 0x04 ------------------------------ */
-.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--gutter); }
+/* --- Catalogue : des pochettes qu'on choisit ------------------------------- */
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--sp-4); }
 .cat {
   position: relative; text-align: left; cursor: pointer; padding: var(--sp-4);
-  background: transparent; border: var(--border); color: inherit; transition: none;
-  display: flex; flex-direction: column; gap: var(--sp-2); min-height: 120px;
+  background: var(--paper-hi); border: 2px solid var(--ink-25); border-radius: 16px; color: inherit;
+  display: flex; flex-direction: column; gap: var(--sp-2); min-height: 116px;
+  text-transform: none; letter-spacing: 0;
+  transition: transform .3s var(--ease-bounce), border-color .2s ease, background .2s ease, box-shadow .2s ease;
 }
-.cat:hover { border-color: var(--ink); background: var(--ink-06); animation: flash var(--dur-flash) var(--ease-hold); }
-.cat[aria-pressed="true"] { border-color: var(--ink); background: var(--ink-06); }
-.cat[aria-pressed="true"]::before { content: ''; position: absolute; inset: -1px -1px auto -1px; height: 4px; background: var(--ink); }
+.cat:hover { border-color: var(--ink); transform: translateY(-3px) rotate(-.6deg); box-shadow: 0 5px 0 var(--ink); }
+.cat:nth-child(even):hover { transform: translateY(-3px) rotate(.6deg); }
+.cat:active { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
+.cat[aria-pressed="true"] { border-color: var(--ink); background: var(--gold); box-shadow: 0 5px 0 var(--ink); }
 .cat .em { display: none; }
-.cat .t { font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.cat .s { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
-.cat .check { position: absolute; top: var(--sp-3); right: var(--sp-3); opacity: 0; font: var(--t-meta); letter-spacing: var(--ls-mono); }
-.cat[aria-pressed="true"] .check { opacity: 1; }
+.cat .t { font: 800 21px/1.1 var(--font-display); }
+.cat .s { font: var(--t-prose); font-size: 15px; color: var(--ink-90); }
+/* La coche : un tampon qui tombe quand la liste est choisie. */
+.cat .check { position: absolute; top: 10px; right: 10px; opacity: 0; font: var(--t-meta); text-transform: uppercase; letter-spacing: .05em; background: var(--ink); color: var(--gold); padding: 2px 8px; border-radius: 6px; transform: rotate(8deg) scale(1.6); transition: opacity .15s ease, transform .3s var(--ease-bounce); }
+.cat[aria-pressed="true"] .check { opacity: 1; transform: rotate(8deg) scale(1); }
 
-/* --- Recherche ------------------------------------------------ */
-.results { display: flex; flex-direction: column; max-height: 44vh; overflow: auto; margin-top: var(--sp-3); border: var(--border); }
-.tres { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); border-bottom: var(--border); }
+/* --- Recherche -------------------------------------------------------------- */
+.results { display: flex; flex-direction: column; max-height: 44vh; overflow: auto; margin-top: var(--sp-3); border: var(--border); border-radius: var(--radius); background: var(--paper-hi); }
+.tres { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-bottom: var(--border); transition: background .2s ease; }
+.tres:hover { background: var(--ink-06); }
 .tres:last-child { border-bottom: 0; }
-.tres img { width: 40px; height: 40px; flex: none; border: 1px solid var(--ink-25); }
-.tres .t { font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.tres .a { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.tres img { width: 44px; height: 44px; flex: none; border-radius: 8px; border: 1.5px solid var(--ink); }
+.tres .t { font: var(--t-ui); font-weight: 700; }
+.tres .a { font: var(--t-meta); color: var(--ink-60); }
 .picked { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-3); }
-.picked .p { display: inline-flex; align-items: center; gap: var(--sp-2); height: 24px; padding: 0 var(--sp-2); border: 1px solid var(--ink); font: var(--t-meta); letter-spacing: var(--ls-mono); }
+.picked .p { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 28px; padding: 2px 10px; border-radius: 999px; background: var(--gold); border: 1.5px solid var(--ink); font: var(--t-meta); animation: pop .3s var(--ease-bounce) both; }
 .picked .p button { border: 0; background: transparent; color: var(--ink-60); cursor: pointer; padding: 0 2px; }
-.picked .p button:hover { color: var(--ink); }
+.picked .p button:hover { color: var(--accent); }
 
-/* --- Mode artiste --------------------------------------------- */
-.artists { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-2); margin-top: var(--sp-3); }
-.artistCard { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); border: var(--border); background: transparent; cursor: pointer; text-align: left; color: inherit; transition: none; }
-.artistCard:hover { border-color: var(--ink); background: var(--ink-06); }
-.artistCard img { width: 40px; height: 40px; flex: none; object-fit: cover; border: 1px solid var(--ink-25); }
-.artistCard .n { font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.artistCard .f { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+/* --- Mode artiste ----------------------------------------------------------- */
+.artists { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
+.artistCard { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2); border: 2px solid var(--ink-25); border-radius: 999px; background: var(--paper-hi); cursor: pointer; text-align: left; color: inherit; text-transform: none; letter-spacing: 0; transition: transform .3s var(--ease-bounce), border-color .2s ease; }
+.artistCard:hover { border-color: var(--ink); transform: translateY(-2px); }
+.artistCard img { width: 44px; height: 44px; flex: none; object-fit: cover; border-radius: 50%; border: 1.5px solid var(--ink); }
+.artistCard .n { font: var(--t-ui); font-weight: 700; }
+.artistCard .f { font: var(--t-meta); color: var(--ink-60); }
 
-.artistPicked { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-3); margin-top: var(--sp-3); border: 1px solid var(--ink); }
-.artistPicked img { width: 56px; height: 56px; flex: none; object-fit: cover; border: 1px solid var(--ink-25); }
+.artistPicked { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-3); margin-top: var(--sp-3); border: 2px solid var(--ink); border-radius: 16px; background: var(--gold); animation: pop .4s var(--ease-bounce) both; }
+.artistPicked img { width: 60px; height: 60px; flex: none; object-fit: cover; border-radius: 50%; border: 2px solid var(--ink); }
 .artistPicked .n { font: var(--t-h2); letter-spacing: var(--ls-display); }
 
-.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--gutter); margin-top: var(--sp-4); }
-.modeCard { padding: var(--sp-4); border: var(--border); background: transparent; cursor: pointer; text-align: left; color: inherit; display: flex; flex-direction: column; gap: var(--sp-2); transition: none; }
-.modeCard:hover:not(:disabled) { border-color: var(--ink); background: var(--ink-06); animation: flash var(--dur-flash) var(--ease-hold); }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-4); margin-top: var(--sp-4); }
+.modeCard { position: relative; padding: var(--sp-4); border: 2px solid var(--ink-25); border-radius: 16px; background: var(--paper-hi); cursor: pointer; text-align: left; color: inherit; display: flex; flex-direction: column; gap: var(--sp-2); text-transform: none; letter-spacing: 0; transition: transform .3s var(--ease-bounce), border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+.modeCard:hover:not(:disabled) { border-color: var(--ink); transform: translateY(-3px); box-shadow: 0 5px 0 var(--ink); }
+.modeCard:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--ink); }
 .modeCard:disabled { background-image: var(--dither-12); background-size: var(--dither-size); color: var(--ink-60); cursor: wait; }
-.modeCard[aria-pressed="true"] { border-color: var(--ink); background: var(--ink-06); }
-.modeCard[aria-pressed="true"]::before { content: ''; display: block; height: 4px; margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4)) 0; background: var(--ink); }
+.modeCard[aria-pressed="true"] { border-color: var(--ink); background: var(--gold); box-shadow: 0 5px 0 var(--ink); }
 .modeCard .em { display: none; }
-.modeCard .t { font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.modeCard .h { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-90); }
+.modeCard .t { font: 800 21px/1.1 var(--font-display); }
+.modeCard .h { font: var(--t-prose); font-size: 15px; color: var(--ink-90); }
 
-/* --- Reglages ------------------------------------------------- */
-.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-4); }
+/* --- Reglages ---------------------------------------------------------------- */
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--sp-6); }
 .setting { display: flex; flex-direction: column; gap: var(--sp-2); }
-.setting .lab { display: flex; align-items: center; justify-content: space-between; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
-.setting .lab b { color: var(--ink); font-weight: 400; font: var(--t-ui); letter-spacing: var(--ls-mono); }
-.note { font: var(--t-prose); letter-spacing: var(--ls-prose); color: var(--ink-60); }
+.setting .lab { display: flex; align-items: center; justify-content: space-between; font: var(--t-meta); color: var(--ink-60); }
+.setting .lab b { color: var(--ink); font: 800 20px/1 var(--font-display); text-transform: none; letter-spacing: 0; }
+.note { font: var(--t-prose); font-size: 15px; color: var(--ink-60); }
 
-/* --- En jeu --------------------------------------------------- */
+/* --- En jeu ------------------------------------------------------------------ */
 .nowPlaying { display: flex; gap: var(--sp-4); align-items: center; }
-.nowPlaying img { width: 88px; height: 88px; flex: none; border: 1px solid var(--ink); background: var(--bg); }
+.nowPlaying img { width: 92px; height: 92px; flex: none; border: 2px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 0 5px 0 var(--ink); rotate: -3deg; animation: pop .45s var(--ease-bounce) both; }
 .nowPlaying .t { font: var(--t-h2); letter-spacing: var(--ls-display); line-height: 1.15; }
-.nowPlaying .a { font: var(--t-ui); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.nowPlaying .a { font: var(--t-ui); color: var(--ink-60); }
 .secret { position: relative; display: flex; flex-direction: column; gap: var(--sp-3); }
-/* Masquer la reponse : un dither par-dessus, jamais un flou. */
+/* Masquer la reponse : un cache de papier a pois par-dessus. */
 .secret.blur .hideable { position: relative; user-select: none; }
-.secret.blur .hideable::after { content: ''; position: absolute; inset: 0; background-color: var(--bg); background-image: var(--dither-75); background-size: var(--dither-size); }
-/* Timer 0x06 : la barre saute. */
-.liveTimer { height: 8px; border: 1px solid var(--ink-25); box-sizing: border-box; }
-.liveTimer i { display: block; height: 100%; transform-origin: left; background: var(--ink); transition: none; }
+.secret.blur .hideable::after { content: ''; position: absolute; inset: -4px; border-radius: 12px; background-color: var(--paper); background-image: var(--dither-50); background-size: var(--dither-size); }
+.liveTimer { height: 10px; border-radius: 999px; background: var(--ink-12); overflow: hidden; }
+.liveTimer i { display: block; height: 100%; transform-origin: left; background: var(--ink); border-radius: 999px; }
 
-/* Le buzz est ce qui vit : filet de sang, badge qui clignote. */
-.buzzAlert { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4); border: 1px solid var(--accent); animation: flash var(--dur-flash) var(--ease-hold); }
-.buzzAlert .av { font-size: 32px; filter: grayscale(1) contrast(1.1); }
+/* Le buzz est ce qui vit : la carte saute et passe au rouge. */
+.buzzAlert { display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4); border: 2px solid var(--accent); border-radius: 16px; background: var(--accent-deep); box-shadow: 0 5px 0 var(--accent); animation: pop .45s var(--ease-bounce) both; }
+.buzzAlert .av { font-size: 34px; font-family: var(--emoji); animation: sway 1.2s ease-in-out infinite; }
 .buzzAlert .nm { font: var(--t-h2); letter-spacing: var(--ls-display); }
-.buzzAlert .clock { font: var(--t-data); letter-spacing: var(--ls-mono); font-size: 32px; font-variant-numeric: tabular-nums; padding: 0 var(--sp-4); border: 1px solid var(--ink-25); display: inline-flex; align-items: center; height: 48px; }
-.buzzAlert .clock.urgent { color: var(--accent); border-color: var(--accent); }
+.buzzAlert .clock { font: 800 30px/1 var(--font-display); font-variant-numeric: tabular-nums; padding: 0 var(--sp-4); border: 2px solid var(--ink); border-radius: 12px; background: var(--paper-hi); display: inline-flex; align-items: center; height: 50px; }
+.buzzAlert .clock.urgent { color: var(--accent); border-color: var(--accent); animation: blink 1s ease-in-out infinite; }
 
 .upnext { display: flex; flex-direction: column; gap: var(--sp-1); }
-.upnext .u { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); display: flex; gap: var(--sp-2); }
-.upnext .u b { color: var(--ink-60); font-weight: 400; }
+.upnext .u { font: var(--t-meta); color: var(--ink-60); display: flex; gap: var(--sp-2); }
+.upnext .u b { color: var(--ink-60); font-weight: 700; }
 
-/* --- Barre de commande ---------------------------------------- */
+/* --- Barre de commande ------------------------------------------------------ */
 .ytStage { position: fixed; right: 0; bottom: 0; width: 320px; height: 180px; opacity: .001; pointer-events: none; z-index: -1; overflow: hidden; }
 
-.controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: var(--sp-3) var(--margin) calc(var(--sp-3) + env(safe-area-inset-bottom)); background: var(--bg); border-top: var(--border); }
-.controls .inner { max-width: 1320px; margin: 0 auto; display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: var(--sp-3) var(--margin) calc(var(--sp-4) + env(safe-area-inset-bottom)); background: #26221E; color: var(--paper); box-shadow: 0 -10px 30px rgba(34,30,26,.18); animation: rise .5s var(--ease) .15s both; }
+.controls .inner { max-width: 1320px; margin: 0 auto; display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
+/* Sur la barre sombre, les touches et les etiquettes s'eclaircissent. */
+.controls :global(.btn) { --edge: #0E0C0A; border-color: var(--paper); background: transparent; color: var(--paper); }
+.controls :global(.btn):hover:not(:disabled) { color: var(--paper); background: rgba(244,239,227,.1); }
+.controls :global(.btn.primary), .controls :global(.btn.good) { --edge: var(--accent); background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.controls :global(.btn.primary):hover:not(:disabled), .controls :global(.btn.good):hover:not(:disabled) { background: var(--gold); color: var(--ink); }
+.controls :global(.btn):disabled { border-color: rgba(244,239,227,.3); background: transparent; color: rgba(244,239,227,.55); box-shadow: none; }
+.controls :global(.btn.danger) { --edge: #0E0C0A; border-color: #F08A75; color: #F08A75; }
+.controls :global(.pill) { border-color: rgba(244,239,227,.5); color: rgba(244,239,227,.85); }
+.controls :global(.muted), .controls :global(.meta) { color: rgba(244,239,227,.75); }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pop { 0% { opacity: 0; scale: .8; } 70% { opacity: 1; scale: 1.05; } 100% { opacity: 1; scale: 1; } }
+@keyframes rise { from { opacity: 0; translate: 0 22px; } to { opacity: 1; translate: 0 0; } }
+@keyframes sway { 0%, 100% { rotate: -2deg; } 50% { rotate: 2deg; } }

@@ -160,3 +160,7 @@
 .eq i:nth-child(4) { animation-duration: 1.5s; animation-delay: -.5s; }
 .eq i:nth-child(5) { animation-duration: 1.1s; animation-delay: -.25s; }
 .eq.still i { animation-play-state: paused; }
+
+/* Fond transparent (option bg=transparent de l'ecran) : OBS compose le jeu sur la scene du streamer. */
+body.transparent { background: transparent; }
+body.transparent .grain { display: none; }

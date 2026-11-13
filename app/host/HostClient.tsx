@@ -38,8 +38,8 @@ function listenerKey(): string {
 type Tab = 'catalog' | 'artist' | 'search' | 'import';
 
 const MODE_NOTE = {
-  input: 'Tout le monde tape titre + artiste. Correction automatique, bonus de rapidite.',
-  buzzer: 'Le premier qui buzze coupe la musique et repond a voix haute. Tu valides ou non.',
+  input: 'Tout le monde tape titre + artiste. Correction automatique, bonus de rapidité.',
+  buzzer: 'Le premier qui buzze coupe la musique et répond à voix haute. Tu valides ou non.',
 } as const;
 
 export function HostClient() {
@@ -58,7 +58,7 @@ export function HostClient() {
   const player = useAudioDevice((reason) => toast(
     reason === 'autoplay'
       ? 'Clique une fois sur la page pour autoriser le son.'
-      : "L'extrait n'a pas pu etre charge.",
+      : "L’extrait n’a pas pu être chargé.",
     'err',
   ));
   const codeRef = useRef('');
@@ -121,7 +121,7 @@ export function HostClient() {
     setLoadingCat(cat.id);
     const res = await send('host:playlist', { type: 'catalog', id: cat.id }, 60000);
     setLoadingCat(null);
-    if (res?.ok) toast(`${cat.title} — liste prete`, 'ok');
+    if (res?.ok) toast(`${cat.title} — liste prête`, 'ok');
   }
 
   // Un seul chrono pour toute la page : le panneau de jeu et la barre de
@@ -135,13 +135,13 @@ export function HostClient() {
   if (!state) {
     return (
       <div className={styles.shell}>
-        <div className={styles.bar}><Brand /><span className="pill">REGIE</span></div>
+        <div className={styles.bar}><Brand /><span className="pill">Régie</span></div>
         {/* Jamais d'ecran vide : on dit ce qu'on attend, et on montre que ca travaille. */}
         <div className="waiting" role="status" aria-live="polite">
           <div className="frame">
             <span className="what">Ouverture du salon</span>
             <span className="loading-dots" aria-hidden="true"><span /><span /><span /></span>
-            <span>Connexion au serveur · le code apparaitra ici</span>
+            <span>Connexion au serveur · le code apparaîtra ici</span>
           </div>
         </div>
       </div>
@@ -158,15 +158,15 @@ export function HostClient() {
       <div className={styles.shell}>
         <div className={styles.bar}>
           <Brand />
-          <span className="pill">REGIE</span>
+          <span className="pill">Régie</span>
           <span className="pill" data-testid="phase">{PHASE_LABEL[state.phase]}</span>
           <div className="grow" />
           <span className={`pill ${state.screenOnline > 0 ? 'ok' : ''}`}>
             {state.screenOnline > 0
-              ? `${state.screenOnline} ECRAN${state.screenOnline > 1 ? 'S' : ''} CONNECTE${state.screenOnline > 1 ? 'S' : ''}`
-              : 'AUCUN ECRAN'}
+              ? `${state.screenOnline} écran${state.screenOnline > 1 ? 's' : ''} connecté${state.screenOnline > 1 ? 's' : ''}`
+              : 'Aucun écran'}
           </span>
-          <a className="btn sm" href={`/screen?code=${code}`} target="_blank" rel="noopener">Ouvrir l&apos;ecran ↗</a>
+          <a className="btn sm" href={`/screen?code=${code}`} target="_blank" rel="noopener">Ouvrir l’écran ↗</a>
         </div>
 
         <div className={styles.grid}>
@@ -177,7 +177,7 @@ export function HostClient() {
                 <div className="grow">
                   <div className={styles.big} data-testid="room-code">{code || '····'}</div>
                   <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-                    Code a saisir sur {origin.replace(/^https?:\/\//, '')}
+                    Code à saisir sur {origin.replace(/^https?:\/\//, '')}
                   </div>
                 </div>
                 {joinUrl && <QrCode className={styles.qrMini} text={joinUrl} />}
@@ -186,17 +186,17 @@ export function HostClient() {
                 <code>{joinUrl.replace(/^https?:\/\//, '') || '—'}</code>
                 <button
                   className="btn icon" title="Copier le lien joueur" aria-label="Copier le lien joueur"
-                  onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copie !', 'ok'))}
+                  onClick={() => copyToClipboard(joinUrl).then(() => toast('Lien copié !', 'ok'))}
                 ><Icon name="copier" /></button>
               </div>
 
               <div className="col" style={{ gap: 8 }}>
                 <div className="section-title" style={{ fontSize: 11 }}>Lien pour OBS / stream</div>
                 <div className={styles.obsRow}>
-                  <div className="seg" role="group" aria-label="Cote du classement">
+                  <div className="seg" role="group" aria-label="Côté du classement">
                     {(['right', 'left'] as const).map((s) => (
                       <button key={s} type="button" aria-pressed={obsSide === s} onClick={() => setObsSide(s)}>
-                        {s === 'right' ? 'Classement a droite' : 'a gauche'}
+                        {s === 'right' ? 'Classement à droite' : 'à gauche'}
                       </button>
                     ))}
                   </div>
@@ -209,13 +209,13 @@ export function HostClient() {
                   <code title={obsUrl}>{obsUrl.replace(/^https?:\/\//, '') || '—'}</code>
                   <button
                     className="btn icon" title="Copier le lien OBS" aria-label="Copier le lien OBS" data-testid="copy-obs"
-                    onClick={() => copyToClipboard(obsUrl).then(() => toast('Lien OBS copie !', 'ok'))}
+                    onClick={() => copyToClipboard(obsUrl).then(() => toast('Lien OBS copié !', 'ok'))}
                   ><Icon name="copier" /></button>
                 </div>
                 <p className="faint" style={{ fontSize: 11.5 }}>
-                  Source navigateur 1920×1080, « controler l&apos;audio via OBS » coche. Le code de la
-                  partie reste affiche en permanence pour les viewers qui arrivent en cours. Clavier
-                  sur l&apos;ecran : <kbd>F</kbd> plein ecran, <kbd>M</kbd> muet, <kbd>↑↓</kbd> volume.
+                  Source navigateur 1920×1080, « contrôler l’audio via OBS » coché. Le code de la
+                  partie reste affiché en permanence pour les viewers qui arrivent en cours. Clavier
+                  sur l’écran : <kbd>F</kbd> plein écran, <kbd>M</kbd> muet, <kbd>↑↓</kbd> volume.
                 </p>
               </div>
 
@@ -230,12 +230,12 @@ export function HostClient() {
                         void send('host:audioTarget', { target });
                       }}
                     >
-                      {target === 'screen' ? 'ECRAN' : 'ICI'}
+                      {target === 'screen' ? 'Écran' : 'Ici'}
                     </button>
                   ))}
                 </div>
                 <p className="faint" style={{ fontSize: 11.5 }}>
-                  « Ici » joue la musique depuis cette page — pratique si tu n&apos;as pas d&apos;ecran separe.
+                  « Ici » joue la musique depuis cette page — pratique si tu n’as pas d’écran séparé.
                 </p>
               </div>
             </section>
@@ -259,10 +259,10 @@ export function HostClient() {
                 <section className="card pad col" style={{ gap: 16 }}>
                   <div className={styles.tabs} role="tablist">
                     {([
-                      ['catalog', 'LISTES PRETES'],
-                      ['artist', 'UN ARTISTE'],
-                      ['search', 'MA SELECTION'],
-                      ['import', 'IMPORTER'],
+                      ['catalog', 'Listes prêtes'],
+                      ['artist', 'Un artiste'],
+                      ['search', 'Ma sélection'],
+                      ['import', 'Importer'],
                     ] as const).map(([id, label]) => (
                       <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{label}</button>
                     ))}
@@ -282,10 +282,10 @@ export function HostClient() {
                             setRefreshing(true);
                             const res = await send('host:refresh', {}, 120000) as { ok: boolean; total?: number } | undefined;
                             setRefreshing(false);
-                            if (res?.ok) toast(`Liste actualisee — ${res.total} titres`, 'ok');
+                            if (res?.ok) toast(`Liste actualisée — ${res.total} titres`, 'ok');
                           }}
                         >
-                          {refreshing ? 'ACTUALISATION' : 'ACTUALISER'}
+                          {refreshing ? 'Actualisation' : 'Actualiser'}
                         </button>
                       </div>
                     )}
@@ -346,7 +346,7 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
       <div className="section-title">
         Joueurs <span className="pill">{counts.players}</span>
         {counts.connected < counts.players && <span className="pill">{counts.connected} en ligne</span>}
-        {state.round && <span className="pill">{counts.done} ont trouve</span>}
+        {state.round && <span className="pill">{counts.done} ont trouvé</span>}
       </div>
       <div className={`${styles.plist} ${wide ? styles.wide : ''}`}>
         {leaderboard.map((p) => {
@@ -366,8 +366,8 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
                 )}
               </div>
               <div className={styles.tools}>
-                <button className="btn xs" title="Retirer un point" aria-label={`Retirer un point a ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: -1 })}>−</button>
-                <button className="btn xs" title="Donner un point" aria-label={`Donner un point a ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: 1 })}>+</button>
+                <button className="btn xs" title="Retirer un point" aria-label={`Retirer un point à ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: -1 })}>−</button>
+                <button className="btn xs" title="Donner un point" aria-label={`Donner un point à ${p.name}`} onClick={() => send('host:award', { playerId: p.id, delta: 1 })}>+</button>
                 <button
                   className="btn xs danger" title="Exclure" aria-label={`Exclure ${p.name}`}
                   onClick={() => { if (confirm(`Retirer ${p.name} de la partie ?`)) void send('host:kick', { playerId: p.id }); }}
@@ -379,13 +379,13 @@ function PlayersCard({ state, send, wide }: { state: GameState; send: Send; wide
           );
         })}
         {counts.players === 0 && (
-          <p className="faint" style={{ fontSize: 12.5 }}>Personne pour l&apos;instant. Fais scanner le QR code.</p>
+          <p className="faint" style={{ fontSize: 12.5 }}>Personne pour l’instant. Fais scanner le QR code.</p>
         )}
       </div>
       {hidden > 0 && (
         <p className="faint" style={{ fontSize: 12 }}>
           {state.phase === 'lobby'
-            ? `+ ${hidden} autres joueurs — la liste montre les derniers arrives.`
+            ? `+ ${hidden} autres joueurs — la liste montre les derniers arrivés.`
             : `+ ${hidden} autres joueurs — la liste montre le haut du classement.`}
         </p>
       )}
@@ -411,10 +411,10 @@ function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
     <section className="card pad col" style={{ gap: 14 }}>
       <div className="row">
         <div className="section-title grow">Manche {round.index + 1} / {round.total}</div>
-        <label className="switch" title="Masquer la reponse pour ne pas spoiler ton entourage">
+        <label className="switch" title="Masquer la réponse pour ne pas spoiler ton entourage">
           <input type="checkbox" checked={blurred} onChange={(e) => onBlur(e.target.checked)} />
           <span className="track" />
-          <span className="meta">MASQUER</span>
+          <span className="meta">Masquer</span>
         </label>
       </div>
 
@@ -423,7 +423,7 @@ function LivePanel({ state, blurred, ratio, answerLeft, onBlur, children }: {
           <span className={styles.av}>{buzz.avatar}</span>
           <div className="grow">
             <div className={styles.nm}>{buzz.name}</div>
-            <div className="muted" style={{ fontSize: 13 }}>a buzze — ecoute sa reponse puis tranche.</div>
+            <div className="muted" style={{ fontSize: 13 }}>a buzzé — écoute sa réponse puis tranche.</div>
           </div>
           {round.answerDeadline && (
             <span className={`${styles.clock} ${answerLeft <= 3 ? styles.urgent : ''}`}>{answerLeft}</span>
@@ -486,7 +486,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
         const data = (await res.json()) as { artists?: ArtistHit[] };
         setResults(data.artists ?? []);
       } catch {
-        toast('Recherche d\'artiste indisponible.', 'err');
+        toast('Recherche d’artiste indisponible.', 'err');
       }
     }, 400);
     return () => clearTimeout(timer);
@@ -516,7 +516,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
   return (
     <div>
       <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
-        Toute la partie sur un seul artiste. Cherche-le, puis choisis a quel point tu veux
+        Toute la partie sur un seul artiste. Cherche-le, puis choisis à quel point tu veux
         malmener les joueurs.
       </p>
 
@@ -524,7 +524,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
         <>
           <div className="row">
             <input
-              className="input grow" placeholder="Vald, Queen, Angele…" autoComplete="off"
+              className="input grow" placeholder="Vald, Queen, Angèle…" autoComplete="off"
               value={query} onChange={(e) => setQuery(e.target.value)}
             />
           </div>
@@ -542,7 +542,7 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
             ))}
           </div>
           {results?.length === 0 && (
-            <p className={styles.note} style={{ marginTop: 10 }}>Aucun artiste trouve.</p>
+            <p className={styles.note} style={{ marginTop: 10 }}>Aucun artiste trouvé.</p>
           )}
         </>
       )}
@@ -570,8 +570,8 @@ function ArtistTab({ send, modes, state }: { send: Send; modes: ArtistMode[]; st
             <span style={{ fontSize: 13.5 }}>Inclure les featurings</span>
           </label>
           <p className={styles.note} style={{ marginTop: 6 }}>
-            Ses collaborations et ses passages invite chez d&apos;autres. Decoche pour ne garder
-            que ce qu&apos;il a sorti seul.
+            Ses collaborations et ses passages invité chez d’autres. Décoche pour ne garder
+            que ce qu’il a sorti seul.
           </p>
 
           <div className={styles.modes}>
@@ -656,13 +656,13 @@ function SearchTab({ send, count }: { send: Send; count: number }) {
       </div>
 
       <div className="row" style={{ marginTop: 14 }}>
-        <div className="section-title grow">Ma selection <span className="pill">{picked.length || count}</span></div>
+        <div className="section-title grow">Ma sélection <span className="pill">{picked.length || count}</span></div>
         <button className="btn xs danger" onClick={() => custom('clear')}>Vider</button>
         <button
           className="btn xs primary"
           onClick={async () => {
             const res = await send('host:playlist', { type: 'custom' }, 30000);
-            if (res?.ok) toast('Ta selection est prete', 'ok');
+            if (res?.ok) toast('Ta sélection est prête', 'ok');
           }}
         >Utiliser cette liste</button>
       </div>
@@ -689,7 +689,7 @@ function detectSource(raw: string): 'youtube' | 'deezer' | 'spotify' | null {
   return null;
 }
 
-const SOURCE_LABEL = { spotify: 'CHARGER', youtube: 'CHARGER', deezer: 'IMPORTER' } as const;
+const SOURCE_LABEL = { spotify: 'Charger', youtube: 'Charger', deezer: 'Importer' } as const;
 
 function ImportTab({ send, state, sources }: { send: Send; state: GameState; sources: Sources }) {
   const [url, setUrl] = useState('');
@@ -709,8 +709,8 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
     setBusy(false);
     if (!res?.ok) return;
     toast(
-      source === 'youtube' ? 'Playlist YouTube prete'
-      : source === 'spotify' ? 'Playlist Spotify prete' : 'Playlist Deezer importee',
+      source === 'youtube' ? 'Playlist YouTube prête'
+      : source === 'spotify' ? 'Playlist Spotify prête' : 'Playlist Deezer importée',
       'ok',
     );
   }
@@ -719,7 +719,7 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
     <div>
       <p className="muted" style={{ fontSize: 13.5, marginBottom: 12 }}>
         Colle une playlist <b>Spotify</b>, <b>YouTube</b> ou <b>Deezer</b> — le type est reconnu
-        tout seul. Elle doit etre publique ou non repertoriee.
+        tout seul. Elle doit être publique ou non répertoriée.
       </p>
       <div className="row">
         <input
@@ -735,21 +735,21 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
 
       {url.trim() && !source && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          Adresse non reconnue. Pour YouTube il faut le parametre <code>list=</code> d&apos;une playlist,
-          pas un simple lien de video.
+          Adresse non reconnue. Pour YouTube il faut le paramètre <code>list=</code> d’une playlist,
+          pas un simple lien de vidéo.
         </p>
       )}
 
       {isYoutube && !playlist?.pending && !audioDeviceReady && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          {state.audioTarget === 'host' ? 'LA REGIE' : "L'ECRAN DE DIFFUSION"} DOIT ETRE CONNECTE :
-          c&apos;est lui qui lit les videos absentes de Deezer.
+          {state.audioTarget === 'host' ? 'La régie doit être connectée' : 'L’écran de diffusion doit être connecté'} :
+          c’est lui qui lit les vidéos absentes de Deezer.
         </p>
       )}
 
       {source === 'spotify' && !sources.spotifyApi && (
         <p className={styles.note} style={{ marginTop: 10 }}>
-          Sans identifiants Spotify sur ce serveur, seuls les 100 premiers titres d&apos;une
+          Sans identifiants Spotify sur ce serveur, seuls les 100 premiers titres d’une
           playlist sont lus (400 sinon).
         </p>
       )}
@@ -758,8 +758,8 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist.pending
             ? playlist.subtitle
-            : `${playlist.subtitle}. Spotify ne fournit plus d'extraits : chaque morceau est
-               retrouve chez Deezer, les rares absents sont ecartes.`}
+            : `${playlist.subtitle}. Spotify ne fournit plus d’extraits : chaque morceau est
+               retrouvé chez Deezer, les rares absents sont écartés.`}
         </p>
       )}
 
@@ -767,9 +767,9 @@ function ImportTab({ send, state, sources }: { send: Send; state: GameState; sou
         <p className={styles.note} style={{ marginTop: 12 }}>
           {playlist?.pending
             ? playlist.subtitle
-            : `${playlist?.subtitle}. Les videos retrouvees sur Deezer y prennent leur extrait et
+            : `${playlist?.subtitle}. Les vidéos retrouvées sur Deezer y prennent leur extrait et
                leur titre exact ; les autres sont lues sur YouTube, avec un titre moins propre et
-               sans son sur les telephones.`}
+               sans son sur les téléphones.`}
         </p>
       )}
     </div>
@@ -785,34 +785,34 @@ function SettingsPanel({ settings, send, askArtist }: { settings: Settings; send
 
   const sliders: { key: keyof Settings; label: string; min: number; max: number; format: (v: number) => string }[] = [
     { key: 'rounds', label: 'Nombre de manches', min: 3, max: 30, format: (v) => String(v) },
-    { key: 'clip', label: "Duree d'ecoute", min: 5, max: 30, format: (v) => `${v} s` },
+    { key: 'clip', label: "Durée d’écoute", min: 5, max: 30, format: (v) => `${v} s` },
     // Le bonus de rapidite ne sert qu'en reponse libre, le delai de buzz qu'au buzzer.
     ...(settings.mode === 'buzzer'
       ? [
-          { key: 'buzzDelay' as const, label: 'Delai avant buzz', min: 0, max: 15, format: (v: number) => `${v} s` },
-          { key: 'buzzAnswerTime' as const, label: 'Temps pour repondre', min: 3, max: 30, format: (v: number) => `${v} s` },
+          { key: 'buzzDelay' as const, label: 'Délai avant buzz', min: 0, max: 15, format: (v: number) => `${v} s` },
+          { key: 'buzzAnswerTime' as const, label: 'Temps pour répondre', min: 3, max: 30, format: (v: number) => `${v} s` },
         ]
-      : [{ key: 'speedBonus' as const, label: 'Bonus de rapidite', min: 0, max: 6, format: (v: number) => String(v) }]),
-    { key: 'revealDelay', label: "Temps d'affichage de la reponse", min: 4, max: 20, format: (v) => `${v} s` },
+      : [{ key: 'speedBonus' as const, label: 'Bonus de rapidité', min: 0, max: 6, format: (v: number) => String(v) }]),
+    { key: 'revealDelay', label: "Temps d’affichage de la réponse", min: 4, max: 20, format: (v) => `${v} s` },
   ];
 
   const notes: Partial<Record<keyof Settings, string>> = {
     clip: 'Les extraits Deezer durent 30 s maximum.',
-    speedBonus: 'Points supplementaires max, degressifs pendant l\'extrait.',
-    buzzDelay: 'Secondes d\'ecoute imposees avant d\'ouvrir le buzzer : evite le buzz reflexe des la premiere note.',
-    buzzAnswerTime: 'Passe ce delai sans arbitrage, la reponse est comptee ratee et la musique repart.',
+    speedBonus: 'Points supplémentaires max, dégressifs pendant l’extrait.',
+    buzzDelay: 'Secondes d’écoute imposées avant d’ouvrir le buzzer : évite le buzz réflexe dès la première note.',
+    buzzAnswerTime: 'Passé ce délai sans arbitrage, la réponse est comptée ratée et la musique repart.',
   };
 
   return (
     <section className="card pad col" style={{ gap: 16 }}>
-      <div className="section-title">Reglages</div>
+      <div className="section-title">Réglages</div>
       <div className={styles.settings}>
         <div className={styles.setting}>
           <div className={styles.lab}><b>Mode de jeu</b></div>
           <div className="seg" role="group">
             {(['input', 'buzzer'] as const).map((mode) => (
               <button key={mode} type="button" data-testid={`mode-${mode}`} aria-pressed={settings.mode === mode} onClick={() => patch({ mode })}>
-                {mode === 'input' ? 'Reponse libre' : 'Buzzer'}
+                {mode === 'input' ? 'Réponse libre' : 'Buzzer'}
               </button>
             ))}
           </div>
@@ -837,24 +837,24 @@ function SettingsPanel({ settings, send, askArtist }: { settings: Settings; send
               type="checkbox" checked={settings.guessArtist && askArtist} disabled={!askArtist}
               onChange={(e) => patch({ guessArtist: e.target.checked })}
             />
-            <span className="track" /><span style={{ fontSize: 13.5 }}>Demander aussi l&apos;artiste</span>
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Demander aussi l’artiste</span>
           </label>
           {!askArtist && (
             <p className={styles.note}>
-              Sans objet ici : toute la partie porte sur le meme artiste, seul le titre compte.
+              Sans objet ici : toute la partie porte sur le même artiste, seul le titre compte.
             </p>
           )}
           <label className="switch">
             <input type="checkbox" checked={settings.autoNext} onChange={(e) => patch({ autoNext: e.target.checked })} />
-            <span className="track" /><span style={{ fontSize: 13.5 }}>Enchainer les manches tout seul</span>
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Enchaîner les manches tout seul</span>
           </label>
           <label className="switch">
             <input type="checkbox" checked={settings.playerAudio} onChange={(e) => patch({ playerAudio: e.target.checked })} />
-            <span className="track" /><span style={{ fontSize: 13.5 }}>Son aussi sur les telephones</span>
+            <span className="track" /><span style={{ fontSize: 13.5 }}>Son aussi sur les téléphones</span>
           </label>
           <p className={styles.note}>
-            Indispensable a distance (visio, joueurs eparpilles). Dans une meme piece, laisse
-            plutot ferme : une dizaine de telephones legerement decales font de la bouillie.
+            Indispensable à distance (visio, joueurs éparpillés). Dans une même pièce, laisse
+            plutôt fermé : une dizaine de téléphones légèrement décalés font de la bouillie.
           </p>
         </div>
       </div>
@@ -884,7 +884,7 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
         <div className="grow muted" style={{ fontSize: 13.5 }}>
           {state.playlist
             ? `${state.playlist.title} · ${state.settings.rounds} manches · ${state.settings.clip} s`
-            : 'Aucune liste selectionnee'}
+            : 'Aucune liste sélectionnée'}
         </div>
         {why && <span className="pill">{why}</span>}
         <button
@@ -897,16 +897,16 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
     content = (
       <>
         <div className="grow muted" style={{ fontSize: 13.5 }}>
-          Reponse attendue : {state.round?.track?.title} — {state.round?.track?.artist}
+          Réponse attendue : {state.round?.track?.title} — {state.round?.track?.artist}
         </div>
         {state.round?.answerDeadline && (
           <span className="pill" style={answerLeft <= 3 ? { color: 'var(--accent)', borderColor: 'var(--accent)' } : undefined}>
             {answerLeft} s · sans arbitrage, la manche repart
           </span>
         )}
-        <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>MAUVAISE REPONSE</button>
+        <button className="btn danger lg" data-testid="judge-bad" onClick={() => send('host:judge', { ok: false })}>Mauvaise réponse</button>
         <button className="btn good lg" data-testid="judge-good" onClick={() => send('host:judge', { ok: true })}>
-          BONNE REPONSE (+{state.settings.buzzerPoints})
+          Bonne réponse (+{state.settings.buzzerPoints})
         </button>
       </>
     );
@@ -914,7 +914,7 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
     content = (
       <>
         <div className="grow muted" style={{ fontSize: 13.5 }}>
-          Partie terminee — {state.leaderboard[0]?.name ?? '—'} gagne avec {state.leaderboard[0]?.score ?? 0} points
+          Partie terminée — {state.leaderboard[0]?.name ?? '—'} gagne avec {state.leaderboard[0]?.score ?? 0} points
         </div>
         <button className="btn primary lg" data-testid="primary-action" onClick={() => send('host:lobby')}>↩ Nouvelle partie</button>
       </>
@@ -938,9 +938,9 @@ function Controls({ state, send, unlockAudio, answerLeft }: {
         )}
         <button
           className="btn sm"
-          onClick={() => { if (confirm('Arreter la partie et revenir au salon ?')) void send('host:lobby'); }}
+          onClick={() => { if (confirm('Arrêter la partie et revenir au salon ?')) void send('host:lobby'); }}
         >↩ Retour au salon</button>
-        {!isReveal && <button className="btn" data-testid="reveal" onClick={() => send('host:reveal')}><Icon name="oeil" />Reveler maintenant</button>}
+        {!isReveal && <button className="btn" data-testid="reveal" onClick={() => send('host:reveal')}><Icon name="oeil" />Révéler maintenant</button>}
         <button className="btn primary" data-testid="primary-action" onClick={() => send('host:next')}>
           {round.index + 1 >= round.total ? '🏁 Terminer' : '⏭ Manche suivante'}
         </button>

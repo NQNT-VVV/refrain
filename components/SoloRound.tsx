@@ -106,7 +106,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
     if (!el || !state.preview) return;
     if (playing) { el.pause(); el.currentTime = 0; setPos(0); setPlaying(false); return; }
     el.currentTime = 0;
-    el.play().then(() => setPlaying(true)).catch(() => toast('Lecture impossible : reessaie.', 'err'));
+    el.play().then(() => setPlaying(true)).catch(() => toast('Lecture impossible : réessaie.', 'err'));
   }
 
   const suggest = useCallback((q: string) => {
@@ -153,16 +153,16 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             className={`${styles.playBtn} ${playing ? styles.playing : ''}`}
             onClick={play}
             disabled={!state.preview}
-            aria-label={playing ? 'Arreter' : 'Ecouter'}
+            aria-label={playing ? 'Arrêter' : 'Écouter'}
           >
-            <Icon name={playing ? 'pause' : 'jouer'} label={playing ? 'Arreter l’ecoute' : 'Ecouter l’extrait'} />
+            <Icon name={playing ? 'pause' : 'jouer'} label={playing ? 'Arrêter l’écoute' : 'Écouter l’extrait'} />
           </button>
           <div className={styles.playInfo}>
-            <b>{state.finished ? 'Extrait complet' : `${state.unlocked} seconde${state.unlocked > 1 ? 's' : ''} debloquee${state.unlocked > 1 ? 's' : ''}`}</b>
+            <b>{state.finished ? 'Extrait complet' : `${state.unlocked} seconde${state.unlocked > 1 ? 's' : ''} débloquée${state.unlocked > 1 ? 's' : ''}`}</b>
             <span>
               {state.finished
                 ? finishedLabel
-                : `Etape ${state.stage + 1} sur ${state.maxStages} — une erreur ou un passe debloque la suite.`}
+                : `Étape ${state.stage + 1} sur ${state.maxStages} — une erreur ou un passe débloque la suite.`}
             </span>
           </div>
         </div>
@@ -200,7 +200,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
                 if (blurTimer.current) clearTimeout(blurTimer.current);
                 blurTimer.current = setTimeout(() => setOpen(false), 150);
               }}
-              aria-label="Ta reponse"
+              aria-label="Ta réponse"
               enterKeyHint="send"
               maxLength={120}
             />
@@ -223,7 +223,7 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
             <button className="btn" type="button" onClick={() => { if (!busy) void onSkip(); }} disabled={busy} aria-busy={busy}>
               {/* A la derniere etape il n'y a plus rien a debloquer : annoncer
                   « +0 S » promettrait un gain qui n'existe pas. */}
-              {nextUnlock > 0 ? `PASSER (+${nextUnlock} S)` : 'PASSER'}
+              {nextUnlock > 0 ? `Passer (+${nextUnlock} s)` : 'Passer'}
             </button>
             <button className="btn primary" type="submit" disabled={busy || text.trim().length < 2} aria-busy={busy}>
               Valider
@@ -239,8 +239,8 @@ export function SoloRound({ state, busy, onGuess, onSkip, finishedLabel }: Props
           return (
             <div key={i} className={`${styles.attempt} ${cls}`}>
               <span className={styles.n}>{i + 1}</span>
-              <span className={styles.txt}>{!a ? '' : a.skipped ? 'Passe' : a.text}</span>
-              <span aria-hidden="true">{!a ? '' : a.ok ? 'OK' : a.skipped ? 'PASSE' : 'NON'}</span>
+              <span className={styles.txt}>{!a ? '' : a.skipped ? 'Passé' : a.text}</span>
+              <span aria-hidden="true">{!a ? '' : a.ok ? 'OK' : a.skipped ? 'Passé' : 'Non'}</span>
             </div>
           );
         })}

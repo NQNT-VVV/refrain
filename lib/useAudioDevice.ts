@@ -9,7 +9,7 @@ import type { AudioCue } from './types';
 import { useAudioPlayer, type AudioFailure } from './useAudioPlayer';
 import { useYouTubePlayer } from './useYouTubePlayer';
 
-const YT_UNREACHABLE = 'Lecteur YouTube inaccessible — verifie le bloqueur de contenu.';
+const YT_UNREACHABLE = 'Lecteur YouTube inaccessible — vérifie le bloqueur de contenu.';
 
 /**
  * Terminal charge du son — ecran de diffusion ou regie.

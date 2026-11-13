@@ -1,38 +1,46 @@
 /* Playlist de la semaine : ce qui s'ajoute a la manche solo partagee. */
 
-.progress { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-3); border: var(--border); font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
-/* Un carre par morceau : fait, en cours, manque. */
-.dots { display: flex; gap: var(--sp-1); }
-.dot { width: 12px; height: 12px; box-sizing: border-box; border: 1px solid var(--ink-25); display: block; }
-.dotNow { background: var(--accent); border-color: var(--accent); animation: blink var(--dur-blink) var(--ease-hold) infinite; }
-.dotSolved { background: var(--ink); border-color: var(--ink); }
-.dotMissed { border-color: var(--ink); background-image: var(--hatch); }
+.progress { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); border: var(--border); border-radius: var(--radius); background: var(--paper); font: var(--t-meta); color: var(--ink-60); animation: rise .5s var(--ease) both; }
+/* Une pastille par morceau : fait, en cours, manque. */
+.dots { display: flex; gap: 6px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--ink-12); display: block; transition: background .4s var(--ease), scale .4s var(--ease-bounce); }
+.dotNow { background: var(--accent); scale: 1.25; animation: blink var(--dur-blink) ease-in-out infinite; }
+.dotSolved { background: var(--green); }
+.dotMissed { background-color: transparent; background-image: var(--hatch); border: 1.5px solid var(--accent); }
 .counter { color: var(--ink); }
 .total { margin-left: auto; font-variant-numeric: tabular-nums; }
-.total b { font: var(--t-ui-l); letter-spacing: var(--ls-mono); color: var(--ink); font-weight: 400; }
+.total b { font: 800 24px/1 var(--font-display); color: var(--ink); }
 
-.justPlayed { padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); }
-.justLabel { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.justPlayed { padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); animation: pop .45s var(--ease-bounce) both; }
+.justLabel { font: var(--t-meta); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-60); }
 
 .list { display: flex; flex-direction: column; gap: var(--sp-2); }
-.listTitle { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.listTitle { font: var(--t-meta); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-60); }
 
-.revealed { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: var(--border); }
-.revealed.solved { border-color: var(--ink); }
-.revealed.missed { background-image: var(--dither-12); background-size: var(--dither-size); }
-.revealed.fresh { background: var(--ink-06); }
-.revealed img, .noCover { width: 44px; height: 44px; flex: none; display: grid; place-items: center; font-size: 20px; border: 1px solid var(--ink-25); background: var(--bg); }
-.idx { width: 32px; color: var(--ink-60); flex: none; font: var(--t-meta); letter-spacing: var(--ls-mono); }
+.revealed { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1.5px solid var(--ink-25); border-radius: 12px; background: var(--paper-hi); animation: rise .4s var(--ease) both; }
+.revealed.solved { border-color: var(--green); background: #E3EDE5; }
+.revealed.missed { background-image: var(--dither-25); background-size: var(--dither-size); }
+.revealed.fresh { border: 2px solid var(--ink); }
+.revealed img, .noCover { width: 46px; height: 46px; flex: none; display: grid; place-items: center; font-size: 20px; border-radius: 8px; border: 1.5px solid var(--ink); background: var(--paper); }
+.idx { width: 28px; color: var(--ink-60); flex: none; font: 800 18px/1 var(--font-display); }
 .meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.meta b { font: var(--t-ui); letter-spacing: var(--ls-mono); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.meta span { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta b { font: var(--t-ui); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta span { font: var(--t-meta); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pts { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
-.pts b { font: var(--t-ui-l); letter-spacing: var(--ls-mono); font-variant-numeric: tabular-nums; font-weight: 400; }
-.solved .pts b { color: var(--ink); }
+.pts b { font: 800 22px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.solved .pts b { color: var(--green); }
 .missed .pts b { color: var(--ink-60); }
-.pts small { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.pts small { font: var(--t-meta); color: var(--ink-60); }
+
+/* Les confettis tombent par-dessus tout, sans rien bloquer. */
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; }
 
 @media (max-width: 640px) {
   .wrap { padding: var(--sp-4) var(--sp-3) var(--sp-12); }
   .head { flex-wrap: wrap; gap: var(--sp-2); }
 }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pop { 0% { opacity: 0; scale: .8; } 70% { opacity: 1; scale: 1.05; } 100% { opacity: 1; scale: 1; } }
+@keyframes rise { from { opacity: 0; translate: 0 22px; } to { opacity: 1; translate: 0 0; } }

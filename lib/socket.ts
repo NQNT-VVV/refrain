@@ -26,9 +26,9 @@ export function call<T = Record<string, never>>(
       if (settled) return;
       settled = true;
       if (guard) clearTimeout(guard);
-      resolve(res ?? { ok: false, error: 'Pas de reponse du serveur.' });
+      resolve(res ?? { ok: false, error: 'Pas de réponse du serveur.' });
     };
     socket.emit(event, payload ?? {}, done);
-    guard = setTimeout(() => done({ ok: false, error: 'Le serveur ne repond pas.' }), timeout);
+    guard = setTimeout(() => done({ ok: false, error: 'Le serveur ne répond pas.' }), timeout);
   });
 }

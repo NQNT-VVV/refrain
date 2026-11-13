@@ -137,12 +137,12 @@ const soloRoute = (label, unavailable) => (handler) => async (req, res) => {
   }
 };
 
-const dailyRoute = soloRoute('daily', 'La musique du jour n\'est pas disponible pour le moment.');
+const dailyRoute = soloRoute('daily', 'La musique du jour n’est pas disponible pour le moment.');
 app.get('/api/daily', dailyRoute((who, identity) => daily.state(who, identity)));
 app.post('/api/daily/guess', dailyRoute((who, identity, body) => daily.guess(who, identity, body.title)));
 app.post('/api/daily/skip', dailyRoute((who, identity) => daily.skip(who, identity)));
 
-const weeklyRoute = soloRoute('weekly', 'La playlist de la semaine n\'est pas disponible pour le moment.');
+const weeklyRoute = soloRoute('weekly', 'La playlist de la semaine n’est pas disponible pour le moment.');
 app.get('/api/weekly', weeklyRoute((who, identity) => weekly.state(who, identity)));
 app.post('/api/weekly/guess', weeklyRoute((who, identity, body) => weekly.guess(who, identity, body.title)));
 app.post('/api/weekly/skip', weeklyRoute((who, identity) => weekly.skip(who, identity)));
@@ -247,7 +247,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:resume', ({ code, hostToken, listener } = {}, cb) => {
     const room = game.get(code);
-    if (!room) return fail(cb, 'Cette partie n\'existe plus.');
+    if (!room) return fail(cb, 'Cette partie n’existe plus.');
     if (room.hostToken !== hostToken) return fail(cb, 'Jeton animateur invalide.');
     game.setListener(room, listener);
     bindHost(socket, room);
@@ -257,7 +257,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:playlist', async (spec, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     try {
       const pl = await game.setPlaylist(room, spec || {});
       ok(cb, { playlist: { title: pl.title, total: pl.tracks.length } });
@@ -267,9 +267,9 @@ io.on('connection', (socket) => {
 
   socket.on('host:custom', ({ action, track, id } = {}, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     if (action === 'add' && track && track.preview && track.title && track.artist) {
-      if (room.customTracks.length >= 60) return fail(cb, 'Selection pleine (60 titres max).');
+      if (room.customTracks.length >= 60) return fail(cb, 'Sélection pleine (60 titres max).');
       if (!room.customTracks.some((t) => t.id === String(track.id))) {
         room.customTracks.push({
           id: String(track.id), title: track.title, artist: track.artist,
@@ -288,7 +288,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:refresh', async (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     try {
       const total = await game.refreshPlaylist(room);
       ok(cb, { total });
@@ -297,27 +297,27 @@ io.on('connection', (socket) => {
 
   socket.on('host:settings', (patch, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     ok(cb, { settings: game.updateSettings(room, patch || {}) });
     game.broadcast(room);
   });
 
   socket.on('host:audioTarget', ({ target } = {}, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     ok(cb, { audioTarget: game.setAudioTarget(room, target) });
     game.broadcast(room);
   });
 
   socket.on('host:start', (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     try { game.start(room); ok(cb); } catch (err) { fail(cb, err.message); }
   });
 
   socket.on('host:next', (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     if (room.phase === 'ended' || room.phase === 'lobby') return fail(cb, 'Aucune manche en cours.');
     game.nextRound(room);
     ok(cb);
@@ -325,29 +325,29 @@ io.on('connection', (socket) => {
 
   socket.on('host:pause', (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     const done = room.paused ? game.resume(room) : game.pause(room);
-    if (!done) return fail(cb, 'Rien a mettre en pause pour le moment.');
+    if (!done) return fail(cb, 'Rien à mettre en pause pour le moment.');
     ok(cb, { paused: Boolean(room.paused) });
   });
 
   socket.on('host:reveal', (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     game.reveal(room, 'host');
     ok(cb);
   });
 
   socket.on('host:judge', ({ ok: good, points } = {}, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     game.judge(room, { ok: !!good, points });
     ok(cb);
   });
 
   socket.on('host:award', ({ playerId, delta } = {}, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     const player = room.players.get(playerId);
     if (!player) return fail(cb, 'Joueur introuvable.');
     player.score = Math.max(0, player.score + Math.round(Number(delta) || 0));
@@ -358,7 +358,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:kick', ({ playerId } = {}, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     const removed = room.players.get(playerId);
     if (removed?.connected) room.connectedCount = Math.max(0, room.connectedCount - 1);
     room.players.delete(playerId);
@@ -374,7 +374,7 @@ io.on('connection', (socket) => {
 
   socket.on('host:lobby', (payload, cb) => {
     const room = asHost(socket);
-    if (!room) return fail(cb, 'Session animateur expiree.');
+    if (!room) return fail(cb, 'Session animateur expirée.');
     game.backToLobby(room);
     ok(cb);
   });
@@ -404,7 +404,7 @@ io.on('connection', (socket) => {
     const room = asAudioDevice(socket);
     if (!room) return fail(cb, 'Ce terminal ne pilote pas le son.');
     const applied = game.setYoutubeVideos(room, String(playlistId || ''), videoIds);
-    if (!applied) return fail(cb, 'Cette playlist n\'est plus celle du salon.');
+    if (!applied) return fail(cb, 'Cette playlist n’est plus celle du salon.');
     ok(cb, { total: room.playlist.tracks.length });
   });
 
@@ -461,9 +461,9 @@ io.on('connection', (socket) => {
 
   socket.on('player:resume', ({ code, token, playerId } = {}, cb) => {
     const room = game.get(code);
-    if (!room) return fail(cb, 'Cette partie n\'existe plus.');
+    if (!room) return fail(cb, 'Cette partie n’existe plus.');
     const player = room.players.get(playerId);
-    if (!player || player.token !== token) return fail(cb, 'Session joueur expiree.');
+    if (!player || player.token !== token) return fail(cb, 'Session joueur expirée.');
     if (!player.connected) {
       player.connected = true;
       room.connectedCount += 1;
@@ -489,7 +489,7 @@ io.on('connection', (socket) => {
 
   socket.on('player:answer', ({ title, artist } = {}, cb) => {
     const ref = asPlayer(socket);
-    if (!ref) return fail(cb, 'Session joueur expiree.');
+    if (!ref) return fail(cb, 'Session joueur expirée.');
     const result = game.submitAnswer(ref.room, ref.player, { title, artist });
     if (!result) return fail(cb, 'Trop tard !');
     ok(cb, result);
@@ -497,7 +497,7 @@ io.on('connection', (socket) => {
 
   socket.on('player:buzz', (payload, cb) => {
     const ref = asPlayer(socket);
-    if (!ref) return fail(cb, 'Session joueur expiree.');
+    if (!ref) return fail(cb, 'Session joueur expirée.');
     const result = game.buzz(ref.room, ref.player);
     ok(cb, result);
   });
@@ -518,7 +518,7 @@ io.on('connection', (socket) => {
 
   socket.on('player:rename', ({ name } = {}, cb) => {
     const ref = asPlayer(socket);
-    if (!ref) return fail(cb, 'Session joueur expiree.');
+    if (!ref) return fail(cb, 'Session joueur expirée.');
     ref.player.name = cleanName(name);
     ok(cb, { name: ref.player.name });
     game.broadcast(ref.room);

@@ -25,7 +25,7 @@ const yt = await call(host, 'host:playlist', { type: 'youtube', id: 'https://www
 await new Promise((r) => setTimeout(r, 800));   // l'etat part juste apres la reponse
 check('playlist YouTube lue par le serveur, sans ecran connecte', yt.ok, yt.ok ? `${yt.playlist.total} titres` : yt.error);
 check('elle n\'attend pas le lecteur', st?.playlist && !st.playlist.pending, st?.playlist?.subtitle);
-check('la majorite passe par Deezer', /via Deezer|tous retrouves/.test(st?.playlist?.subtitle || ''), st?.playlist?.subtitle);
+check('la majorite passe par Deezer', /via Deezer|tous retrouvés/.test(st?.playlist?.subtitle || ''), st?.playlist?.subtitle);
 
 // Une playlist privee ou un mix genere, sans ecran : message clair
 const bad = await call(host, 'host:playlist', { type: 'youtube', id: 'https://www.youtube.com/watch?v=x&list=RDCLAK5uy_k8ZWUt0R4nW1IY5PaP7RYTNMtWBnTZfqY' });

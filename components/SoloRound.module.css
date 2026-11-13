@@ -1,81 +1,85 @@
 /* Une manche solo : lecteur borne, etapes, saisie, tentatives. Partage par la
    musique du jour et la playlist de la semaine. */
 
-/* --- Lecteur ------------------------------------------------------- */
-.player { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); }
+/* --- Lecteur ---------------------------------------------------------------- */
+.player { padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-4); animation: rise .5s var(--ease) both; }
 .playRow { display: flex; align-items: center; gap: var(--sp-4); }
-/* Lecture : un bouton primaire, carre, en inversion. */
+/* Lecture : une grosse touche ronde, rouge, qui s'enfonce. */
 .playBtn {
-  width: 56px; height: 56px; flex: none; cursor: pointer;
-  border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
-  font: var(--t-meta); letter-spacing: var(--ls-mono); display: grid; place-items: center;
-  transition: background var(--tap), color var(--tap);
+  width: 64px; height: 64px; flex: none; cursor: pointer; border-radius: 50%;
+  border: 2px solid var(--ink); background: var(--accent); color: #FFFFFF;
+  font: var(--t-meta); display: grid; place-items: center;
+  box-shadow: 0 5px 0 var(--ink);
+  transition: transform var(--tap), box-shadow var(--tap), background var(--tap);
 }
-.playBtn .ico { width: 24px; height: 24px; }
-.playBtn:hover:not(:disabled) { background: var(--bg); color: var(--ink); animation: flash var(--dur-flash) var(--ease-hold); }
-.playBtn:active:not(:disabled) { border-color: var(--accent); background: var(--accent-deep); color: var(--ink); }
-.playBtn:disabled { background-color: transparent; background-image: var(--dither-25); background-size: var(--dither-size); border-color: var(--ink-12); color: var(--ink-60); cursor: not-allowed; }
+.playBtn .ico { width: 26px; height: 26px; }
+.playBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); }
+.playBtn:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--ink); }
+.playBtn:disabled { background: #D8D0BF; border-color: var(--ink-35); color: var(--ink-60); box-shadow: none; cursor: not-allowed; }
 .playInfo { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
-.playInfo b { font: var(--t-ui); letter-spacing: var(--ls-mono); font-weight: 400; }
-.playInfo span { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); }
+.playInfo b { font: 800 21px/1.15 var(--font-display); }
+.playInfo span { font: var(--t-prose); font-size: 15px; color: var(--ink-60); }
 
-/* Barre de 16 s : la zone debloquee en dither, la tete de lecture en sang. */
-.track { position: relative; height: 12px; border: 1px solid var(--ink-25); box-sizing: border-box; }
-.track .unlocked { position: absolute; inset: 0 auto 0 0; background-image: var(--dither-50); background-size: var(--dither-size); transition: none; }
-.track .cursor { position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--accent); transition: none; }
-.track .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-25); }
-.ticks { display: flex; justify-content: space-between; font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); font-variant-numeric: tabular-nums; }
+/* Barre de 16 s : la zone debloquee en jaune, la tete de lecture en rouge. */
+.track { position: relative; height: 16px; border-radius: 999px; background: var(--ink-12); overflow: hidden; }
+.track .unlocked { position: absolute; inset: 0 auto 0 0; background: var(--gold); border-radius: 999px; transition: width .6s var(--ease-bounce); }
+.track .cursor { position: absolute; inset: 0 auto 0 0; width: 4px; border-radius: 2px; background: var(--accent); }
+.track .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bg); }
+.ticks { display: flex; justify-content: space-between; font: var(--t-meta); color: var(--ink-60); font-variant-numeric: tabular-nums; }
 
-/* --- Etapes — progression 0x09 ------------------------------------ */
-.stages { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--sp-1); height: 8px; }
-.stage { box-sizing: border-box; border: 1px solid var(--ink-25); transition: none; }
-.stage.done { background: var(--ink); border-color: var(--ink); }
-.stage.skipped { background-image: var(--dither-25); background-size: var(--dither-size); }
-.stage.now { background: var(--accent); border-color: var(--accent); animation: blink var(--dur-blink) var(--ease-hold) infinite; }
-.stage.won { background: var(--ink); border-color: var(--ink); }
+/* --- Etapes ------------------------------------------------------------------ */
+.stages { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; height: 10px; }
+.stage { border-radius: 999px; background: var(--ink-12); transition: background .4s var(--ease); }
+.stage.done { background: var(--ink); }
+.stage.skipped { background-color: transparent; background-image: var(--dither-50); background-size: var(--dither-size); }
+.stage.now { background: var(--accent); animation: blink var(--dur-blink) ease-in-out infinite; }
+.stage.won { background: var(--green); }
 
-/* --- Saisie -------------------------------------------------------- */
+/* --- Saisie ------------------------------------------------------------------ */
 .form { display: flex; flex-direction: column; gap: var(--sp-3); position: relative; }
 .inputRow { display: flex; gap: var(--sp-2); }
 .inputRow :global(.input) { flex: 1; min-width: 0; }
 .suggest {
   position: absolute; left: 0; right: 0; top: calc(100% - 4px); z-index: 30;
-  background: var(--bg); border: 1px solid var(--ink); max-height: 280px; overflow-y: auto;
+  background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 0 6px 0 var(--ink);
+  max-height: 280px; overflow-y: auto; animation: rise .25s var(--ease) both;
 }
 .suggest button {
   width: 100%; text-align: left; display: flex; align-items: center; gap: var(--sp-3);
   padding: var(--sp-2) var(--sp-3); border: 0; border-bottom: var(--border); background: transparent; cursor: pointer;
-  font: var(--t-ui); letter-spacing: var(--ls-mono); color: var(--ink);
+  font: var(--t-ui); color: var(--ink); text-transform: none; letter-spacing: 0; transition: background .15s ease;
 }
 .suggest button:last-child { border-bottom: 0; }
-.suggest button:hover, .suggest button[aria-selected="true"] { background-image: var(--dither-12); background-size: var(--dither-size); }
-.suggest img { width: 32px; height: 32px; flex: none; border: 1px solid var(--ink-25); }
+.suggest button:hover, .suggest button[aria-selected="true"] { background: var(--gold); }
+.suggest img { width: 36px; height: 36px; flex: none; border-radius: 6px; border: 1.5px solid var(--ink); }
 .suggest .st { display: flex; flex-direction: column; min-width: 0; }
-.suggest .st b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.suggest .st span { font: var(--t-meta); letter-spacing: var(--ls-mono); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actions { display: flex; gap: var(--sp-2); }
+.suggest .st b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest .st span { font: var(--t-meta); color: var(--ink-60); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: flex; gap: var(--sp-3); }
 .actions :global(.btn) { flex: 1; }
 
-/* --- Tentatives ---------------------------------------------------- */
-.attempts { display: flex; flex-direction: column; }
-.attempt { display: flex; align-items: center; gap: var(--sp-3); min-height: 32px; padding: var(--sp-2) var(--sp-3); font: var(--t-meta); letter-spacing: var(--ls-mono); border: var(--border); border-bottom: 0; }
-.attempt:last-child { border-bottom: var(--border); }
-.attempt .n { width: 32px; color: var(--ink-60); }
+/* --- Tentatives : six lignes d'une feuille ----------------------------------- */
+.attempts { display: flex; flex-direction: column; gap: 6px; }
+.attempt { display: flex; align-items: center; gap: var(--sp-3); min-height: 40px; padding: var(--sp-2) var(--sp-3); border-radius: 10px; background: var(--paper-hi); border: 1.5px solid var(--ink-25); font: 700 14px/1.2 var(--font-mono); animation: rise .35s var(--ease) both; }
+.attempt .n { width: 28px; font: 800 18px/1 var(--font-display); color: var(--ink-60); }
 .attempt .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Une reponse refusee : une bande hachuree, pas du rouge. */
-.attempt.miss { background-image: var(--hatch); background-repeat: repeat-y; background-size: 8px 8px; background-position: left; padding-left: var(--sp-4); }
-.attempt.miss .txt { color: var(--ink); }
+/* Une reponse refusee : barree, sur fond rouge pale. */
+.attempt.miss { border-color: var(--accent); background: var(--accent-deep); animation: shake .35s var(--ease); }
+.attempt.miss .txt { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--accent); }
 .attempt.skip .txt { color: var(--ink-60); }
-.attempt.hit { border-color: var(--ink); }
+.attempt.hit { border-color: var(--green); background: #E3EDE5; animation: pop .45s var(--ease-bounce) both; }
 .attempt.hit .txt { color: var(--ink); }
-/* Une tentative pas encore jouee est une case vide, pas un aplat de pois : six
-   lignes de dithering formaient un grand bloc qui n'informait de rien et couvrait
-   la moitie de l'ecran du telephone. */
-.attempt.empty { color: var(--ink-55); border-style: dashed; }
+.attempt.empty { color: var(--ink-55); border-style: dashed; background: transparent; animation: none; }
 .attempt.empty .n { color: var(--ink-55); }
 
 @media (max-width: 640px) {
-  .stages { gap: 2px; }
+  .stages { gap: 3px; }
   .guessRow { flex-wrap: wrap; }
   .guessRow .btn { flex: 1 1 auto; }
 }
+
+/* Animations du socle, recopiees ici : un module CSS ne voit pas les @keyframes globales. */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pop { 0% { opacity: 0; scale: .8; } 70% { opacity: 1; scale: 1.05; } 100% { opacity: 1; scale: 1; } }
+@keyframes rise { from { opacity: 0; translate: 0 22px; } to { opacity: 1; translate: 0 0; } }
+@keyframes shake { 0%, 100% { translate: 0 0; } 20% { translate: -6px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 4px 0; } }

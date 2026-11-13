@@ -12,7 +12,7 @@ const FAVICON =
 export const metadata: Metadata = {
   title: { default: 'Refrain — Blind Test', template: '%s — Refrain' },
   description:
-    "Refrain — le blind test ou l'animateur lance la partie et les joueurs repondent depuis leur telephone.",
+    "Refrain — le blind test où l’animateur lance la partie et les joueurs répondent depuis leur téléphone.",
   applicationName: 'Refrain',
   icons: { icon: FAVICON },
 };

@@ -48,11 +48,11 @@ export function ordinal(position: number): string {
 
 export const PHASE_LABEL: Record<GameState['phase'], string> = {
   lobby: 'Salon',
-  countdown: 'Depart…',
-  playing: 'En ecoute',
+  countdown: 'Départ…',
+  playing: 'En écoute',
   buzzed: 'Buzz !',
   paused: 'Pause',
-  reveal: 'Reponse',
+  reveal: 'Réponse',
   scores: 'Classement',
-  ended: 'Termine',
+  ended: 'Terminé',
 };
