@@ -1,18 +1,23 @@
 /* Code de partie : quatre cases, un champ reel invisible au-dessus. */
-.code { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); max-width: 264px; }
+.code { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); max-width: 300px; }
 
 .real {
   position: absolute; inset: 0; width: 100%; height: 100%;
   opacity: 0; border: 0; background: transparent; cursor: pointer; z-index: 1;
-  font: var(--t-ui-l); letter-spacing: var(--ls-mono); color: transparent;
+  font: var(--t-ui-l); color: transparent;
 }
 .real:focus { outline: none; }
 
 .cell {
-  height: 56px; border: 1px solid var(--ink-25); display: flex; align-items: center; justify-content: center;
-  font: var(--t-ui-l); letter-spacing: var(--ls-mono); color: var(--ink);
+  height: 64px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper-hi);
+  display: flex; align-items: center; justify-content: center;
+  font: 800 30px/1 var(--font-display); color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink);
+  transition: transform .25s var(--ease-bounce), box-shadow .25s var(--ease);
 }
-.active { border-color: var(--accent); }
-.ko { border-color: var(--ink); }
+/* La case en cours se souleve ; une case remplie fait un petit saut. */
+.active { transform: translateY(-4px); box-shadow: 0 8px 0 var(--accent); }
+.filled { animation: pop .3s var(--ease-bounce) both; }
+.ko { border-color: var(--accent); box-shadow: 0 4px 0 var(--accent); animation: shake .35s var(--ease); }
 
-.caret { width: 12px; height: 24px; background: var(--accent); animation: blink var(--dur-blink) var(--ease-hold) infinite; }
+.caret { width: 3px; height: 28px; border-radius: 2px; background: var(--accent); animation: blink 1s ease-in-out infinite; }

@@ -6,7 +6,7 @@ export function SupportNote({ className = '' }: { className?: string }) {
     <p className={`support-note ${className}`}>
       Un souci ? Contacte <b>danwalex</b>
       {' · '}
-      <Link href="/legal">Donnees et conditions</Link>
+      <Link href="/legal">Données et conditions</Link>
     </p>
   );
 }

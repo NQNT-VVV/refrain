@@ -62,18 +62,18 @@ export function JoinForm({ className, inputClassName }: { className?: string; in
         {cells.map((i) => {
           const active = focused && i === Math.min(code.length, 3);
           return (
-            <span key={i} className={`${styles.cell} ${active ? styles.active : ''} ${invalid ? styles.ko : ''}`} aria-hidden="true">
+            <span key={i} className={`${styles.cell} ${active ? styles.active : ''} ${code[i] ? styles.filled : ''} ${invalid ? styles.ko : ''}`} aria-hidden="true">
               {code[i] ?? (active ? <span className={styles.caret} /> : '')}
             </span>
           );
         })}
       </div>
-      <span className="meta">{invalid ? 'CODE INCOMPLET · 4 SIGNES' : `${code.length}/4 · VERIFICATION AUTOMATIQUE`}</span>
-      <button className="btn primary lg block" type="submit">REJOINDRE LA PARTIE</button>
+      <span className="meta">{invalid ? 'Code incomplet · 4 signes' : `${code.length}/4 · vérification automatique`}</span>
+      <button className="btn primary lg block" type="submit">Rejoindre la partie</button>
       {podium?.pid && (
         <span className="pill ok">
           <span className="avatar sm" aria-hidden="true"><span>{podium.avatar}</span></span>
-          CONNECTE VIA PODIUM · {podium.pseudo}
+          Connecté via Podium · {podium.pseudo}
         </span>
       )}
     </form>
