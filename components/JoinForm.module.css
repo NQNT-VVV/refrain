@@ -12,7 +12,7 @@
   height: 64px; border: 2px solid var(--ink); border-radius: 12px; background: var(--paper-hi);
   display: flex; align-items: center; justify-content: center;
   font: 800 30px/1 var(--font-display); color: var(--ink);
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 4px 0 var(--shade);
   transition: transform .25s var(--ease-bounce), box-shadow .25s var(--ease);
 }
 /* La case en cours se souleve ; une case remplie fait un petit saut. */

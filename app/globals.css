@@ -63,7 +63,7 @@
 .board .line { transition: background .3s var(--ease); }
 .board .line:last-child { border-bottom: 0; }
 .board .line .rank { justify-self: start; font: 800 20px/1 var(--font-display); }
-.board .line .rank.first { background: var(--gold); color: var(--ink); padding: 4px 8px; border-radius: 8px; rotate: -4deg; }
+.board .line .rank.first { background: var(--gold); color: var(--ink); padding: 4px 8px; border-radius: 8px; rotate: -4deg; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .board .line .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: var(--sp-2); min-width: 0; font-weight: 700; }
 .board .line .gain { font: var(--t-meta); color: var(--ink-60); }
 .board .line .gain.up { color: var(--accent); }
@@ -101,7 +101,7 @@
 .modal {
   position: relative; width: min(88%, 460px);
   border: 2px solid var(--ink); border-radius: var(--r-l); background: var(--paper); padding: var(--sp-6); display: grid; gap: var(--sp-4);
-  box-shadow: 0 8px 0 var(--ink); animation: pop .4s var(--ease-bounce) both;
+  box-shadow: 0 8px 0 var(--shade); animation: pop .4s var(--ease-bounce) both;
 }
 .modal .kicker { display: flex; justify-content: space-between; gap: var(--sp-2); font: var(--t-meta); color: var(--ink-60); }
 .modal .kicker .next { color: var(--accent); }
@@ -109,7 +109,7 @@
 .modal .actions { display: flex; gap: var(--sp-3); justify-content: flex-end; flex-wrap: wrap; }
 
 /* Code QR : sur fond blanc, il doit se scanner. */
-.qr { border: 2px solid var(--ink); border-radius: 14px; background: #FFFFFF; padding: 10px; display: inline-block; line-height: 0; box-shadow: 0 6px 0 var(--ink); }
+.qr { border: 2px solid var(--ink); border-radius: 14px; background: #FFFFFF; padding: 10px; display: inline-block; line-height: 0; box-shadow: 0 6px 0 var(--shade); }
 .qr svg, .qr img { display: block; }
 
 /* Pochettes : le contenu garde ses couleurs, dans un cadre d'encre. */
@@ -125,15 +125,15 @@
 .k7 {
   --w: 320px;
   width: var(--w); font-size: calc(var(--w) / 20);
-  background: var(--ink); border-radius: 1em; padding: 1em;
+  background: var(--object); border-radius: 1em; padding: 1em;
   display: flex; flex-direction: column; gap: .8em;
   box-shadow: 0 .5em 0 #0E0C0A, 0 1.6em 2.2em rgba(34,30,26,.28);
 }
-.k7-label { background: var(--paper); border-radius: .5em; padding: .35em .8em .45em; border-bottom: .4em solid var(--accent); display: flex; align-items: baseline; justify-content: space-between; gap: .6em; color: var(--ink); }
+.k7-label { background: #F4EFE3; border-radius: .5em; padding: .35em .8em .45em; border-bottom: .4em solid var(--accent); display: flex; align-items: baseline; justify-content: space-between; gap: .6em; color: #221E1A; }
 .k7-title { font: 800 1.9em/1 var(--font-display); letter-spacing: -.02em; }
 .k7-side { font: 700 1.35em/1 var(--font-hand); white-space: nowrap; }
 .k7-window { background: #3A342E; border-radius: 3em; margin: 0 2.2em; padding: .7em 1.4em; display: flex; align-items: center; justify-content: space-between; }
-.k7-reel { width: 2.6em; height: 2.6em; border-radius: 50%; border: .45em dashed var(--paper); animation: spin 3.2s linear infinite; flex: none; }
+.k7-reel { width: 2.6em; height: 2.6em; border-radius: 50%; border: .45em dashed #F4EFE3; animation: spin 3.2s linear infinite; flex: none; }
 .k7-tape { flex: 1; height: 1.2em; margin: 0 .6em; border-radius: .3em; background: #5A4A3C; }
 .k7-foot { margin: 0 3.4em; height: 1.5em; border-radius: .5em .5em 0 0; background: #2F2A25; display: flex; align-items: center; justify-content: center; gap: 1.2em; }
 .k7-foot i { width: .5em; height: .5em; border-radius: 50%; background: #0E0C0A; }
@@ -143,9 +143,9 @@
 .vinyl {
   --w: 140px;
   width: var(--w); aspect-ratio: 1; border-radius: 50%; flex: none;
-  background: repeating-radial-gradient(circle, #1A1714 0 3px, #2B2622 3px 6px);
+  background: repeating-radial-gradient(circle, var(--vinyl-a) 0 3px, var(--vinyl-b) 3px 6px);
   display: grid; place-items: center;
-  box-shadow: 0 8px 18px rgba(34,30,26,.25);
+  box-shadow: 0 8px 18px rgba(34,30,26,.25), 0 0 0 2px var(--ink-12);
   animation: spin 3.6s linear infinite; animation-play-state: paused;
 }
 .vinyl::after { content: ''; width: 38%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, var(--paper) 0 12%, var(--accent) 13% 100%); box-shadow: inset 0 0 0 3px rgba(255,255,255,.18); }

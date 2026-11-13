@@ -40,7 +40,7 @@
 .tableWrap { overflow-x: auto; border: var(--border); border-radius: 16px; background: var(--paper); }
 
 /* Une astuce : un papier jaune colle en marge. */
-.tip { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); border-radius: 6px; background: var(--gold); font: var(--t-prose); color: var(--ink); rotate: -.5deg; box-shadow: 0 6px 12px rgba(34,30,26,.12); }
+.tip { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); border-radius: 6px; background: var(--gold); font: var(--t-prose); color: var(--ink); rotate: -.5deg; box-shadow: 0 6px 12px rgba(34,30,26,.12); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .tip b { font-weight: 700; }
 .tip .mark { display: none; }
 .tip.warn { background: var(--accent-deep); border: 2px solid var(--accent); rotate: .5deg; }
@@ -48,8 +48,8 @@
 .keys { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-3); }
 .keys span { display: inline-flex; align-items: center; gap: var(--sp-2); font: var(--t-meta); color: var(--ink-60); }
 /* Une touche de clavier : elle s'enfonce quand on la survole. */
-.keys kbd { font: 700 14px/1 var(--font-mono); padding: 0 10px; min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 2px solid var(--ink); background: var(--paper-hi); color: var(--ink); box-shadow: 0 3px 0 var(--ink); transition: transform var(--tap), box-shadow var(--tap); }
-.keys span:hover kbd { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.keys kbd { font: 700 14px/1 var(--font-mono); padding: 0 10px; min-width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; border: 2px solid var(--ink); background: var(--paper-hi); color: var(--ink); box-shadow: 0 3px 0 var(--shade); transition: transform var(--tap), box-shadow var(--tap); }
+.keys span:hover kbd { transform: translateY(3px); box-shadow: 0 0 0 var(--shade); }
 
 .cta { margin: var(--sp-16) var(--margin) 0; display: flex; gap: var(--sp-4); flex-wrap: wrap; }
 .footer { margin: var(--sp-12) var(--margin) 0; padding-top: var(--sp-6); border-top: 2px solid var(--ink-12); }

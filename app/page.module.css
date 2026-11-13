@@ -25,10 +25,10 @@
 .eq i { width: 8px; }
 .note { position: absolute; padding: 12px 18px; border-radius: 4px; box-shadow: 0 8px 14px rgba(34,30,26,.16); font-size: 27px; white-space: nowrap; transition: rotate .4s var(--ease-bounce), translate .4s var(--ease); }
 .note:hover { rotate: 0deg; translate: 0 -4px; }
-.noteA { right: 2%; top: 4%; background: var(--gold); rotate: 6deg; }
+.noteA { right: 2%; top: 4%; background: var(--gold); rotate: 6deg; color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .noteB { left: 0; bottom: 4%; background: var(--paper); rotate: -5deg; }
 /* Le buzzer : un dome rouge sur son socle. Il s'enfonce quand on appuie. */
-.buzz { position: absolute; right: 8%; bottom: 6%; width: 132px; height: 132px; border-radius: 50%; background: var(--ink); box-shadow: 0 8px 0 #0E0C0A, 0 22px 26px rgba(34,30,26,.25); pointer-events: auto; cursor: pointer; }
+.buzz { position: absolute; right: 8%; bottom: 6%; width: 132px; height: 132px; border-radius: 50%; background: var(--object); box-shadow: 0 8px 0 #0E0C0A, 0 22px 26px rgba(34,30,26,.25); pointer-events: auto; cursor: pointer; }
 .buzz i { position: absolute; left: 16px; top: 6px; width: 100px; height: 100px; border-radius: 50%; background: var(--accent); box-shadow: 0 12px 0 #8E2A18; display: grid; place-items: center; color: #FFFFFF; font: 800 22px/1 var(--font-display); font-style: normal; transition: transform .12s var(--ease), box-shadow .12s var(--ease); }
 .buzz:hover i { transform: translateY(4px); box-shadow: 0 8px 0 #8E2A18; }
 .buzz:active i { transform: translateY(11px); box-shadow: 0 1px 0 #8E2A18; }
@@ -45,12 +45,12 @@
 .choice h2 { font: 800 clamp(30px, 3.4vw, 42px)/1 var(--font-display); }
 .tag { font-size: 24px; rotate: -2deg; justify-self: start; }
 .lead { font: var(--t-prose); color: inherit; opacity: .92; }
-.host { background: #26221E; color: var(--paper); box-shadow: 0 24px 40px rgba(34,30,26,.28); }
+.host { background: #26221E; border: 1.5px solid var(--ink-12); color: #F4EFE3; box-shadow: 0 24px 40px rgba(34,30,26,.28); }
 .host .tag { color: var(--gold); }
 .host:hover { box-shadow: 0 32px 50px rgba(34,30,26,.32); }
-.gold { --edge: var(--accent); background: var(--gold); border-color: var(--gold); color: var(--ink); margin-top: var(--sp-2); align-self: end; }
+.gold { --edge: var(--accent); background: var(--gold); border-color: var(--gold); color: var(--ink); margin-top: var(--sp-2); align-self: end; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 /* Le billet d'entree : jaune, avec sa perforation. */
-.join { background: var(--gold); color: var(--ink); rotate: .8deg; box-shadow: var(--shadow-lift); outline: 2px dashed rgba(34,30,26,.3); outline-offset: -11px; scroll-margin-top: var(--sp-8); }
+.join { background: var(--gold); color: var(--ink); rotate: .8deg; box-shadow: var(--shadow-lift); outline: 2px dashed rgba(34,30,26,.3); outline-offset: -11px; scroll-margin-top: var(--sp-8); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .join:hover, .join:focus-within { rotate: 0deg; }
 .join .tag { color: var(--ink); }
 
@@ -64,8 +64,8 @@
 /* La platine : le bras se pose quand on approche, et le disque part. */
 .deck { position: relative; width: 150px; height: 150px; display: grid; place-items: center; }
 .deck :global(.vinyl) { --w: 140px; }
-.arm { position: absolute; right: 2px; top: -4px; width: 7px; height: 84px; border-radius: 4px; background: var(--ink); transform-origin: 50% 6px; transform: rotate(-12deg); transition: transform .7s var(--ease); }
-.arm::before { content: ''; position: absolute; left: -5px; top: -5px; width: 17px; height: 17px; border-radius: 50%; background: var(--gold); border: 3px solid var(--ink); }
+.arm { position: absolute; right: 2px; top: -4px; width: 7px; height: 84px; border-radius: 4px; background: var(--object); transform-origin: 50% 6px; transform: rotate(-12deg); transition: transform .7s var(--ease); }
+.arm::before { content: ''; position: absolute; left: -5px; top: -5px; width: 17px; height: 17px; border-radius: 50%; background: var(--gold); border: 3px solid var(--ink); color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .arm::after { content: ''; position: absolute; left: -3px; bottom: -4px; width: 13px; height: 20px; border-radius: 3px; background: var(--accent); }
 .soloCard:hover .arm, .soloCard:focus-within .arm { transform: rotate(20deg); }
 /* La pile de pochettes : elle s'ouvre en eventail. */

@@ -18,15 +18,29 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#E8E2D4',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#E8E2D4' },
+    { media: '(prefers-color-scheme: dark)', color: '#1A1714' },
+  ],
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
 };
 
+/**
+ * Pose le theme sur <html> avant le premier affichage, pour ne jamais montrer
+ * la page claire a quelqu'un qui a choisi le sombre. Ordre : `?theme=dark|light`
+ * dans l'adresse (utile pour une source OBS), puis le choix memorise, puis le
+ * reglage du systeme.
+ */
+const THEME_SCRIPT = `(function(){try{var q=new URLSearchParams(location.search).get('theme');var s=null;try{s=localStorage.getItem('refrain-theme')}catch(e){}var t=(q==='dark'||q==='light')?q:(s==='dark'||s==='light')?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${fraunces.variable} ${karla.variable} ${caveat.variable} ${emoji.variable}`}>
+    <html lang="fr" className={`${fraunces.variable} ${karla.variable} ${caveat.variable} ${emoji.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <Aurora />
         {children}

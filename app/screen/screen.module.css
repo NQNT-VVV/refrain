@@ -13,7 +13,7 @@
 .pl { display: flex; align-items: center; gap: 1.2vmin; font-size: 1.7vmin; }
 .pl .em { display: none; }
 .mid { margin-left: auto; margin-right: auto; display: flex; align-items: center; gap: 1.4vmin; }
-.codeMini { font: 800 2.8vmin/1 var(--font-display); letter-spacing: .04em; color: var(--ink); background: var(--gold); padding: .5vmin 1.2vmin .7vmin; border-radius: 1vmin; rotate: -2deg; }
+.codeMini { font: 800 2.8vmin/1 var(--font-display); letter-spacing: .04em; color: var(--ink); background: var(--gold); padding: .5vmin 1.2vmin .7vmin; border-radius: 1vmin; rotate: -2deg; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 
 /* Progression : une pastille par manche. */
 .dots { display: flex; gap: .7vmin; }
@@ -35,13 +35,12 @@
 .codeBig {
   font: 800 18vmin/.9 var(--font-display); letter-spacing: .04em; color: var(--ink);
   background: var(--gold); padding: 2vmin 4vmin 3vmin; border-radius: 3vmin; rotate: -2deg;
-  box-shadow: 0 1.2vmin 0 var(--ink); outline: .3vmin dashed rgba(34,30,26,.35); outline-offset: -1.4vmin;
-  animation: pop .7s var(--ease-bounce) .2s both;
-}
+  box-shadow: 0 1.2vmin 0 var(--shade); outline: .3vmin dashed rgba(34,30,26,.35); outline-offset: -1.4vmin;
+  animation: pop .7s var(--ease-bounce) .2s both; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .url { font: 500 2.3vmin/1.3 var(--font-mono); color: var(--ink-60); }
 .url b { color: var(--ink); font-weight: 700; }
 /* Le QR reste sur fond blanc : il doit se scanner. */
-.qr { background: #FFFFFF; border: .4vmin solid var(--ink); border-radius: 2.4vmin; padding: 1.6vmin; line-height: 0; rotate: 3deg; box-shadow: 0 1.2vmin 0 var(--ink); animation: pop .7s var(--ease-bounce) .35s both; }
+.qr { background: #FFFFFF; border: .4vmin solid var(--ink); border-radius: 2.4vmin; padding: 1.6vmin; line-height: 0; rotate: 3deg; box-shadow: 0 1.2vmin 0 var(--shade); animation: pop .7s var(--ease-bounce) .35s both; }
 .qr svg { width: 26vmin; height: 26vmin; display: block; }
 .lobbyPlayers { display: flex; flex-wrap: wrap; justify-content: center; gap: 1vmin; max-width: 94vw; }
 .lobbyPlayers .who { display: inline-flex; align-items: center; gap: .8vmin; padding: 0 1.6vmin; height: 4vmin; border-radius: 999px; background: var(--paper); border: .25vmin solid var(--ink); font: 700 1.9vmin/1 var(--font-mono); animation: pop .45s var(--ease-bounce) both; }
@@ -62,10 +61,10 @@
 .ringBg { fill: none; stroke: var(--ink-12); stroke-width: 2.4; }
 .ringFg { fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
 .vinyl { position: relative; width: 84%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 2vmin 4vmin rgba(34,30,26,.3); }
-.vinyl::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, #1A1714 0 .5vmin, #2B2622 .5vmin 1vmin); animation: spin 3.6s linear infinite; }
+.vinyl::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, var(--vinyl-a) 0 .5vmin, var(--vinyl-b) .5vmin 1vmin); animation: spin 3.6s linear infinite; }
 .vinyl::after { content: ''; position: absolute; inset: 31%; border-radius: 50%; background: var(--accent); box-shadow: inset 0 0 0 .5vmin rgba(255,255,255,.18); }
 .vinyl .q { position: relative; z-index: 1; font: 800 11vmin/1 var(--font-display); color: #FFFFFF; animation: sway 2.4s ease-in-out infinite; }
-.secLeft { position: absolute; right: -3vmin; bottom: 1vmin; width: 17vmin; height: 17vmin; border-radius: 50%; background: var(--gold); border: .5vmin solid var(--ink); box-shadow: 0 1vmin 0 var(--ink); display: grid; place-items: center; font: 800 9vmin/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--ink); rotate: 6deg; transition: background .3s ease, color .3s ease; }
+.secLeft { position: absolute; right: -3vmin; bottom: 1vmin; width: 17vmin; height: 17vmin; border-radius: 50%; background: var(--gold); border: .5vmin solid var(--ink); box-shadow: 0 1vmin 0 var(--shade); display: grid; place-items: center; font: 800 9vmin/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--ink); rotate: 6deg; transition: background .3s ease, color .3s ease; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .secLeft.warn { background: var(--accent); color: #FFFFFF; animation: sway .5s ease-in-out infinite; }
 .buzzGate { display: inline-flex; align-items: center; gap: 1.2vmin; padding: 0 2.4vmin; height: 5vmin; border-radius: 999px; border: .3vmin solid var(--ink); background: var(--paper); font: var(--t-meta); font-size: 1.9vmin; color: var(--ink-60); }
 .buzzGate b { font: 800 3vmin/1 var(--font-display); color: var(--ink); }
@@ -84,14 +83,14 @@
 .prow .sc { font: 800 2.6vmin/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .prow .marks { display: flex; gap: .4vmin; font-size: 1.6vmin; }
 /* A trouve : la ligne passe au jaune et avance d'un cran. */
-.prow.done { background: var(--gold); border-color: var(--ink); translate: -1vmin 0; }
+.prow.done { background: var(--gold); border-color: var(--ink); translate: -1vmin 0; color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .prow.part { background-image: var(--dither-25); background-size: var(--dither-size); }
 .prow.off { color: var(--ink-60); border-style: dashed; background: transparent; }
 
 /* Buzz : le nom, en grand, et le compte a rebours de la reponse. */
 .buzzed { align-items: center; justify-content: center; flex-direction: column; gap: 2vmin; text-align: center; }
 .buzzAv { font-size: 14vmin; font-family: var(--emoji); animation: pop .5s var(--ease-bounce) both, sway 1.4s ease-in-out .5s infinite; }
-.buzzName { font: 800 10vmin/1 var(--font-display); letter-spacing: var(--ls-display); color: var(--ink); background: var(--gold); padding: 1vmin 3vmin 2vmin; border-radius: 2.4vmin; rotate: -2deg; box-shadow: 0 1vmin 0 var(--ink); animation: pop .55s var(--ease-bounce) .1s both; }
+.buzzName { font: 800 10vmin/1 var(--font-display); letter-spacing: var(--ls-display); color: var(--ink); background: var(--gold); padding: 1vmin 3vmin 2vmin; border-radius: 2.4vmin; rotate: -2deg; box-shadow: 0 1vmin 0 var(--shade); animation: pop .55s var(--ease-bounce) .1s both; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .buzzSub { font: 700 3.4vmin/1 var(--font-hand); color: var(--ink-60); text-transform: none; letter-spacing: 0; }
 .answerClock { display: inline-flex; align-items: center; gap: 1.2vmin; margin-top: 1vmin; padding: 0 2.6vmin; height: 7vmin; border-radius: 999px; background: var(--paper); border: .35vmin solid var(--ink); font: var(--t-meta); font-size: 2vmin; }
 .answerClock b { font: 800 4.6vmin/1 var(--font-display); font-variant-numeric: tabular-nums; }
@@ -100,7 +99,7 @@
 /* Revelation : la pochette tombe sur la table, le titre suit. */
 .reveal { gap: 4vmin; align-items: center; justify-content: center; }
 .revealMain { display: flex; align-items: center; gap: 6vmin; max-width: 124vmin; min-width: 0; flex: 1; }
-.coverLg { width: 38vmin; height: 38vmin; flex: none; object-fit: cover; border: .5vmin solid var(--ink); border-radius: 3vmin; background: var(--paper); rotate: -4deg; box-shadow: 0 1.4vmin 0 var(--ink), 0 4vmin 5vmin rgba(34,30,26,.25); animation: cover-drop .8s var(--ease-bounce) both; }
+.coverLg { width: 38vmin; height: 38vmin; flex: none; object-fit: cover; border: .5vmin solid var(--ink); border-radius: 3vmin; background: var(--paper); rotate: -4deg; box-shadow: 0 1.4vmin 0 var(--shade), 0 4vmin 5vmin rgba(34,30,26,.25); animation: cover-drop .8s var(--ease-bounce) both; }
 @keyframes cover-drop { from { opacity: 0; scale: 1.5; rotate: 12deg; } to { opacity: 1; scale: 1; rotate: -4deg; } }
 .revealText { min-width: 0; max-width: 66vmin; animation: rise .7s var(--ease) .25s both; }
 .kicker { font: 700 3vmin/1 var(--font-hand); color: var(--accent); margin-bottom: 1.4vmin; text-transform: none; letter-spacing: 0; rotate: -1.5deg; display: inline-block; }
@@ -127,7 +126,7 @@
 .bar .sc { font: 800 2.8vmin/1 var(--font-display); width: 9vmin; text-align: right; font-variant-numeric: tabular-nums; }
 /* Le premier porte le jaune. */
 .bar.top1 { border-color: var(--ink); background: var(--gold-18); }
-.bar.top1 .pos { background: var(--gold); color: var(--ink); padding: .5vmin 1vmin; border-radius: 1vmin; rotate: -4deg; }
+.bar.top1 .pos { background: var(--gold); color: var(--ink); padding: .5vmin 1vmin; border-radius: 1vmin; rotate: -4deg; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .bar.top1 .fill { background: var(--accent); }
 
 /* Podium : trois blocs qui montent. */
@@ -140,9 +139,9 @@
 .step .block { width: 22vmin; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 1.6vmin 1vmin; border-radius: 2vmin 2vmin 0 0; border: .4vmin solid var(--ink); border-bottom: 0; transform-origin: 50% 100%; animation: grow .9s var(--ease-bounce) both; }
 @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .step .block .pts { font: 800 3.6vmin/1 var(--font-display); color: var(--ink); }
-.step.p1 .block { height: 26vmin; background: var(--gold); animation-delay: .5s; }
-.step.p2 .block { height: 18vmin; background: #CFC8B8; animation-delay: .25s; }
-.step.p3 .block { height: 13vmin; background: #D9A074; }
+.step.p1 .block { height: 26vmin; background: var(--gold); animation-delay: .5s; color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
+.step.p2 .block { height: 18vmin; background: #CFC8B8; animation-delay: .25s; color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
+.step.p3 .block { height: 13vmin; background: #D9A074; color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .rest { display: flex; flex-wrap: wrap; gap: 1vmin; justify-content: center; max-width: 84vw; }
 .rest .r { padding: 0 1.6vmin; height: 3.8vmin; display: inline-flex; align-items: center; border-radius: 999px; background: var(--paper); border: .25vmin solid var(--ink-25); font: 700 1.9vmin/1 var(--font-mono); }
 
@@ -172,7 +171,7 @@
 .joinCard {
   position: fixed; bottom: 2.4vmin; left: 3vmin; z-index: 30;
   display: flex; align-items: center; gap: 1.6vmin;
-  padding: 1.2vmin 1.8vmin; background: var(--paper); border: .3vmin solid var(--ink); border-radius: 2vmin; box-shadow: 0 .8vmin 0 var(--ink); rotate: -1.5deg;
+  padding: 1.2vmin 1.8vmin; background: var(--paper); border: .3vmin solid var(--ink); border-radius: 2vmin; box-shadow: 0 .8vmin 0 var(--shade); rotate: -1.5deg;
 }
 .joinCard.right { left: auto; right: 3vmin; rotate: 1.5deg; }
 .joinCard .qr { padding: .6vmin; border-radius: 1.2vmin; border-width: .25vmin; box-shadow: none; rotate: 0deg; animation: none; }
@@ -197,7 +196,7 @@
 .frow .ms { font: 800 2vmin/1 var(--font-display); font-variant-numeric: tabular-nums; color: var(--accent); }
 
 /* Le plus rapide a la revelation : la pastille jaune de cette scene. */
-.fastestBadge { display: inline-flex; align-items: center; gap: 1vmin; margin-top: 2.2vmin; padding: 0 1.8vmin; height: 4.2vmin; border-radius: 999px; font: 700 1.9vmin/1 var(--font-mono); background: var(--gold); border: .25vmin solid var(--ink); color: var(--ink); rotate: -1.5deg; animation: pop .5s var(--ease-bounce) .5s both; }
+.fastestBadge { display: inline-flex; align-items: center; gap: 1vmin; margin-top: 2.2vmin; padding: 0 1.8vmin; height: 4.2vmin; border-radius: 999px; font: 700 1.9vmin/1 var(--font-mono); background: var(--gold); border: .25vmin solid var(--ink); color: var(--ink); rotate: -1.5deg; animation: pop .5s var(--ease-bounce) .5s both; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .fastestBadge b { font: 800 2.1vmin/1 var(--font-display); }
 
 /* Pause */

@@ -9,20 +9,20 @@
   width: 64px; height: 64px; flex: none; cursor: pointer; border-radius: 50%;
   border: 2px solid var(--ink); background: var(--accent); color: #FFFFFF;
   font: var(--t-meta); display: grid; place-items: center;
-  box-shadow: 0 5px 0 var(--ink);
+  box-shadow: 0 5px 0 var(--shade);
   transition: transform var(--tap), box-shadow var(--tap), background var(--tap);
 }
 .playBtn .ico { width: 26px; height: 26px; }
-.playBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); }
-.playBtn:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--ink); }
-.playBtn:disabled { background: #D8D0BF; border-color: var(--ink-35); color: var(--ink-60); box-shadow: none; cursor: not-allowed; }
+.playBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 0 var(--shade); }
+.playBtn:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0 0 var(--shade); }
+.playBtn:disabled { background: #D8D0BF; border-color: var(--ink-35); color: var(--ink-60); box-shadow: none; cursor: not-allowed; --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .playInfo { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
 .playInfo b { font: 800 21px/1.15 var(--font-display); }
 .playInfo span { font: var(--t-prose); font-size: 15px; color: var(--ink-60); }
 
 /* Barre de 16 s : la zone debloquee en jaune, la tete de lecture en rouge. */
 .track { position: relative; height: 16px; border-radius: 999px; background: var(--ink-12); overflow: hidden; }
-.track .unlocked { position: absolute; inset: 0 auto 0 0; background: var(--gold); border-radius: 999px; transition: width .6s var(--ease-bounce); }
+.track .unlocked { position: absolute; inset: 0 auto 0 0; background: var(--gold); border-radius: 999px; transition: width .6s var(--ease-bounce); color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .track .cursor { position: absolute; inset: 0 auto 0 0; width: 4px; border-radius: 2px; background: var(--accent); }
 .track .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bg); }
 .ticks { display: flex; justify-content: space-between; font: var(--t-meta); color: var(--ink-60); font-variant-numeric: tabular-nums; }
@@ -41,7 +41,7 @@
 .inputRow :global(.input) { flex: 1; min-width: 0; }
 .suggest {
   position: absolute; left: 0; right: 0; top: calc(100% - 4px); z-index: 30;
-  background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 0 6px 0 var(--ink);
+  background: var(--paper-hi); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 0 6px 0 var(--shade);
   max-height: 280px; overflow-y: auto; animation: rise .25s var(--ease) both;
 }
 .suggest button {
@@ -50,7 +50,7 @@
   font: var(--t-ui); color: var(--ink); text-transform: none; letter-spacing: 0; transition: background .15s ease;
 }
 .suggest button:last-child { border-bottom: 0; }
-.suggest button:hover, .suggest button[aria-selected="true"] { background: var(--gold); }
+.suggest button:hover, .suggest button[aria-selected="true"] { background: var(--gold); color: var(--ink); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .suggest img { width: 36px; height: 36px; flex: none; border-radius: 6px; border: 1.5px solid var(--ink); }
 .suggest .st { display: flex; flex-direction: column; min-width: 0; }
 .suggest .st b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -67,7 +67,7 @@
 .attempt.miss { border-color: var(--accent); background: var(--accent-deep); animation: shake .35s var(--ease); }
 .attempt.miss .txt { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--accent); }
 .attempt.skip .txt { color: var(--ink-60); }
-.attempt.hit { border-color: var(--green); background: #E3EDE5; animation: pop .45s var(--ease-bounce) both; }
+.attempt.hit { border-color: var(--green); background: var(--green-pale); animation: pop .45s var(--ease-bounce) both; }
 .attempt.hit .txt { color: var(--ink); }
 .attempt.empty { color: var(--ink-55); border-style: dashed; background: transparent; animation: none; }
 .attempt.empty .n { color: var(--ink-55); }

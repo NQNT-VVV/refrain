@@ -18,7 +18,7 @@
 .listTitle { font: var(--t-meta); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-60); }
 
 .revealed { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border: 1.5px solid var(--ink-25); border-radius: 12px; background: var(--paper-hi); animation: rise .4s var(--ease) both; }
-.revealed.solved { border-color: var(--green); background: #E3EDE5; }
+.revealed.solved { border-color: var(--green); background: var(--green-pale); }
 .revealed.missed { background-image: var(--dither-25); background-size: var(--dither-size); }
 .revealed.fresh { border: 2px solid var(--ink); }
 .revealed img, .noCover { width: 46px; height: 46px; flex: none; display: grid; place-items: center; font-size: 20px; border-radius: 8px; border: 1.5px solid var(--ink); background: var(--paper); }

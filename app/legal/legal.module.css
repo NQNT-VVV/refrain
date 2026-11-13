@@ -25,7 +25,7 @@
 .section li + li { margin-top: var(--sp-2); }
 .section a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 
-.note { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); border-radius: 6px; background: var(--gold); font: var(--t-prose); color: var(--ink); rotate: -.4deg; box-shadow: 0 6px 12px rgba(34,30,26,.12); }
+.note { padding: var(--sp-3) var(--sp-4); margin-top: var(--sp-4); border-radius: 6px; background: var(--gold); font: var(--t-prose); color: var(--ink); rotate: -.4deg; box-shadow: 0 6px 12px rgba(34,30,26,.12); --ink: #221E1A; --ink-90: #2B2622; --ink-60: #4A443C; --ink-55: #4A443C; --ink-45: #6B655C; --ink-25: rgba(34,30,26,.22); --paper: #F4EFE3; --paper-hi: #FBF8F1; }
 .note .mark { display: none; }
 .note b { font-weight: 700; }
 
